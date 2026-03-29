@@ -358,6 +358,7 @@ export default function Page() {
     getPaginationRowModel: getPaginationRowModel(),
     onSortingChange: onSortingChange,
     onPaginationChange: onPaginationChange,
+    autoResetPageIndex: false,
     state: {
       sorting: sortingState,
       pagination: paginationState,
