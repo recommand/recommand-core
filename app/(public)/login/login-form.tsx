@@ -15,6 +15,7 @@ import { cn } from "../../../lib/utils";
 import { useUserStore } from "../../../lib/user-store";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "@core/hooks/use-translation";
+import { useUIConfig } from "../../../lib/ui-config-store";
 
 export function LoginForm({
   className,
@@ -25,6 +26,9 @@ export function LoginForm({
   const { login } = useUserStore();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const logoSrc = useUIConfig("auth.logo-src", "/logo.svg");
+  const logoClassName = useUIConfig("auth.logo-class", "h-12 w-auto");
+  const containerClassName = useUIConfig("auth.container-class", "flex flex-col gap-6");
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -42,12 +46,12 @@ export function LoginForm({
   };
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
+    <div className={cn(containerClassName, className)} {...props}>
       <div className="flex justify-center mb-4">
         <img
-          src="/logo.svg"
+          src={logoSrc}
           alt="Logo"
-          className="h-12 w-auto"
+          className={logoClassName}
         />
       </div>
       <Card>

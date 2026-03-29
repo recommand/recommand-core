@@ -14,6 +14,7 @@ import { stringifyActionFailure } from "@recommand/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useUserStore } from "../../../../lib/user-store";
 import { useTranslation } from "@core/hooks/use-translation";
+import { useUIConfig } from "../../../../lib/ui-config-store";
 
 const client = rc<Auth>("core");
 
@@ -30,6 +31,9 @@ export default function EmailConfirmationForm({
   const navigate = useNavigate();
   const { fetchUser } = useUserStore();
   const { t } = useTranslation();
+  const logoSrc = useUIConfig("auth.logo-src", "/logo.svg");
+  const logoClassName = useUIConfig("auth.logo-class", "h-12 w-auto");
+  const containerClassName = useUIConfig("auth.container-class", "flex flex-col gap-6");
 
   useEffect(() => {
     if (token) {
@@ -162,12 +166,12 @@ export default function EmailConfirmationForm({
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className={containerClassName}>
       <div className="flex justify-center mb-4">
         <img
-          src="/logo.svg"
+          src={logoSrc}
           alt="Logo"
-          className="h-12 w-auto"
+          className={logoClassName}
         />
       </div>
       <Card className="mx-auto max-w-md">

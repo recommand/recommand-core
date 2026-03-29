@@ -9,21 +9,21 @@ import {
 import { fallbackT, type TranslationFunction } from "@core/lib/translations";
 
 interface TeamInvitationEmailProps {
-  firstName: string;
+  firstName: string | null;
   teamName: string;
   resetPasswordLink: string;
   t?: TranslationFunction;
 }
 
 export const TeamInvitationEmail = ({
-  firstName = "there",
+  firstName,
   teamName = "Team",
   resetPasswordLink = "https://example.com/reset-password/token",
   t = fallbackT,
 }: TeamInvitationEmailProps) => (
   <EmailLayout preview={t`You've been invited to join ${teamName} on Recommand`} t={t}>
     <EmailHeading>{t`You're invited`}</EmailHeading>
-    <Text className="mb-4">{t`Hello ${firstName},`}</Text>
+    <Text className="mb-4">{t`Hello ${firstName ?? t`there`},`}</Text>
     <Text className="mb-4">
       {t`You've been invited to join ${teamName} on Recommand. We've created an account for you.`}
     </Text>

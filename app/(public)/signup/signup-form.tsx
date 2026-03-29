@@ -19,6 +19,7 @@ import { stringifyActionFailure } from "@recommand/lib/utils";
 import { useTranslation } from "@core/hooks/use-translation";
 import { Checkbox } from "../../../components/ui/checkbox";
 import { useLegalDocuments } from "@core/hooks/use-legal-documents";
+import { useUIConfig } from "../../../lib/ui-config-store";
 
 const client = rc<Auth>("core");
 
@@ -33,6 +34,9 @@ export default function SignupForm({
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const { signup } = useUserStore();
   const { t } = useTranslation();
+  const logoSrc = useUIConfig("auth.logo-src", "/logo.svg");
+  const logoClassName = useUIConfig("auth.logo-class", "h-12 w-auto");
+  const containerClassName = useUIConfig("auth.container-class", "flex flex-col gap-6");
   const {
     hasLegalDocuments,
     hasTermsOfUse,
@@ -98,12 +102,12 @@ export default function SignupForm({
 
   if (isSignupComplete) {
     return (
-      <div className={cn("flex flex-col gap-6", className)} {...props}>
+      <div className={cn(containerClassName, className)} {...props}>
         <div className="flex justify-center mb-4">
           <img
-            src="/logo.svg"
+            src={logoSrc}
             alt="Logo"
-            className="h-12 w-auto"
+            className={logoClassName}
           />
         </div>
         <Card>
@@ -140,12 +144,12 @@ export default function SignupForm({
   }
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
+    <div className={cn(containerClassName, className)} {...props}>
       <div className="flex justify-center mb-4">
         <img
-          src="/logo.svg"
+          src={logoSrc}
           alt="Logo"
-          className="h-12 w-auto"
+          className={logoClassName}
         />
       </div>
       <Card>

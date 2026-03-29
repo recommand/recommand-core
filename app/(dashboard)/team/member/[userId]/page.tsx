@@ -20,7 +20,6 @@ type PermissionWithGrantable = {
   id: string;
   name: string;
   description?: string;
-  isGrantable: boolean;
 };
 
 type UserPermission = {
@@ -191,7 +190,7 @@ export default function UserPermissionsPage() {
                 {allPermissions.map((permission) => {
                   const has = hasPermission(permission.id);
                   const isPending = pendingPermissions.has(permission.id);
-                  const isDisabled = !permission.isGrantable || isPending;
+                  const isDisabled = isPending;
 
                   return (
                     <div
@@ -219,11 +218,6 @@ export default function UserPermissionsPage() {
                         </Label>
                         {permission.description && (
                           <p className="text-sm text-muted-foreground">{permission.description}</p>
-                        )}
-                        {!permission.isGrantable && (
-                          <p className="text-xs text-destructive">
-                            {t`You don't have permission to grant or revoke this permission.`}
-                          </p>
                         )}
                       </div>
                     </div>

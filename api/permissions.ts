@@ -38,14 +38,12 @@ const _getPermissions = server.get(
         return c.json(actionFailure(t`User ID is required`), 400);
       }
 
-      const allPermissions = getRegisteredPermissions();
       const grantablePermissions = await getGrantablePermissions(actorUserId, teamId);
       return c.json(actionSuccess({
-        permissions: allPermissions.map((p) => ({
+        permissions: grantablePermissions.map((p) => ({
           id: p.id,
           name: p.name,
           description: p.description,
-          isGrantable: grantablePermissions.some((gp) => gp.id === p.id),
         }))
       }));
     } catch (error) {

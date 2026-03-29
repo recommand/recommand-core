@@ -9,7 +9,7 @@ import {
 import { fallbackT, type TranslationFunction } from "@core/lib/translations";
 
 interface PasswordResetEmailProps {
-  firstName: string;
+  firstName: string | null;
   resetPasswordLink: string;
   t?: TranslationFunction;
 }
@@ -21,7 +21,7 @@ export const PasswordResetEmail = ({
 }: PasswordResetEmailProps) => (
   <EmailLayout preview={t`Reset your Recommand password`} t={t}>
     <EmailHeading>{t`Reset your password`}</EmailHeading>
-    <Text className="mb-4">{t`Hello ${firstName},`}</Text>
+    <Text className="mb-4">{t`Hello ${firstName ?? t`there`},`}</Text>
     <Text className="mb-4">
       {t`We received a request to reset your password for your Recommand account.`}
     </Text>

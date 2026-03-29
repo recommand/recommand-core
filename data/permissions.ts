@@ -219,6 +219,37 @@ export async function hasPermission(
   return result.length > 0;
 }
 
+/**
+ * Checks if a user has the given permission in any of their teams.
+ * More efficient than checking each team individually.
+ */
+export async function hasPermissionInAnyTeam(
+  userId: string,
+  permissionId: string
+): Promise<boolean> {
+  const permission = getRegisteredPermission(permissionId);
+  if (!permission) {
+    return false;
+  }
+
+  if (await isUserAdmin(userId)) {
+    return true;
+  }
+
+  const result = await db
+    .select()
+    .from(userPermissions)
+    .where(
+      and(
+        eq(userPermissions.userId, userId),
+        eq(userPermissions.permissionId, permissionId)
+      )
+    )
+    .limit(1);
+
+  return result.length > 0;
+}
+
 export async function getUserPermissionsForTeam(
   userId: string,
   teamId: string

@@ -102,7 +102,7 @@ const signup = server.post(
       // Send confirmation email in the browser's language
       const confirmationUrl = `${process.env.BASE_URL}/email-confirmation/${verificationToken}`;
       const signupEmail = await getEmailTemplate("signup-confirmation");
-      const emailProps = { firstName: "there", confirmationUrl, t };
+      const emailProps = { firstName: null, confirmationUrl, t };
       await sendEmail({
         to: data.email,
         subject: signupEmail.subject(emailProps),
@@ -299,7 +299,7 @@ const requestPasswordReset = server.post(
       const emailT = await createServerT(user.language);
       const resetLink = `${process.env.BASE_URL}/reset-password/${resetToken}`;
       const passwordResetEmail = await getEmailTemplate("password-reset-email");
-      const resetEmailProps = { firstName: "there", resetPasswordLink: resetLink, t: emailT };
+      const resetEmailProps = { firstName: null, resetPasswordLink: resetLink, t: emailT };
       await sendEmail({
         to: normalizedEmail,
         subject: passwordResetEmail.subject(resetEmailProps),
@@ -439,7 +439,7 @@ const resendConfirmationEmail = server.post(
       const emailT = await createServerT(user.language);
       const confirmationUrl = `${process.env.BASE_URL}/email-confirmation/${verificationToken}`;
       const signupEmail = await getEmailTemplate("signup-confirmation");
-      const emailProps = { firstName: "there", confirmationUrl, t: emailT };
+      const emailProps = { firstName: null, confirmationUrl, t: emailT };
       await sendEmail({
         to: normalizedEmail,
         subject: signupEmail.subject(emailProps),

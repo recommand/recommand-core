@@ -109,7 +109,7 @@ const _addTeamMember = server.post(
         const emailT = await createServerT(c.get("language"));
         const resetLink = `${process.env.BASE_URL}/reset-password/${resetToken}`;
         const invitationEmail = await getEmailTemplate("team-invitation-email");
-        const emailProps = { firstName: "there", teamName: team.name, resetPasswordLink: resetLink, t: emailT };
+        const emailProps = { firstName: null, teamName: team.name, resetPasswordLink: resetLink, t: emailT };
         await sendEmail({
           to: user.email,
           subject: invitationEmail.subject(emailProps),

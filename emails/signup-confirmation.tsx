@@ -3,7 +3,7 @@ import { Button, EmailLayout, EmailHeading, InfoSection, baseUrl } from "./compo
 import { fallbackT, type TranslationFunction } from "@core/lib/translations";
 
 interface EmailConfirmationProps {
-  firstName: string;
+  firstName: string | null;
   confirmationUrl: string;
   t?: TranslationFunction;
 }
@@ -15,7 +15,7 @@ export const SignupEmailConfirmation = ({
 }: EmailConfirmationProps) => (
   <EmailLayout preview={t`Confirm your email address`} t={t}>
     <EmailHeading>{t`Confirm your email`}</EmailHeading>
-    <Text className="mb-4">{t`Hello ${firstName},`}</Text>
+    <Text className="mb-4">{t`Hello ${firstName ?? t`there`},`}</Text>
     <Text className="mb-4">
       {t`Thank you for signing up for Recommand. Please confirm your email address to get started.`}
     </Text>

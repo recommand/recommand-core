@@ -7,13 +7,14 @@ import {
   CardHeader,
   CardTitle,
 } from "../../../../components/ui/card";
-import { Input } from "../../../../components/ui/input";
+import { PasswordInput } from "../../../../components/form/password-input";
 import { Label } from "../../../../components/ui/label";
 import { rc } from "@recommand/lib/client";
 import type { Auth } from "api/auth";
 import { toast } from "../../../../components/ui/sonner";
 import { stringifyActionFailure } from "@recommand/lib/utils";
 import { useTranslation } from "@core/hooks/use-translation";
+import { useUIConfig } from "../../../../lib/ui-config-store";
 
 const client = rc<Auth>("core");
 
@@ -26,6 +27,9 @@ export default function ResetPasswordForm({ token }: ResetPasswordFormProps) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { t } = useTranslation();
+  const logoSrc = useUIConfig("auth.logo-src", "/logo.svg");
+  const logoClassName = useUIConfig("auth.logo-class", "h-12 w-auto");
+  const containerClassName = useUIConfig("auth.container-class", "flex flex-col gap-6");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,12 +73,12 @@ export default function ResetPasswordForm({ token }: ResetPasswordFormProps) {
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className={containerClassName}>
       <div className="flex justify-center mb-4">
         <img
-          src="/logo.svg"
+          src={logoSrc}
           alt="Logo"
-          className="h-12 w-auto"
+          className={logoClassName}
         />
       </div>
       <Card className="mx-auto">
@@ -88,9 +92,8 @@ export default function ResetPasswordForm({ token }: ResetPasswordFormProps) {
         <form onSubmit={handleSubmit} className="grid gap-4">
           <div className="grid gap-2">
             <Label htmlFor="password">{t`Password`}</Label>
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
               placeholder={t`Enter new password`}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -99,9 +102,8 @@ export default function ResetPasswordForm({ token }: ResetPasswordFormProps) {
           </div>
           <div className="grid gap-2">
             <Label htmlFor="confirmPassword">{t`Confirm Password`}</Label>
-            <Input
+            <PasswordInput
               id="confirmPassword"
-              type="password"
               placeholder={t`Confirm new password`}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}

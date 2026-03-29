@@ -14,6 +14,7 @@ import type { Auth } from "api/auth";
 import { toast } from "../../../components/ui/sonner";
 import { stringifyActionFailure } from "@recommand/lib/utils";
 import { useTranslation } from "@core/hooks/use-translation";
+import { useUIConfig } from "../../../lib/ui-config-store";
 
 const client = rc<Auth>("core");
 
@@ -22,6 +23,9 @@ export default function ForgotPasswordForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const { t } = useTranslation();
+  const logoSrc = useUIConfig("auth.logo-src", "/logo.svg");
+  const logoClassName = useUIConfig("auth.logo-class", "h-12 w-auto");
+  const containerClassName = useUIConfig("auth.container-class", "flex flex-col gap-6");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,12 +77,12 @@ export default function ForgotPasswordForm() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className={containerClassName}>
       <div className="flex justify-center mb-4">
         <img
-          src="/logo.svg"
+          src={logoSrc}
           alt="Logo"
-          className="h-12 w-auto"
+          className={logoClassName}
         />
       </div>
       <Card className="mx-auto max-w-md">
