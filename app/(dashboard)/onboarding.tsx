@@ -48,7 +48,7 @@ export default function Onboarding({ step }: { step: OnboardingStep }) {
       <img src="/logo.svg" alt="Recommand Logo" className="h-8 w-auto min-w-32" />
       <div className="flex flex-col items-center space-y-2">
         <h1 className="text-2xl font-bold">{step.title}</h1>
-        {step.description && <p className="text-sm text-muted-foreground text-balance max-w-sm">{step.description}</p>}
+        {step.description && <p className="text-sm text-muted-foreground text-balance text-center max-w-sm">{step.description}</p>}
       </div>
       <div>
         {step.render({
