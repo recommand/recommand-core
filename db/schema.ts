@@ -36,6 +36,14 @@ export const userPermissions = pgTable("user_permissions", {
   updatedAt: autoUpdateTimestamp(),
 }, (table) => [primaryKey({ columns: [table.userId, table.teamId, table.permissionId] })]);
 
+export const userGlobalPermissions = pgTable("user_global_permissions", {
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  permissionId: text("permission_id").notNull(),
+  grantedByUserId: text("granted_by_user_id"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: autoUpdateTimestamp(),
+}, (table) => [primaryKey({ columns: [table.userId, table.permissionId] })]);
+
 export const teams = pgTable("teams", {
   id: text("id")
     .primaryKey()

@@ -32,6 +32,7 @@ interface UserState {
 
   // Permissions per team (keyed by teamId)
   teamPermissions: Record<string, string[]>;
+  globalPermissions: string[];
 
   // Feature flags from server
   features: { s3Enabled: boolean; teamLogoEnabled: boolean };
@@ -65,6 +66,7 @@ function transformUserData(data: any): UserWithoutPassword & {
   teams?: Team[];
   completedOnboardingSteps: MinimalCompletedOnboardingStep[];
   teamPermissions?: Record<string, string[]>;
+  globalPermissions?: string[];
 } {
   return {
     ...data,
@@ -79,6 +81,7 @@ function transformUserData(data: any): UserWithoutPassword & {
     })),
     completedOnboardingSteps: data.completedOnboardingSteps,
     teamPermissions: data.teamPermissions,
+    globalPermissions: data.globalPermissions,
   };
 }
 
@@ -96,6 +99,7 @@ export const useUserStore = create<UserState>((set, get) => ({
   teamsAreLoaded: false,
   activeTeam: null,
   teamPermissions: {},
+  globalPermissions: [],
   features: { s3Enabled: false, teamLogoEnabled: false },
 
   fetchUser: async () => {
@@ -116,6 +120,7 @@ export const useUserStore = create<UserState>((set, get) => ({
           isLoading: false,
           completedOnboardingSteps: transformedUser.completedOnboardingSteps,
           teamPermissions: transformedUser.teamPermissions ?? {},
+          globalPermissions: transformedUser.globalPermissions ?? [],
           features: (userData.data as any).features ?? { s3Enabled: false, teamLogoEnabled: false },
         });
       } else if (!userData.success) {
@@ -196,7 +201,14 @@ export const useUserStore = create<UserState>((set, get) => ({
       const response = await res.json();
 
       if (response.success) {
-        set({ user: null, isLoading: false, activeTeam: null, teams: [], teamPermissions: {} });
+        set({
+          user: null,
+          isLoading: false,
+          activeTeam: null,
+          teams: [],
+          teamPermissions: {},
+          globalPermissions: [],
+        });
         setStoredActiveTeamId(null);
       } else {
         set({

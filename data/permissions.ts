@@ -1,15 +1,39 @@
-import { userPermissions, users, teamMembers } from "@core/db/schema";
+import {
+  userGlobalPermissions,
+  userPermissions,
+  users,
+  teamMembers,
+} from "@core/db/schema";
 import { emitBackendEvent, CORE_BACKEND_EVENTS } from "@core/lib/backend-events";
-import { getRegisteredPermission, getRegisteredPermissions, type Permission } from "@core/lib/permissions";
+import {
+  getRegisteredPermission,
+  getRegisteredPermissionsByScope,
+  type Permission,
+  type PermissionScope,
+} from "@core/lib/permissions";
 import { db } from "@recommand/db";
 import { and, eq, inArray } from "drizzle-orm";
 
 export type UserPermission = typeof userPermissions.$inferSelect;
+export type UserGlobalPermission = typeof userGlobalPermissions.$inferSelect;
 
 export class PermissionNotRegisteredError extends Error {
   constructor(permissionId: string) {
     super(`Permission "${permissionId}" is not registered`);
     this.name = "PermissionNotRegisteredError";
+  }
+}
+
+export class InvalidPermissionScopeError extends Error {
+  constructor(
+    permissionId: string,
+    expectedScope: PermissionScope,
+    actualScope: PermissionScope,
+  ) {
+    super(
+      `Permission "${permissionId}" has scope "${actualScope}" but "${expectedScope}" was expected`,
+    );
+    this.name = "InvalidPermissionScopeError";
   }
 }
 
@@ -32,47 +56,58 @@ async function isUserAdmin(userId: string): Promise<boolean> {
 
 async function canAccessTeamPermissions(
   userId: string,
-  teamId: string
+  teamId: string,
 ): Promise<boolean> {
   if (await isUserAdmin(userId)) {
     return true;
   }
 
-  // Check if user is a member of the team
   const membership = await db
     .select()
     .from(teamMembers)
-    .where(
-      and(
-        eq(teamMembers.userId, userId),
-        eq(teamMembers.teamId, teamId)
-      )
-    )
+    .where(and(eq(teamMembers.userId, userId), eq(teamMembers.teamId, teamId)))
     .limit(1);
 
   return membership.length > 0;
 }
 
-async function canActorModifyPermission(
+function assertPermissionScope(
+  permission: Permission,
+  expectedScope: PermissionScope,
+): void {
+  if (permission.scope !== expectedScope) {
+    throw new InvalidPermissionScopeError(
+      permission.id,
+      expectedScope,
+      permission.scope ?? "team",
+    );
+  }
+}
+
+async function canActorModifyTeamPermission(
   actorUserId: string,
   teamId: string,
-  permission: Permission
+  permission: Permission,
 ): Promise<boolean> {
-  // Check if actor can access the team
-  if (!await canAccessTeamPermissions(actorUserId, teamId)) {
+  assertPermissionScope(permission, "team");
+
+  if (!(await canAccessTeamPermissions(actorUserId, teamId))) {
     return false;
   }
 
-  // If actor is admin, they can modify any permission
   const isAdmin = await isUserAdmin(actorUserId);
   if (isAdmin) {
     return true;
   }
-  if (permission.hasAdminPrerequisite && !isAdmin) {
+
+  if (permission.hasAdminPrerequisite) {
     return false;
   }
 
-  // Check if actor has all prerequisite permissions
+  if (permission.prerequisiteActorPermissionIds.length === 0) {
+    return true;
+  }
+
   const actorPermissions = await db
     .select({ permissionId: userPermissions.permissionId })
     .from(userPermissions)
@@ -80,38 +115,91 @@ async function canActorModifyPermission(
       and(
         eq(userPermissions.userId, actorUserId),
         eq(userPermissions.teamId, teamId),
-        inArray(userPermissions.permissionId, permission.prerequisiteActorPermissionIds)
-      )
+        inArray(
+          userPermissions.permissionId,
+          permission.prerequisiteActorPermissionIds,
+        ),
+      ),
     );
 
-  const actorPermissionIds = new Set(actorPermissions.map((p) => p.permissionId));
-  return permission.prerequisiteActorPermissionIds.every((id) => actorPermissionIds.has(id));
+  const actorPermissionIds = new Set(
+    actorPermissions.map((actorPermission) => actorPermission.permissionId),
+  );
+
+  return permission.prerequisiteActorPermissionIds.every((permissionId) =>
+    actorPermissionIds.has(permissionId),
+  );
+}
+
+async function canActorModifyGlobalPermission(
+  actorUserId: string,
+  permission: Permission,
+): Promise<boolean> {
+  assertPermissionScope(permission, "global");
+
+  const isAdmin = await isUserAdmin(actorUserId);
+  if (isAdmin) {
+    return true;
+  }
+
+  if (permission.hasAdminPrerequisite) {
+    return false;
+  }
+
+  if (permission.prerequisiteActorPermissionIds.length === 0) {
+    return true;
+  }
+
+  const actorPermissions = await db
+    .select({ permissionId: userGlobalPermissions.permissionId })
+    .from(userGlobalPermissions)
+    .where(
+      and(
+        eq(userGlobalPermissions.userId, actorUserId),
+        inArray(
+          userGlobalPermissions.permissionId,
+          permission.prerequisiteActorPermissionIds,
+        ),
+      ),
+    );
+
+  const actorPermissionIds = new Set(
+    actorPermissions.map((actorPermission) => actorPermission.permissionId),
+  );
+
+  return permission.prerequisiteActorPermissionIds.every((permissionId) =>
+    actorPermissionIds.has(permissionId),
+  );
 }
 
 export async function grantPermission(
   userId: string,
   teamId: string,
   permissionId: string,
-  grantedByUserId: string
+  grantedByUserId: string,
 ): Promise<UserPermission> {
   const permission = getRegisteredPermission(permissionId);
   if (!permission) {
     throw new PermissionNotRegisteredError(permissionId);
   }
 
-  // Check if target user can have permissions for this team
+  assertPermissionScope(permission, "team");
+
   const canAccess = await canAccessTeamPermissions(userId, teamId);
   if (!canAccess) {
     throw new NotAuthorizedError(
-      "User must be a member of the team to be granted permissions"
+      "User must be a member of the team to be granted permissions",
     );
   }
 
-  // Check if actor can grant this permission
-  const canModify = await canActorModifyPermission(grantedByUserId, teamId, permission);
+  const canModify = await canActorModifyTeamPermission(
+    grantedByUserId,
+    teamId,
+    permission,
+  );
   if (!canModify) {
     throw new NotAuthorizedError(
-      "You don't have permission to grant this permission"
+      "You don't have permission to grant this permission",
     );
   }
 
@@ -123,8 +211,49 @@ export async function grantPermission(
 
   if (result) {
     await emitBackendEvent(CORE_BACKEND_EVENTS.PERMISSION_GRANTED, {
+      scope: "team" as const,
       userId,
       teamId,
+      permissionId,
+      grantedByUserId,
+    });
+  }
+
+  return result;
+}
+
+export async function grantGlobalPermission(
+  userId: string,
+  permissionId: string,
+  grantedByUserId: string,
+): Promise<UserGlobalPermission> {
+  const permission = getRegisteredPermission(permissionId);
+  if (!permission) {
+    throw new PermissionNotRegisteredError(permissionId);
+  }
+
+  assertPermissionScope(permission, "global");
+
+  const canModify = await canActorModifyGlobalPermission(
+    grantedByUserId,
+    permission,
+  );
+  if (!canModify) {
+    throw new NotAuthorizedError(
+      "You don't have permission to grant this permission",
+    );
+  }
+
+  const [result] = await db
+    .insert(userGlobalPermissions)
+    .values({ userId, permissionId, grantedByUserId })
+    .onConflictDoNothing()
+    .returning();
+
+  if (result) {
+    await emitBackendEvent(CORE_BACKEND_EVENTS.PERMISSION_GRANTED, {
+      scope: "global" as const,
+      userId,
       permissionId,
       grantedByUserId,
     });
@@ -137,26 +266,30 @@ export async function revokePermission(
   userId: string,
   teamId: string,
   permissionId: string,
-  revokedByUserId: string
+  revokedByUserId: string,
 ): Promise<boolean> {
   const permission = getRegisteredPermission(permissionId);
   if (!permission) {
     throw new PermissionNotRegisteredError(permissionId);
   }
 
-  // Check if target user can have permissions for this team
+  assertPermissionScope(permission, "team");
+
   const canAccess = await canAccessTeamPermissions(userId, teamId);
   if (!canAccess) {
     throw new NotAuthorizedError(
-      "User must be a member of the team to have permissions revoked"
+      "User must be a member of the team to have permissions revoked",
     );
   }
 
-  // Check if actor can revoke this permission
-  const canModify = await canActorModifyPermission(revokedByUserId, teamId, permission);
+  const canModify = await canActorModifyTeamPermission(
+    revokedByUserId,
+    teamId,
+    permission,
+  );
   if (!canModify) {
     throw new NotAuthorizedError(
-      "You don't have permission to revoke this permission"
+      "You don't have permission to revoke this permission",
     );
   }
 
@@ -166,14 +299,15 @@ export async function revokePermission(
       and(
         eq(userPermissions.userId, userId),
         eq(userPermissions.teamId, teamId),
-        eq(userPermissions.permissionId, permissionId)
-      )
+        eq(userPermissions.permissionId, permissionId),
+      ),
     );
 
   const wasRevoked = (result.rowCount ?? 0) > 0;
 
   if (wasRevoked) {
     await emitBackendEvent(CORE_BACKEND_EVENTS.PERMISSION_REVOKED, {
+      scope: "team" as const,
       userId,
       teamId,
       permissionId,
@@ -184,17 +318,92 @@ export async function revokePermission(
   return wasRevoked;
 }
 
+export async function revokeGlobalPermission(
+  userId: string,
+  permissionId: string,
+  revokedByUserId: string,
+): Promise<boolean> {
+  const permission = getRegisteredPermission(permissionId);
+  if (!permission) {
+    throw new PermissionNotRegisteredError(permissionId);
+  }
+
+  assertPermissionScope(permission, "global");
+
+  const canModify = await canActorModifyGlobalPermission(
+    revokedByUserId,
+    permission,
+  );
+  if (!canModify) {
+    throw new NotAuthorizedError(
+      "You don't have permission to revoke this permission",
+    );
+  }
+
+  const result = await db
+    .delete(userGlobalPermissions)
+    .where(
+      and(
+        eq(userGlobalPermissions.userId, userId),
+        eq(userGlobalPermissions.permissionId, permissionId),
+      ),
+    );
+
+  const wasRevoked = (result.rowCount ?? 0) > 0;
+
+  if (wasRevoked) {
+    await emitBackendEvent(CORE_BACKEND_EVENTS.PERMISSION_REVOKED, {
+      scope: "global" as const,
+      userId,
+      permissionId,
+      revokedByUserId,
+    });
+  }
+
+  return wasRevoked;
+}
+
+export async function hasGlobalPermission(
+  userId: string,
+  permissionId: string,
+): Promise<boolean> {
+  const permission = getRegisteredPermission(permissionId);
+  if (!permission || permission.scope !== "global") {
+    return false;
+  }
+
+  if (await isUserAdmin(userId)) {
+    return true;
+  }
+
+  const result = await db
+    .select()
+    .from(userGlobalPermissions)
+    .where(
+      and(
+        eq(userGlobalPermissions.userId, userId),
+        eq(userGlobalPermissions.permissionId, permissionId),
+      ),
+    )
+    .limit(1);
+
+  return result.length > 0;
+}
+
 export async function hasPermission(
   userId: string,
   teamId: string,
-  permissionId: string
+  permissionId: string,
 ): Promise<boolean> {
   const permission = getRegisteredPermission(permissionId);
   if (!permission) {
     return false;
   }
 
-  // If user is admin, they have all permissions
+  if (permission.scope === "global") {
+    return hasGlobalPermission(userId, permissionId);
+  }
+
   if (await isUserAdmin(userId)) {
     return true;
   }
@@ -211,39 +420,8 @@ export async function hasPermission(
       and(
         eq(userPermissions.userId, userId),
         eq(userPermissions.teamId, teamId),
-        eq(userPermissions.permissionId, permissionId)
-      )
-    )
-    .limit(1);
-
-  return result.length > 0;
-}
-
-/**
- * Checks if a user has the given permission in any of their teams.
- * More efficient than checking each team individually.
- */
-export async function hasPermissionInAnyTeam(
-  userId: string,
-  permissionId: string
-): Promise<boolean> {
-  const permission = getRegisteredPermission(permissionId);
-  if (!permission) {
-    return false;
-  }
-
-  if (await isUserAdmin(userId)) {
-    return true;
-  }
-
-  const result = await db
-    .select()
-    .from(userPermissions)
-    .where(
-      and(
-        eq(userPermissions.userId, userId),
-        eq(userPermissions.permissionId, permissionId)
-      )
+        eq(userPermissions.permissionId, permissionId),
+      ),
     )
     .limit(1);
 
@@ -252,57 +430,102 @@ export async function hasPermissionInAnyTeam(
 
 export async function getUserPermissionsForTeam(
   userId: string,
-  teamId: string
+  teamId: string,
 ): Promise<UserPermission[]> {
   const canAccess = await canAccessTeamPermissions(userId, teamId);
   if (!canAccess) {
     return [];
   }
 
-  return await db
+  const permissions = await db
     .select()
     .from(userPermissions)
     .where(
-      and(
-        eq(userPermissions.userId, userId),
-        eq(userPermissions.teamId, teamId)
-      )
+      and(eq(userPermissions.userId, userId), eq(userPermissions.teamId, teamId)),
     );
+
+  return permissions.filter(
+    (permission) =>
+      getRegisteredPermission(permission.permissionId)?.scope === "team",
+  );
+}
+
+export async function getUserGlobalPermissions(
+  userId: string,
+): Promise<UserGlobalPermission[]> {
+  const permissions = await db
+    .select()
+    .from(userGlobalPermissions)
+    .where(eq(userGlobalPermissions.userId, userId));
+
+  return permissions.filter(
+    (permission) =>
+      getRegisteredPermission(permission.permissionId)?.scope === "global",
+  );
 }
 
 export async function getGrantablePermissions(
   actorUserId: string,
-  teamId: string
+  teamId: string,
 ): Promise<Permission[]> {
-  const allPermissions = getRegisteredPermissions();
+  const allPermissions = getRegisteredPermissionsByScope("team");
 
-  // Check if actor is an admin
   const isAdmin = await isUserAdmin(actorUserId);
   if (isAdmin) {
     return allPermissions;
   }
 
-  // Check if actor can access the team at all
-  if (!await canAccessTeamPermissions(actorUserId, teamId)) {
+  if (!(await canAccessTeamPermissions(actorUserId, teamId))) {
     return [];
   }
 
-  // Get all permissions the actor has for this team
   const actorPermissions = await db
     .select({ permissionId: userPermissions.permissionId })
     .from(userPermissions)
     .where(
       and(
         eq(userPermissions.userId, actorUserId),
-        eq(userPermissions.teamId, teamId)
-      )
+        eq(userPermissions.teamId, teamId),
+      ),
     );
 
-  const actorPermissionIds = new Set(actorPermissions.map((p) => p.permissionId));
+  const actorPermissionIds = new Set(
+    actorPermissions.map((actorPermission) => actorPermission.permissionId),
+  );
 
-  // Filter to only permissions where actor has all prerequisites
-  return allPermissions.filter((permission) =>
-    (permission.hasAdminPrerequisite ? isAdmin : true) &&
-    permission.prerequisiteActorPermissionIds.every((id) => actorPermissionIds.has(id))
+  return allPermissions.filter(
+    (permission) =>
+      (permission.hasAdminPrerequisite ? isAdmin : true) &&
+      permission.prerequisiteActorPermissionIds.every((permissionId) =>
+        actorPermissionIds.has(permissionId),
+      ),
+  );
+}
+
+export async function getGrantableGlobalPermissions(
+  actorUserId: string,
+): Promise<Permission[]> {
+  const allPermissions = getRegisteredPermissionsByScope("global");
+
+  const isAdmin = await isUserAdmin(actorUserId);
+  if (isAdmin) {
+    return allPermissions;
+  }
+
+  const actorPermissions = await db
+    .select({ permissionId: userGlobalPermissions.permissionId })
+    .from(userGlobalPermissions)
+    .where(eq(userGlobalPermissions.userId, actorUserId));
+
+  const actorPermissionIds = new Set(
+    actorPermissions.map((actorPermission) => actorPermission.permissionId),
+  );
+
+  return allPermissions.filter(
+    (permission) =>
+      (permission.hasAdminPrerequisite ? isAdmin : true) &&
+      permission.prerequisiteActorPermissionIds.every((permissionId) =>
+        actorPermissionIds.has(permissionId),
+      ),
   );
 }

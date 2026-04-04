@@ -5,7 +5,7 @@ import { createSession, deleteSession } from "@core/lib/session";
 import { actionFailure, actionSuccess } from "@recommand/lib/utils";
 import { Server } from "@recommand/lib/api";
 import { db } from "@recommand/db";
-import { users, userPermissions } from "@core/db/schema";
+import { users, userGlobalPermissions, userPermissions } from "@core/db/schema";
 import { eq, inArray, and, sql } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import { createTeam, getUserTeams, updateTeam, deleteTeam, resolveTeamLogoUrl } from "@core/data/teams";
@@ -147,9 +147,10 @@ const me = server.get("/auth/me", requireAuth(), withTranslation(), async (c) =>
     }
     const completedOnboardingSteps = await getCompletedOnboardingSteps(user.id);
 
-    // Fetch all permissions for all teams the user is a member of
+    // Fetch all scoped permissions for the authenticated user
     const teamIds = user.teams?.filter(tm => tm.isMember).map(tm => tm.id) ?? [];
     let teamPermissions: Record<string, string[]> = {};
+    let globalPermissions: string[] = [];
 
     if (teamIds.length > 0) {
       const permissions = await db
@@ -174,6 +175,13 @@ const me = server.get("/auth/me", requireAuth(), withTranslation(), async (c) =>
       }
     }
 
+    const globalPermissionRows = await db
+      .select({ permissionId: userGlobalPermissions.permissionId })
+      .from(userGlobalPermissions)
+      .where(eq(userGlobalPermissions.userId, user.id));
+
+    globalPermissions = globalPermissionRows.map((permission) => permission.permissionId);
+
     return c.json(
       actionSuccess({
         data: {
@@ -181,6 +189,7 @@ const me = server.get("/auth/me", requireAuth(), withTranslation(), async (c) =>
           teams: user.teams?.map(resolveTeamLogoUrl),
           completedOnboardingSteps,
           teamPermissions,
+          globalPermissions,
           features: {
             s3Enabled: isS3Enabled(),
             teamLogoEnabled: isTeamLogoEnabled(),
