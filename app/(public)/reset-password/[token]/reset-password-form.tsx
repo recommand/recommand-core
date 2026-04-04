@@ -7,7 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../../../../components/ui/card";
-import { Input } from "../../../../components/ui/input";
+import { PasswordInput } from "../../../../components/form/password-input";
 import { Label } from "../../../../components/ui/label";
 import { rc } from "@recommand/lib/client";
 import type { Auth } from "api/auth";
@@ -92,9 +92,8 @@ export default function ResetPasswordForm({ token }: ResetPasswordFormProps) {
         <form onSubmit={handleSubmit} className="grid gap-4">
           <div className="grid gap-2">
             <Label htmlFor="password">{t`Password`}</Label>
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
               placeholder={t`Enter new password`}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -103,9 +102,8 @@ export default function ResetPasswordForm({ token }: ResetPasswordFormProps) {
           </div>
           <div className="grid gap-2">
             <Label htmlFor="confirmPassword">{t`Confirm Password`}</Label>
-            <Input
+            <PasswordInput
               id="confirmPassword"
-              type="password"
               placeholder={t`Confirm new password`}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
