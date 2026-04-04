@@ -43,7 +43,7 @@ export function getRegisteredPermission(permissionId: string): Permission | null
 export function registerPermission(permission: Permission) {
   registeredPermissions[permission.id] = {
     scope: "team",
-    hasAdminPrerequisite: false,
+    hasAdminPrerequisite: permission.scope === "global",
     isAddedOnTeamCreation: false,
     ...permission,
   };
