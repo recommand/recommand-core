@@ -5,6 +5,7 @@ import { Input } from "@core/components/ui/input";
 import { DataTableViewOptions } from "./view-options";
 import { DataTableFacetedFilter } from "./faceted-filter";
 import React from "react";
+import { useThrottledInput } from "./use-throttled-input";
 
 // Define the structure for filter configurations
 export interface FilterConfig<TData> {
@@ -22,6 +23,7 @@ interface DataTableToolbarProps<TData> {
   table: Table<TData>;
   searchColumn?: keyof TData | string;
   enableGlobalSearch?: boolean; // global search makes the search field work for all columns
+  throttleGlobalSearch?: boolean;
   searchPlaceholder?: string;
   filterColumns?: FilterConfig<TData>[];
 }
@@ -30,9 +32,17 @@ export function DataTableToolbar<TData>({
   table,
   searchColumn,
   enableGlobalSearch,
+  throttleGlobalSearch = false,
   searchPlaceholder = "Search...",
   filterColumns,
 }: DataTableToolbarProps<TData>) {
+  const globalFilter = (table.getState().globalFilter as string) ?? "";
+  const throttledGlobalSearch = useThrottledInput({
+    enabled: Boolean(enableGlobalSearch && throttleGlobalSearch),
+    value: globalFilter,
+    onChange: (value) => table.setGlobalFilter(value),
+  });
+
   const isFiltered =
     table.getState().columnFilters.length > 0 ||
     Boolean(table.getState().globalFilter);
@@ -59,8 +69,17 @@ export function DataTableToolbar<TData>({
         {enableGlobalSearch && (
           <Input
             placeholder={searchPlaceholder}
-            value={table.getState().globalFilter ?? ""}
-            onChange={(event) => table.setGlobalFilter(event.target.value)}
+            value={throttleGlobalSearch ? throttledGlobalSearch.inputValue : globalFilter}
+            onChange={(event) => {
+              const value = event.target.value;
+
+              if (throttleGlobalSearch) {
+                throttledGlobalSearch.setValue(value);
+                return;
+              }
+
+              table.setGlobalFilter(value);
+            }}
             className="h-8 w-[150px] lg:w-[250px]"
           />
         )}
@@ -90,6 +109,10 @@ export function DataTableToolbar<TData>({
             onClick={() => {
               table.resetColumnFilters();
               if (enableGlobalSearch) {
+                if (throttleGlobalSearch) {
+                  throttledGlobalSearch.clear();
+                  return;
+                }
                 table.setGlobalFilter("");
               } else if (searchColumn) {
                 table.getColumn(searchColumn as string)?.setFilterValue("");
