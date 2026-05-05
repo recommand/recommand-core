@@ -1,11 +1,14 @@
 import {
   boolean,
   index,
+  integer,
+  jsonb,
   pgEnum,
   pgTable,
   primaryKey,
   text,
   timestamp,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { ulid } from "ulid";
 import { autoUpdateTimestamp } from "@recommand/db/custom-types";
@@ -87,3 +90,61 @@ export const completedOnboardingSteps = pgTable(
     primaryKey({ columns: [table.userId, table.teamId, table.stepId] }),
   ]
 );
+
+export const ruleDeliveryStatusEnum = pgEnum("rule_delivery_status", [
+  "pending",
+  "in_flight",
+  "succeeded",
+  "failed",
+  "giving_up",
+]);
+
+export const rules = pgTable("rules", {
+  id: text("id").primaryKey(),
+  teamId: text("team_id")
+    .references(() => teams.id, { onDelete: "cascade" })
+    .notNull(),
+  name: text("name").notNull(),
+  enabled: boolean("enabled").notNull().default(true),
+  eventType: text("event_type").notNull(),
+  condition: jsonb("condition"),
+  actions: jsonb("actions").notNull(),
+  schemaVersion: integer("schema_version").notNull().default(1),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: autoUpdateTimestamp(),
+}, (table) => [
+  index("rules_team_event_idx").on(table.teamId, table.eventType, table.enabled),
+]);
+
+export const ruleActionDeliveries = pgTable("rule_action_deliveries", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => "rad_" + ulid()),
+  ruleId: text("rule_id")
+    .references(() => rules.id, { onDelete: "cascade" })
+    .notNull(),
+  actionIndex: integer("action_index").notNull(),
+  actionType: text("action_type").notNull(),
+  actionVersion: integer("action_version").notNull(),
+  eventId: text("event_id").notNull(),
+  eventType: text("event_type").notNull(),
+  teamId: text("team_id").notNull(),
+  idempotencyKey: text("idempotency_key").notNull(),
+  payload: jsonb("payload").notNull(),
+  status: ruleDeliveryStatusEnum("status").notNull().default("pending"),
+  attempts: integer("attempts").notNull().default(0),
+  retryAt: timestamp("retry_at", { withTimezone: true }).notNull().defaultNow(),
+  lockedUntil: timestamp("locked_until", { withTimezone: true }),
+  lastError: text("last_error"),
+  lastResponseStatus: integer("last_response_status"),
+  processedAt: timestamp("processed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: autoUpdateTimestamp(),
+}, (table) => [
+  uniqueIndex("rule_action_deliveries_idem").on(
+    table.eventId,
+    table.ruleId,
+    table.actionIndex
+  ),
+  index("rule_action_deliveries_ready_idx").on(table.status, table.retryAt),
+]);

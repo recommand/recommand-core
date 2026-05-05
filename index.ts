@@ -8,6 +8,8 @@ import apiKeys from "api/api-keys";
 import oauth from "api/oauth";
 import onboarding from "./api/onboarding";
 import teamMembers from "./api/team-members";
+import rules from "./api/rules";
+import { initializeRuleCronJobs } from "./data/rules/cron";
 
 let logger: Logger;
 
@@ -16,6 +18,7 @@ const server = new Server();
 export async function init(app: RecommandApp, server: Server) {
   logger = new Logger(app);
   logger.info("Initializing core app");
+  await initializeRuleCronJobs(logger);
 }
 
 server.get("/tasks", async (c) => {
@@ -31,5 +34,6 @@ server.route("/", teamMembers);
 server.route("/", apiKeys);
 server.route("/", oauth);
 server.route("/", onboarding);
+server.route("/v1", rules);
 
 export default server;
