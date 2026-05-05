@@ -18,12 +18,8 @@ export function getEventTypeDefinition(type: string) {
   return eventTypeRegistry.get(type);
 }
 
-export function listEventTypeDefinitions(options?: { sourcePackage?: string }) {
-  return [...eventTypeRegistry.values()].filter((definition) =>
-    options?.sourcePackage
-      ? definition.sourcePackage === options.sourcePackage
-      : true
-  );
+export function listEventTypeDefinitions() {
+  return [...eventTypeRegistry.values()];
 }
 
 export function clearEventTypeRegistry() {
@@ -51,7 +47,6 @@ export async function publishEvent(
   const event: EventEnvelope = {
     id: "ev_" + ulid(),
     type,
-    sourcePackage: definition.sourcePackage,
     teamId: args.teamId,
     aggregateType: args.aggregateType,
     aggregateId: args.aggregateId,

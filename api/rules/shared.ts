@@ -3,7 +3,7 @@ import { type Context } from "@recommand/lib/api";
 import { z } from "zod";
 import "zod-openapi/extend";
 import {
-  createRuleSchema,
+  createRuleApiSchema,
   updateRuleSchema,
   type EventTypeDefinition,
 } from "../../lib/rules/types";
@@ -139,7 +139,6 @@ export const conditionFieldResponseSchema = z.object({
 
 export const eventTypeResponseSchema = z.object({
   type: z.string(),
-  sourcePackage: z.string(),
   aggregateType: z.string(),
   conditionFields: z.array(conditionFieldResponseSchema),
   email: z.object({
@@ -192,11 +191,11 @@ export type CreateRuleContext = Context<
   string,
   {
     in: {
-      json: z.input<typeof createRuleSchema>;
+      json: z.input<typeof createRuleApiSchema>;
       param: z.input<typeof teamIdParamSchema>;
     };
     out: {
-      json: z.infer<typeof createRuleSchema>;
+      json: z.infer<typeof createRuleApiSchema>;
       param: z.infer<typeof teamIdParamSchema>;
     };
   }
@@ -287,7 +286,6 @@ export type GetEventTypeContext = Context<
 export function mapEventTypeDefinition(definition: EventTypeDefinition) {
   return {
     type: definition.type,
-    sourcePackage: definition.sourcePackage,
     aggregateType: definition.aggregateType,
     conditionFields: definition.conditionFields,
     email: definition.email

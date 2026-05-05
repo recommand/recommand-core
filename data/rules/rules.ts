@@ -171,7 +171,7 @@ export async function listRules(
         filters?.enabled === undefined ? undefined : eq(rules.enabled, filters.enabled)
       )
     )
-    .orderBy(desc(rules.updatedAt), desc(rules.createdAt));
+    .orderBy(asc(rules.name));
 
   return allRules
     .map(parseRuleRow)

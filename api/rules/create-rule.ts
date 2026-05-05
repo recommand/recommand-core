@@ -7,7 +7,7 @@ import { z } from "zod";
 import "zod-openapi/extend";
 import { createRule } from "../../data/rules/rules";
 import { describeErrorResponse, describeSuccessResponseWithZod } from "../../lib/api-docs";
-import { createRuleSchema } from "../../lib/rules/types";
+import { createRuleApiSchema } from "../../lib/rules/types";
 import { type CreateRuleContext, ruleResponseSchema, teamIdParamSchema } from "./shared";
 
 const server = new Server();
@@ -29,7 +29,7 @@ const _createRuleMinimal = server.post(
   "/rules",
   requireTeamAccess(),
   createRuleRouteDescription,
-  zodValidator("json", createRuleSchema),
+  zodValidator("json", createRuleApiSchema),
   _createRuleImplementation
 );
 
@@ -38,7 +38,7 @@ const _createRule = server.post(
   requireTeamAccess(),
   describeRoute({ hide: true }),
   zodValidator("param", teamIdParamSchema),
-  zodValidator("json", createRuleSchema),
+  zodValidator("json", createRuleApiSchema),
   _createRuleImplementation
 );
 

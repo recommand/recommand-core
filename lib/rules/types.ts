@@ -68,6 +68,10 @@ export const createRuleSchema = z.object({
   actions: z.array(versionedActionSchema).min(1),
 });
 
+export const createRuleApiSchema = createRuleSchema.omit({
+  id: true,
+});
+
 export const updateRuleSchema = createRuleSchema.partial().extend({
   enabled: z.boolean().optional(),
 });
@@ -75,7 +79,6 @@ export const updateRuleSchema = createRuleSchema.partial().extend({
 export const eventEnvelopeSchema = z.object({
   id: z.string(),
   type: z.string(),
-  sourcePackage: z.string(),
   teamId: z.string(),
   aggregateType: z.string(),
   aggregateId: z.string(),
@@ -110,7 +113,6 @@ export type EventFieldValueType =
 
 export type EventTypeDefinition = {
   type: string;
-  sourcePackage: string;
   aggregateType: string;
   payload: z.ZodTypeAny;
   conditionFields: Array<{

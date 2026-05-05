@@ -187,41 +187,44 @@ export function RuleActionEditor({
                   />
                 </div>
                 {selectedEventType?.email?.attachments && selectedEventType.email.attachments.length > 0 && (
-                  <div className="grid gap-3 md:grid-cols-2">
-                    {selectedEventType.email.attachments.map((attachment) => (
-                      <div key={attachment.key} className="space-y-1">
-                        <label className="flex items-center space-x-2">
-                          <Checkbox
-                            checked={Boolean(action.config.attach?.[attachment.key])}
-                            onCheckedChange={(checked) =>
-                              setDraft((current) => ({
-                                ...current,
-                                actions: current.actions.map((entry, actionIndex) =>
-                                  actionIndex === index && entry.type === "email"
-                                    ? {
-                                        ...entry,
-                                        config: {
-                                          ...entry.config,
-                                          attach: {
-                                            ...entry.config.attach,
-                                            [attachment.key]: Boolean(checked),
+                  <div className="space-y-2">
+                    <Label>Attachments</Label>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {selectedEventType.email.attachments.map((attachment) => (
+                        <div key={attachment.key} className="space-y-1">
+                          <label className="flex items-center space-x-2">
+                            <Checkbox
+                              checked={Boolean(action.config.attach?.[attachment.key])}
+                              onCheckedChange={(checked) =>
+                                setDraft((current) => ({
+                                  ...current,
+                                  actions: current.actions.map((entry, actionIndex) =>
+                                    actionIndex === index && entry.type === "email"
+                                      ? {
+                                          ...entry,
+                                          config: {
+                                            ...entry.config,
+                                            attach: {
+                                              ...entry.config.attach,
+                                              [attachment.key]: Boolean(checked),
+                                            },
                                           },
-                                        },
-                                      }
-                                    : entry
-                                ),
-                              }))
-                            }
-                          />
-                          <span className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                            {attachment.label}
-                          </span>
-                        </label>
-                        {attachment.description && (
-                          <p className="pl-6 text-sm text-muted-foreground">{attachment.description}</p>
-                        )}
-                      </div>
-                    ))}
+                                        }
+                                      : entry
+                                  ),
+                                }))
+                              }
+                            />
+                            <span className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                              {attachment.label}
+                            </span>
+                          </label>
+                          {attachment.description && (
+                            <p className="pl-6 text-sm text-muted-foreground">{attachment.description}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

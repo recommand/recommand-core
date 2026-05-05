@@ -54,7 +54,6 @@ export type RuleDeliveriesPageDto = {
 
 export type EventTypeDto = {
   type: string;
-  sourcePackage: string;
   aggregateType: string;
   conditionFields: ConditionFieldDefinition[];
   email?: {
