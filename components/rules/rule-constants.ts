@@ -7,7 +7,6 @@ export const emptyWebhookAction: VersionedAction = {
   version: 1,
   config: {
     url: "",
-    secret: "",
   },
 };
 

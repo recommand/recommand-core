@@ -25,7 +25,10 @@ export const versionedConditionSchema = z.object({
 
 export const webhookActionConfigSchema = z.object({
   url: z.string().url(),
-  secret: z.string().min(1).optional(),
+  secret: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z.string().min(1).optional()
+  ),
 });
 
 export const emailActionConfigSchema = z.object({
