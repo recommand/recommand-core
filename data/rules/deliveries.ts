@@ -17,6 +17,10 @@ function stringifyError(error: unknown) {
   return String(error);
 }
 
+function shouldRetryHttpStatus(status: number) {
+  return status === 408 || status === 425 || status === 429 || status >= 500;
+}
+
 function buildWebhookHeaders(body: string, secret?: string, deliveryId?: string) {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -193,8 +197,13 @@ export async function processRuleDeliveries(limit = 50) {
           : await handleEmailV1(action, event);
 
       const nextAttemptCount = delivery.attempts + 1;
-      const nextStatus = result.ok ? "succeeded" : nextAttemptCount >= retryScheduleMs.length ? "giving_up" : "failed";
-      const retryAt = result.ok
+      const shouldRetry = !result.ok && shouldRetryHttpStatus(result.status);
+      const nextStatus = result.ok
+        ? "succeeded"
+        : !shouldRetry || nextAttemptCount >= retryScheduleMs.length
+          ? "giving_up"
+          : "failed";
+      const retryAt = result.ok || !shouldRetry
         ? undefined
         : new Date(Date.now() + retryScheduleMs[Math.min(delivery.attempts, retryScheduleMs.length - 1)]);
 
