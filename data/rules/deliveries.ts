@@ -110,7 +110,7 @@ async function handleWebhookV1(
     method: "POST",
     headers: buildWebhookHeaders(body, action.config.secret, deliveryId),
     body,
-    signal: AbortSignal.timeout(10_000),
+    signal: AbortSignal.timeout(30_000),
   });
 
   return {
