@@ -5,7 +5,7 @@ import type { TeamMembers } from "@core/api/team-members";
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "@core/components/ui/sonner";
 import { stringifyActionFailure } from "@recommand/lib/utils";
-import { useActiveTeam } from "@core/hooks/user";
+import { useActiveTeam, useUser } from "@core/hooks/user";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { useParams, Link } from "react-router";
 import { Checkbox } from "@core/components/ui/checkbox";
@@ -31,13 +31,25 @@ type UserPermission = {
   updatedAt: string;
 };
 
+type UserGlobalPermission = {
+  userId: string;
+  permissionId: string;
+  grantedByUserId: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export default function UserPermissionsPage() {
   const { userId } = useParams<{ userId: string }>();
   const activeTeam = useActiveTeam();
+  const user = useUser();
+  const isAdmin = user?.isAdmin ?? false;
   const { t } = useTranslation();
 
   const [allPermissions, setAllPermissions] = useState<PermissionWithGrantable[]>([]);
   const [userPermissions, setUserPermissions] = useState<UserPermission[]>([]);
+  const [allGlobalPermissions, setAllGlobalPermissions] = useState<PermissionWithGrantable[]>([]);
+  const [userGlobalPermissions, setUserGlobalPermissions] = useState<UserGlobalPermission[]>([]);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [pendingPermissions, setPendingPermissions] = useState<Set<string>>(new Set());
@@ -50,7 +62,13 @@ export default function UserPermissionsPage() {
 
     try {
       // Fetch all permissions with grantability info, user's permissions, and team members in parallel
-      const [permissionsRes, userPermissionsRes, teamMembersRes] = await Promise.all([
+      const [
+        permissionsRes,
+        userPermissionsRes,
+        teamMembersRes,
+        globalPermissionsRes,
+        userGlobalPermissionsRes,
+      ] = await Promise.all([
         permissionsClient["auth"]["teams"][":teamId"]["permissions"].$get({
           param: { teamId: activeTeam.id },
         }),
@@ -60,6 +78,14 @@ export default function UserPermissionsPage() {
         teamMembersClient["auth"]["teams"][":teamId"]["members"].$get({
           param: { teamId: activeTeam.id },
         }),
+        isAdmin
+          ? permissionsClient["auth"]["permissions"]["global"].$get()
+          : Promise.resolve(null),
+        isAdmin
+          ? permissionsClient["auth"]["users"][":userId"]["permissions"]["global"].$get({
+              param: { userId },
+            })
+          : Promise.resolve(null),
       ]);
 
       const permissionsJson = await permissionsRes.json();
@@ -80,13 +106,27 @@ export default function UserPermissionsPage() {
           setUserEmail(member.user.email);
         }
       }
+
+      if (globalPermissionsRes) {
+        const globalPermissionsJson = await globalPermissionsRes.json();
+        if (globalPermissionsJson.success && globalPermissionsJson.permissions) {
+          setAllGlobalPermissions(globalPermissionsJson.permissions);
+        }
+      }
+
+      if (userGlobalPermissionsRes) {
+        const userGlobalPermissionsJson = await userGlobalPermissionsRes.json();
+        if (userGlobalPermissionsJson.success && userGlobalPermissionsJson.permissions) {
+          setUserGlobalPermissions(userGlobalPermissionsJson.permissions);
+        }
+      }
     } catch (error) {
       console.error("Error fetching data:", error);
       toast.error(t`Failed to load permissions data`);
     } finally {
       setIsLoading(false);
     }
-  }, [activeTeam?.id, userId]);
+  }, [activeTeam?.id, userId, isAdmin]);
 
   useEffect(() => {
     fetchData();
@@ -94,6 +134,10 @@ export default function UserPermissionsPage() {
 
   const hasPermission = (permissionId: string): boolean => {
     return userPermissions.some((p) => p.permissionId === permissionId);
+  };
+
+  const hasGlobalPermission = (permissionId: string): boolean => {
+    return userGlobalPermissions.some((p) => p.permissionId === permissionId);
   };
 
   const handlePermissionToggle = async (permissionId: string, currentlyHas: boolean) => {
@@ -146,6 +190,52 @@ export default function UserPermissionsPage() {
     }
   };
 
+  const handleGlobalPermissionToggle = async (permissionId: string, currentlyHas: boolean) => {
+    if (!userId) return;
+
+    setPendingPermissions((prev) => new Set([...prev, permissionId]));
+
+    try {
+      if (currentlyHas) {
+        const res = await permissionsClient["auth"]["users"][":userId"]["permissions"]["global"][":permissionId"].$delete({
+          param: { userId, permissionId },
+        });
+        const json = await res.json();
+
+        if (!json.success) {
+          throw new Error(stringifyActionFailure(json.errors));
+        }
+
+        setUserGlobalPermissions((prev) => prev.filter((p) => p.permissionId !== permissionId));
+        toast.success(t`Permission revoked`);
+      } else {
+        const res = await permissionsClient["auth"]["users"][":userId"]["permissions"]["global"].$post({
+          param: { userId },
+          json: { permissionId },
+        });
+        const json = await res.json();
+
+        if (!json.success) {
+          throw new Error(stringifyActionFailure(json.errors));
+        }
+
+        if (json.permission) {
+          setUserGlobalPermissions((prev) => [...prev, json.permission]);
+        }
+        toast.success(t`Permission granted`);
+      }
+    } catch (error) {
+      console.error("Error toggling global permission:", error);
+      toast.error(error instanceof Error ? error.message : t`Failed to update permission`);
+    } finally {
+      setPendingPermissions((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(permissionId);
+        return newSet;
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <PageTemplate
@@ -175,9 +265,9 @@ export default function UserPermissionsPage() {
       <div className="space-y-6">
         <Card className="max-w-2xl">
           <CardHeader>
-            <CardTitle>{t`Permissions`}</CardTitle>
+            <CardTitle>{t`Team permissions`}</CardTitle>
             <CardDescription>
-              {t`Select which permissions this team member should have`}
+              {t`Select which permissions this team member should have within ${activeTeam?.name ?? t`this team`}.`}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -227,6 +317,63 @@ export default function UserPermissionsPage() {
             )}
           </CardContent>
         </Card>
+
+        {isAdmin && (
+          <Card className="max-w-2xl">
+            <CardHeader>
+              <CardTitle>{t`Global permissions`}</CardTitle>
+              <CardDescription>
+                {t`These permissions apply to this user across all teams. Only administrators can manage them.`}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {allGlobalPermissions.length === 0 ? (
+                <p className="text-muted-foreground text-center py-4">
+                  {t`No global permissions are available to manage.`}
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {allGlobalPermissions.map((permission) => {
+                    const has = hasGlobalPermission(permission.id);
+                    const isPending = pendingPermissions.has(permission.id);
+                    const isDisabled = isPending;
+
+                    return (
+                      <div
+                        key={permission.id}
+                        className={`flex items-start gap-3 ${isDisabled && !isPending ? "opacity-60" : ""}`}
+                      >
+                        <div className="pt-0.5">
+                          {isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                          ) : (
+                            <Checkbox
+                              id={`global-${permission.id}`}
+                              checked={has}
+                              disabled={isDisabled}
+                              onCheckedChange={() => handleGlobalPermissionToggle(permission.id, has)}
+                            />
+                          )}
+                        </div>
+                        <div className="flex-1 space-y-0.5">
+                          <Label
+                            htmlFor={`global-${permission.id}`}
+                            className={`text-sm font-medium cursor-pointer ${isDisabled ? "cursor-not-allowed" : ""}`}
+                          >
+                            {permission.name}
+                          </Label>
+                          {permission.description && (
+                            <p className="text-sm text-muted-foreground">{permission.description}</p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </PageTemplate>
   );
