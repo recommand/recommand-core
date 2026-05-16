@@ -12,6 +12,8 @@ import languages from "./api/languages";
 import account from "./api/account";
 import teamLogo from "./api/team-logo";
 import manifest from "./api/manifest";
+import rules from "./api/rules";
+import { initializeRuleCronJobs } from "./data/rules/cron";
 
 let logger: Logger;
 
@@ -20,6 +22,7 @@ const server = new Server();
 export async function init(app: RecommandApp, server: Server) {
   logger = new Logger(app);
   logger.info("Initializing core app");
+  await initializeRuleCronJobs(logger);
 }
 
 server.route("/", auth);
@@ -33,5 +36,6 @@ server.route("/", languages);
 server.route("/", account);
 server.route("/", teamLogo);
 server.route("/", manifest);
+server.route("/v1", rules);
 
 export default server;

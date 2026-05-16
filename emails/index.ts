@@ -2,11 +2,6 @@ import { getApps } from "@recommand/lib/app";
 import { join } from "node:path";
 import { createElement, type ReactElement } from "react";
 
-type CoreEmailName =
-  | "password-reset-email"
-  | "signup-confirmation"
-  | "team-invitation-email";
-
 interface PartialEmailDefinition<TProps = any> {
   render: null | ((props: TProps) => ReactElement);
   subject: null | ((props: TProps) => string);
@@ -25,7 +20,7 @@ interface EmailDefinition<TProps = any> {
  * @returns The email component and subject function
  */
 export async function getEmailTemplate<TProps = any>(
-  emailName: CoreEmailName
+  emailName: string
 ): Promise<EmailDefinition<TProps>> {
   const apps = await getApps();
   const reversedApps = [...apps].reverse();

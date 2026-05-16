@@ -34,32 +34,26 @@ export const completeOnboardingStep = async (
   teamId: string | null,
   stepId: string
 ) => {
-  // Start transaction
-  const tx = await db.transaction(async (tx) => {
-    const existingStep = await tx
-      .select()
-      .from(completedOnboardingSteps)
-      .where(
-        and(
-          eq(completedOnboardingSteps.stepId, stepId),
-          eq(completedOnboardingSteps.userId, userId),
-          or(
-            eq(completedOnboardingSteps.teamId, teamId ?? ""),
-            isNull(completedOnboardingSteps.teamId)
-          )
-        )
-      );
-    if (existingStep.length > 0) {
-      return existingStep[0];
-    }
+  const [row] = await db
+    .insert(completedOnboardingSteps)
+    .values({ userId, teamId, stepId })
+    .onConflictDoNothing()
+    .returning();
 
-    return (
-      await tx
-        .insert(completedOnboardingSteps)
-        .values({ userId, teamId, stepId })
-        .returning()
-    )[0];
-  });
+  if (row) return row;
 
-  return tx;
+  const [existing] = await db
+    .select()
+    .from(completedOnboardingSteps)
+    .where(
+      and(
+        eq(completedOnboardingSteps.stepId, stepId),
+        eq(completedOnboardingSteps.userId, userId),
+        teamId !== null
+          ? eq(completedOnboardingSteps.teamId, teamId)
+          : isNull(completedOnboardingSteps.teamId)
+      )
+    );
+
+  return existing;
 };
