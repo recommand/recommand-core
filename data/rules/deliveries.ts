@@ -8,7 +8,7 @@ import { getEventTypeDefinition } from "./events";
 import { getReadyDeliveries, getRulesByIds, parseRuleAction } from "./rules";
 import { eventEnvelopeSchema, type EventEnvelope } from "../../lib/rules/types";
 
-const retryScheduleMs = [10_000, 60_000, 5 * 60_000, 30 * 60_000, 2 * 60 * 60_000, 8 * 60 * 60_000];
+const retryScheduleMs = [30_000, 60_000, 5 * 60_000, 30 * 60_000, 2 * 60 * 60_000, 8 * 60 * 60_000];
 
 function stringifyError(error: unknown) {
   if (error instanceof Error) {
