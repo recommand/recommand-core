@@ -438,6 +438,7 @@ export default function Page() {
                     className="size-full object-contain"
                   />
                 </div>
+                {canManageTeam && (
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
@@ -468,6 +469,7 @@ export default function Page() {
                     </Button>
                   )}
                 </div>
+                )}
                 <input
                   id="logo-upload"
                   type="file"
@@ -484,14 +486,17 @@ export default function Page() {
                 <Input
                   value={teamName}
                   onChange={(e) => setTeamName(e.target.value)}
+                  readOnly={!canManageTeam}
                 />
-                <AsyncButton
-                  variant="outline"
-                  onClick={handleSaveTeamName}
-                  disabled={!teamName.trim() || teamName.trim() === activeTeam?.name}
-                >
-                  {t`Save`}
-                </AsyncButton>
+                {canManageTeam && (
+                  <AsyncButton
+                    variant="outline"
+                    onClick={handleSaveTeamName}
+                    disabled={!teamName.trim() || teamName.trim() === activeTeam?.name}
+                  >
+                    {t`Save`}
+                  </AsyncButton>
+                )}
               </div>
             </div>
             <div>
