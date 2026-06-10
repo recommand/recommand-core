@@ -114,7 +114,7 @@ export default function Page() {
       toast.success(t`Team name updated`);
     } catch (error) {
       console.error("Error updating team name:", error);
-      toast.error(t`Failed to update team name`);
+      toast.error(t`Failed to update team name: ${error instanceof Error ? error.message : t`Unknown error`}`);
     }
   };
 
@@ -313,37 +313,39 @@ export default function Page() {
                 </Link>
               </Button>
             )}
-            <Button
-              variant="ghost"
-              size="icon"
-              title={t`Remove team member`}
-              onClick={() => {
-                if (!activeTeam?.id) return;
+            {canManageTeam && (
+              <Button
+                variant="ghost"
+                size="icon"
+                title={t`Remove team member`}
+                onClick={() => {
+                  if (!activeTeam?.id) return;
 
-                client["auth"]["teams"][":teamId"]["members"][":userId"]
-                  .$delete({
-                    param: {
-                      teamId: activeTeam.id,
-                      userId: userId,
-                    },
-                  })
-                  .then(async (res: Response) => {
-                    const json = await res.json();
-                    if (json.success) {
-                      toast.success(t`Team member removed successfully`);
-                      fetchTeamMembers();
-                    } else {
-                      toast.error(stringifyActionFailure(json.errors));
-                    }
-                  })
-                  .catch((error) => {
-                    console.error("Error removing team member:", error);
-                    toast.error(t`Failed to remove team member`);
-                  });
-              }}
-            >
-              <Trash2 className="h-4 w-4 text-destructive" />
-            </Button>
+                  client["auth"]["teams"][":teamId"]["members"][":userId"]
+                    .$delete({
+                      param: {
+                        teamId: activeTeam.id,
+                        userId: userId,
+                      },
+                    })
+                    .then(async (res: Response) => {
+                      const json = await res.json();
+                      if (json.success) {
+                        toast.success(t`Team member removed successfully`);
+                        fetchTeamMembers();
+                      } else {
+                        toast.error(stringifyActionFailure(json.errors));
+                      }
+                    })
+                    .catch((error) => {
+                      console.error("Error removing team member:", error);
+                      toast.error(t`Failed to remove team member`);
+                    });
+                }}
+              >
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            )}
           </div>
         );
       },
@@ -368,7 +370,7 @@ export default function Page() {
   return (
     <PageTemplate
       breadcrumbs={[{ label: t`User Settings` }, { label: t`Team` }]}
-      buttons={[
+      buttons={canManageTeam ? [
         <ConfirmDialog
           key="delete-team-dialog"
           title={t`Delete Team`}
@@ -392,35 +394,37 @@ export default function Page() {
             </Button>
           }
         />,
-      ]}
+      ] : []}
     >
       <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 max-w-xl">
-          <Input
-            placeholder={t`Email address to invite`}
-            value={newMemberEmail}
-            onChange={(e) => setNewMemberEmail(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                handleAddMember(e);
-              }
-            }}
-            disabled={isAddingMember}
-          />
-          <Button
-            onClick={handleAddMember}
-            disabled={isAddingMember || !newMemberEmail.trim()}
-          >
-            {isAddingMember ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                {t`Inviting...`}
-              </>
-            ) : (
-              t`Invite Member`
-            )}
-          </Button>
-        </div>
+        {canManageTeam && (
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 max-w-xl">
+            <Input
+              placeholder={t`Email address to invite`}
+              value={newMemberEmail}
+              onChange={(e) => setNewMemberEmail(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleAddMember(e);
+                }
+              }}
+              disabled={isAddingMember}
+            />
+            <Button
+              onClick={handleAddMember}
+              disabled={isAddingMember || !newMemberEmail.trim()}
+            >
+              {isAddingMember ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  {t`Inviting...`}
+                </>
+              ) : (
+                t`Invite Member`
+              )}
+            </Button>
+          </div>
+        )}
         <div className="rounded-lg border p-4 space-y-4 max-w-xl bg-muted">
           <div className="space-y-3">
             {teamLogoEnabled && (

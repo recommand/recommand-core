@@ -141,7 +141,7 @@ export function TeamSwitcher({
       }
     } catch (error) {
       console.error("Error updating team:", error);
-      toast.error(t`Failed to update team name`);
+      toast.error(t`Failed to update team name: ${error instanceof Error ? error.message : t`Unknown error`}`);
     } finally {
       setIsUpdating(false);
     }

@@ -11,6 +11,7 @@ import bcrypt from "bcrypt";
 import { createTeam, getUserTeams, updateTeam, deleteTeam, resolveTeamLogoUrl } from "@core/data/teams";
 import { isS3Enabled, isTeamLogoEnabled } from "@core/lib/s3";
 import { requireAdmin, requireAuth, requireTeamAccess } from "@core/lib/auth-middleware";
+import { requirePermission } from "@core/lib/permissions/permission-middleware";
 import { withTranslation } from "@core/lib/translation-middleware";
 import { getCompletedOnboardingSteps } from "@core/data/onboarding";
 import { sendEmail } from "@core/lib/email";
@@ -527,6 +528,7 @@ const resetPassword = server.post(
 const updateTeamEndpoint = server.put(
   "/auth/teams/:teamId",
   requireTeamAccess(),
+  requirePermission("core.team.manage"),
   withTranslation(),
   zodValidator(
     "json",
@@ -554,6 +556,7 @@ const updateTeamEndpoint = server.put(
 const deleteTeamEndpoint = server.delete(
   "/auth/teams/:teamId",
   requireTeamAccess(),
+  requirePermission("core.team.manage"),
   withTranslation(),
   zodValidator(
     "param",

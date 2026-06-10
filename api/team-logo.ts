@@ -3,6 +3,7 @@ import { Server } from "@recommand/lib/api";
 import { updateTeam, resolveTeamLogoUrl } from "@core/data/teams";
 import { uploadFile, deleteFile, isTeamLogoEnabled } from "@core/lib/s3";
 import { requireTeamAccess } from "@core/lib/auth-middleware";
+import { requirePermission } from "@core/lib/permissions/permission-middleware";
 import { withTranslation } from "@core/lib/translation-middleware";
 import { compressImage } from "@core/lib/image";
 
@@ -14,6 +15,7 @@ const MAX_LOGO_SIZE = 2 * 1024 * 1024; // 2MB
 const uploadTeamLogo = server.post(
   "/auth/teams/:teamId/logo",
   requireTeamAccess(),
+  requirePermission("core.team.manage"),
   withTranslation(),
   async (c) => {
     const t = c.get("t");
@@ -69,6 +71,7 @@ const uploadTeamLogo = server.post(
 const deleteTeamLogo = server.delete(
   "/auth/teams/:teamId/logo",
   requireTeamAccess(),
+  requirePermission("core.team.manage"),
   withTranslation(),
   async (c) => {
     const t = c.get("t");
