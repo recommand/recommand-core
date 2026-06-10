@@ -2,6 +2,7 @@ import { createMiddleware } from "hono/factory";
 import type { AuthenticatedUserContext } from "../auth-middleware";
 import { actionFailure } from "@recommand/lib/utils";
 import { hasGlobalPermission, hasPermission } from "@core/data/permissions";
+import { verifySession } from "../session";
 
 export function requirePermission(permissionId: string) {
   return createMiddleware<AuthenticatedUserContext>(async (c, next) => {
@@ -24,6 +25,11 @@ export function requirePermission(permissionId: string) {
 
 export function requireGlobalPermission(permissionId: string) {
   return createMiddleware<AuthenticatedUserContext>(async (c, next) => {
+    const session = await verifySession(c);
+    if (!session?.userId) {
+      return c.json(actionFailure("Unauthorized"), 401);
+    }
+
     const user = c.var.user;
     if (!user) {
       return c.json(actionFailure("Unauthorized"), 401);
