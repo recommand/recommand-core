@@ -226,7 +226,7 @@ export default function Page() {
       navigate("/");
     } catch (error) {
       console.error("Error deleting team:", error);
-      toast.error(t`Failed to delete team`);
+      toast.error(t`Failed to delete team` + (error instanceof Error ? `. ${error.message}` : ""));
     } finally {
       setIsDeletingTeam(false);
     }

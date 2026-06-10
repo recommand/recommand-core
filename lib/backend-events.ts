@@ -1,5 +1,6 @@
 export const CORE_BACKEND_EVENTS = Object.freeze({
     TEAM_CREATED: "team.created",
+    TEAM_BEFORE_DELETE: "team.before_delete",
     TEAM_DELETED: "team.deleted",
     TEAM_MEMBER_ADDED: "team.member.added",
     TEAM_MEMBER_REMOVED: "team.member.removed",

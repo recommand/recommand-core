@@ -80,6 +80,10 @@ export function resolveTeamLogoUrl(team: Team): Team & { logoUrl: string | null 
 }
 
 export async function deleteTeam(teamId: string) {
+  // Allow other packages to veto the deletion (e.g. when the team still owns
+  // resources that need to be cleaned up first). A throwing listener aborts the
+  // delete before any data is removed.
+  await emitBackendEvent(CORE_BACKEND_EVENTS.TEAM_BEFORE_DELETE, { teamId });
   const deletedTeam = await db.delete(teams).where(eq(teams.id, teamId));
   await emitBackendEvent(CORE_BACKEND_EVENTS.TEAM_DELETED, { teamId });
   return deletedTeam;

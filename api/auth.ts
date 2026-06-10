@@ -574,6 +574,9 @@ const deleteTeamEndpoint = server.delete(
       return c.json(actionSuccess({ message: t`Team deleted successfully` }));
     } catch (e) {
       console.error(e);
+      if (e instanceof Error && e.name === "UserFacingError") {
+        return c.json(actionFailure(e.message), 400);
+      }
       return c.json(actionFailure(t`Internal server error`), 500);
     }
   }
