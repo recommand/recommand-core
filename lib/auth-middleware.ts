@@ -9,7 +9,7 @@ export type AuthenticatedUserContext = {
     user: {
       id: string;
       isAdmin: boolean;
-    } | null;
+    };
     team: Team | null;
     teamId: string | null;
   };

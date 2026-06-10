@@ -6,33 +6,36 @@ import {
   InfoSection,
   baseUrl,
 } from "./components/shared";
+import { fallbackT, type TranslationFunction } from "@core/lib/translations";
 
 interface PasswordResetEmailProps {
-  firstName: string;
+  firstName: string | null;
   resetPasswordLink: string;
+  t?: TranslationFunction;
 }
 
 export const PasswordResetEmail = ({
   firstName,
   resetPasswordLink,
+  t = fallbackT,
 }: PasswordResetEmailProps) => (
-  <EmailLayout preview="Reset your Recommand password">
-    <EmailHeading>Reset your password</EmailHeading>
-    <Text className="mb-4">Hello {firstName},</Text>
+  <EmailLayout preview={t`Reset your Recommand password`} t={t}>
+    <EmailHeading>{t`Reset your password`}</EmailHeading>
+    <Text className="mb-4">{t`Hello ${firstName ?? t`there`},`}</Text>
     <Text className="mb-4">
-      We received a request to reset your password for your Recommand account.
+      {t`We received a request to reset your password for your Recommand account.`}
     </Text>
     <Section className="my-6 text-center">
       <Button variant="primary" href={resetPasswordLink}>
-        Reset password
+        {t`Reset password`}
       </Button>
     </Section>
     <InfoSection>
       <Text className="my-1 text-sm">
-        This link will expire in <strong>1 hour</strong> for security reasons.
+        {t`This link will expire in 1 hour for security reasons.`}
       </Text>
       <Text className="my-1 text-sm">
-        If you didn't request this, you can safely ignore this email.
+        {t`If you didn't request this, you can safely ignore this email.`}
       </Text>
     </InfoSection>
   </EmailLayout>
@@ -45,4 +48,7 @@ PasswordResetEmail.PreviewProps = {
 
 export default PasswordResetEmail;
 
-export const subject = () => "Reset your Recommand password";
+export const subject = (props: { t?: TranslationFunction }) => {
+  const t = props.t ?? fallbackT;
+  return t`Reset your Recommand password`;
+};

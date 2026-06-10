@@ -29,6 +29,13 @@ interface UserState {
   activeTeam: Team | null;
   setActiveTeam: (team: Team | string | null) => void;
   removeTeam: (teamId: string) => void;
+
+  // Permissions per team (keyed by teamId)
+  teamPermissions: Record<string, string[]>;
+  globalPermissions: string[];
+
+  // Feature flags from server
+  features: { s3Enabled: boolean; teamLogoEnabled: boolean };
 }
 
 const client = rc<Auth>("core");
@@ -58,6 +65,8 @@ function setStoredActiveTeamId(teamId: string | null): void {
 function transformUserData(data: any): UserWithoutPassword & {
   teams?: Team[];
   completedOnboardingSteps: MinimalCompletedOnboardingStep[];
+  teamPermissions?: Record<string, string[]>;
+  globalPermissions?: string[];
 } {
   return {
     ...data,
@@ -71,6 +80,8 @@ function transformUserData(data: any): UserWithoutPassword & {
       createdAt: new Date(team.createdAt),
     })),
     completedOnboardingSteps: data.completedOnboardingSteps,
+    teamPermissions: data.teamPermissions,
+    globalPermissions: data.globalPermissions,
   };
 }
 
@@ -87,6 +98,9 @@ export const useUserStore = create<UserState>((set, get) => ({
   teams: [],
   teamsAreLoaded: false,
   activeTeam: null,
+  teamPermissions: {},
+  globalPermissions: [],
+  features: { s3Enabled: false, teamLogoEnabled: false },
 
   fetchUser: async () => {
     try {
@@ -105,6 +119,9 @@ export const useUserStore = create<UserState>((set, get) => ({
           activeTeam: get().activeTeam || storedTeam || transformedUser.teams?.[0] || null,
           isLoading: false,
           completedOnboardingSteps: transformedUser.completedOnboardingSteps,
+          teamPermissions: transformedUser.teamPermissions ?? {},
+          globalPermissions: transformedUser.globalPermissions ?? [],
+          features: (userData.data as any).features ?? { s3Enabled: false, teamLogoEnabled: false },
         });
       } else if (!userData.success) {
         set({
@@ -184,7 +201,14 @@ export const useUserStore = create<UserState>((set, get) => ({
       const response = await res.json();
 
       if (response.success) {
-        set({ user: null, isLoading: false, activeTeam: null, teams: [] });
+        set({
+          user: null,
+          isLoading: false,
+          activeTeam: null,
+          teams: [],
+          teamPermissions: {},
+          globalPermissions: [],
+        });
         setStoredActiveTeamId(null);
       } else {
         set({
@@ -223,10 +247,15 @@ export const useUserStore = create<UserState>((set, get) => ({
         ? transformedTeams.find(team => team.id === storedTeamId)
         : null;
 
+      const currentActiveTeam = get().activeTeam;
+      const refreshedActiveTeam = currentActiveTeam
+        ? transformedTeams.find(team => team.id === currentActiveTeam.id) ?? currentActiveTeam
+        : storedTeam || transformedTeams[0] || null;
+
       set({
         teams: transformedTeams,
         teamsAreLoaded: true,
-        activeTeam: get().activeTeam || storedTeam || transformedTeams[0] || null,
+        activeTeam: refreshedActiveTeam,
       });
     } else {
       set({

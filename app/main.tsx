@@ -1,17 +1,13 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo } from 'react'
 import { toast, Toaster } from '../components/ui/sonner';
 import { BrowserRouter, Route, Routes, useLocation, useNavigate } from 'react-router'
 import { routes } from 'virtual:recommand-file-based-router'
 import './index.css'
 import { useMenuItemActions } from '@core/lib/menu-store';
-import { KeyRound, Lock, LogOut, Moon, Sun, Users } from 'lucide-react';
+import { useTranslation } from '@core/hooks/use-translation';
+import { KeyRound, LogOut, Moon, Sun, User, Users } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useUserStore } from '@core/lib/user-store';
-import { rc } from '@recommand/lib/client';
-import type { Auth } from '@core/api/auth';
-import { stringifyActionFailure } from '@recommand/lib/utils';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@core/components/ui/dialog';
-import { Button } from '@core/components/ui/button';
 
 const renderRoute = (r: typeof routes[number]) => {
     return (
@@ -26,81 +22,34 @@ const renderRoute = (r: typeof routes[number]) => {
     )
 }
 
-const client = rc<Auth>("core");
-
 export default function Main({ children }: { children: React.ReactNode }) {
     const { registerMenuItem } = useMenuItemActions();
     const logout = useUserStore(state => state.logout);
     const user = useUserStore(state => state.user);
     const { theme, setTheme } = useTheme();
-    const [passwordResetDialog, setPasswordResetDialog] = useState<{
-        open: boolean;
-        title: string;
-        description: string;
-    }>({
-        open: false,
-        title: '',
-        description: '',
-    });
-    
+    const { t } = useTranslation();
+
     useEffect(() => {
 
         registerMenuItem({
             id: 'user.api.api_keys',
-            title: 'API Keys',
+            title: t`API Keys`,
             icon: KeyRound,
             href: '/api-keys',
         });
 
         registerMenuItem({
             id: 'user.api.team',
-            title: 'Team',
+            title: t`Team`,
             icon: Users,
             href: '/team',
         });
 
         registerMenuItem({
-            id: 'user.session.change_password',
-            title: 'Change password',
-            icon: Lock,
-            onClick: async () => {
-                if (!user?.email) {
-                    setPasswordResetDialog({
-                        open: true,
-                        title: 'Unable to change password',
-                        description: 'User email not available',
-                    });
-                    return;
-                }
-
-                try {
-                    const res = await client.auth["request-password-reset"].$post({
-                        json: { email: user.email },
-                    });
-                    const data = await res.json();
-
-                    if (data.success) {
-                        setPasswordResetDialog({
-                            open: true,
-                            title: 'Password reset email sent',
-                            description: 'Check your email for instructions to reset your password',
-                        });
-                    } else {
-                        setPasswordResetDialog({
-                            open: true,
-                            title: 'Failed to send reset link',
-                            description: stringifyActionFailure(data.errors),
-                        });
-                    }
-                } catch (err) {
-                    setPasswordResetDialog({
-                        open: true,
-                        title: 'Failed to send reset link',
-                        description:
-                            err instanceof Error ? err.message : "An unexpected error occurred",
-                    });
-                }
-            }
+            id: 'user.session.account',
+            title: t`Account`,
+            icon: User,
+            href: '/account',
         });
 
         registerMenuItem({
@@ -114,37 +63,24 @@ export default function Main({ children }: { children: React.ReactNode }) {
 
         registerMenuItem({
             id: 'user.session.logout',
-            title: 'Logout',
+            title: t`Logout`,
             icon: LogOut,
             onClick: async () => {
                 try {
                     await logout();
-                    toast.success("Logged out successfully");
+                    toast.success(t`Logged out successfully`);
                 } catch (error) {
-                    toast.error("Failed to log out");
+                    toast.error(t`Failed to log out`);
                 }
             }
         });
 
-    }, [logout, user, theme, setTheme]);
+    }, [logout, user, theme, setTheme, t]);
 
     return <BrowserRouter>
         {children}
         <RouterInner />
         <Toaster richColors />
-        <Dialog open={passwordResetDialog.open} onOpenChange={(open) => setPasswordResetDialog(prev => ({ ...prev, open }))}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>{passwordResetDialog.title}</DialogTitle>
-                    <DialogDescription>{passwordResetDialog.description}</DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                    <Button onClick={() => setPasswordResetDialog(prev => ({ ...prev, open: false }))}>
-                        Close
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
     </BrowserRouter>;
 }
 
@@ -160,6 +96,11 @@ function getPublicPaths(routeTree: typeof routes[number][]) {
         }
     }
     return publicPaths;
+}
+
+function TranslationLoader() {
+    useTranslation();
+    return null;
 }
 
 const RouterInner = () => {
@@ -184,7 +125,10 @@ const RouterInner = () => {
         }
     }, [user, isLoading]);
 
-    return <Routes>
-        {routes.map((route) => renderRoute(route))}
-    </Routes>
+    return <>
+        <TranslationLoader />
+        <Routes>
+            {routes.map((route) => renderRoute(route))}
+        </Routes>
+    </>
 }

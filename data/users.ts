@@ -9,12 +9,17 @@ import { randomBytes } from "crypto";
 
 export type UserWithoutPassword = Omit<typeof users.$inferSelect, "passwordHash" | "resetToken" | "resetTokenExpires" | "emailVerificationToken" | "emailVerificationExpires">;
 
+function normalizeEmail(email: string) {
+  return email.toLowerCase().trim();
+}
+
 export const getUsers = async (): Promise<UserWithoutPassword[]> => {
   return await db.select({
     id: users.id,
     email: users.email,
     isAdmin: users.isAdmin,
     emailVerified: users.emailVerified,
+    language: users.language,
     createdAt: users.createdAt,
     updatedAt: users.updatedAt,
   }).from(users);
@@ -79,8 +84,9 @@ export const getCurrentUser = async (c: Context) => {
 export const createUser = async (userInfo: {
   email: string;
   password: string;
+  language?: string;
 }) => {
-  const normalizedEmail = userInfo.email.toLowerCase().trim();
+  const normalizedEmail = normalizeEmail(userInfo.email);
   // Check if user already exists
   const existingUsers = await db
     .select({
@@ -100,6 +106,7 @@ export const createUser = async (userInfo: {
     .values({
       email: normalizedEmail,
       passwordHash: hashedPassword,
+      ...(userInfo.language && { language: userInfo.language }),
     })
     .returning({ id: users.id, isAdmin: users.isAdmin });
 
@@ -107,7 +114,7 @@ export const createUser = async (userInfo: {
 };
 
 export const createUserForInvitation = async (email: string) => {
-  const normalizedEmail = email.toLowerCase().trim();
+  const normalizedEmail = normalizeEmail(email);
   // Check if user already exists
   const existingUsers = await db
     .select({
@@ -128,7 +135,7 @@ export const createUserForInvitation = async (email: string) => {
   const [user] = await db
     .insert(users)
     .values({
-      email: email,
+      email: normalizedEmail,
       passwordHash: hashedPassword,
       emailVerified: false,
     })
@@ -138,13 +145,14 @@ export const createUserForInvitation = async (email: string) => {
 };
 
 export const checkBasicAuth = async (username: string, password: string) => {
-  const normalizedUsername = username.toLowerCase();
+  const normalizedUsername = normalizeEmail(username);
   const user = await db
     .select({
       id: users.id,
       isAdmin: users.isAdmin,
       password: users.passwordHash,
       emailVerified: users.emailVerified,
+      language: users.language,
     })
     .from(users)
     .where(eq(users.email, normalizedUsername));

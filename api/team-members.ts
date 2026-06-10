@@ -4,9 +4,12 @@ import { actionFailure, actionSuccess } from "@recommand/lib/utils";
 import { Server } from "@recommand/lib/api";
 import { getMinimalTeamMembers, addTeamMember, removeTeamMember, getUserByEmail, isTeamMember } from "@core/data/team-members";
 import { requireTeamAccess } from "@core/lib/auth-middleware";
+import { withTranslation } from "@core/lib/translation-middleware";
+import { requirePermission } from "@core/lib/permissions/permission-middleware";
 import { createUserForInvitation } from "@core/data/users";
 import { sendEmail } from "@core/lib/email";
 import { getEmailTemplate } from "@core/emails";
+import { createServerT } from "@core/lib/translations-server";
 import { randomBytes } from "crypto";
 import { db } from "@recommand/db";
 import { users } from "@core/db/schema";
@@ -22,6 +25,7 @@ function generateSecureToken(): string {
 const _getTeamMembers = server.get(
   "/auth/teams/:teamId/members",
   requireTeamAccess(),
+  withTranslation(),
   zodValidator(
     "param",
     z.object({
@@ -29,6 +33,7 @@ const _getTeamMembers = server.get(
     })
   ),
   async (c) => {
+    const t = c.get("t");
     try {
       const members = await getMinimalTeamMembers(c.get("team").id);
       return c.json(
@@ -38,7 +43,7 @@ const _getTeamMembers = server.get(
       );
     } catch (error) {
       console.error(error);
-      return c.json(actionFailure("Internal server error"), 500);
+      return c.json(actionFailure(t`Internal server error`), 500);
     }
   }
 );
@@ -46,6 +51,8 @@ const _getTeamMembers = server.get(
 const _addTeamMember = server.post(
   "/auth/teams/:teamId/members",
   requireTeamAccess(),
+  requirePermission("core.team.manage"),
+  withTranslation(),
   zodValidator(
     "param",
     z.object({
@@ -59,6 +66,7 @@ const _addTeamMember = server.post(
     })
   ),
   async (c) => {
+    const t = c.get("t");
     try {
       const reqJson = c.req.valid("json");
       const teamId = c.get("team").id;
@@ -77,7 +85,7 @@ const _addTeamMember = server.post(
       // Check if user is already a team member
       const isAlreadyMember = await isTeamMember(teamId, user.id);
       if (isAlreadyMember) {
-        return c.json(actionFailure("User is already a member of this team"), 400);
+        return c.json(actionFailure(t`User is already a member of this team`), 400);
       }
 
       // Add user to team
@@ -97,10 +105,11 @@ const _addTeamMember = server.post(
           })
           .where(eq(users.id, user.id));
 
-        // Send invitation email
+        // Send invitation email in the inviter's language
+        const emailT = await createServerT(c.get("language"));
         const resetLink = `${process.env.BASE_URL}/reset-password/${resetToken}`;
         const invitationEmail = await getEmailTemplate("team-invitation-email");
-        const emailProps = { firstName: "there", teamName: team.name, resetPasswordLink: resetLink };
+        const emailProps = { firstName: null, teamName: team.name, resetPasswordLink: resetLink, t: emailT };
         await sendEmail({
           to: user.email,
           subject: invitationEmail.subject(emailProps),
@@ -110,11 +119,11 @@ const _addTeamMember = server.post(
 
       return c.json(actionSuccess({
         teamMember: result[0],
-        message: isNewUser ? "Invitation sent successfully" : "User added to team"
+        message: isNewUser ? t`Invitation sent successfully` : t`User added to team`
       }));
     } catch (error) {
       console.error(error);
-      return c.json(actionFailure("Internal server error"), 500);
+      return c.json(actionFailure(t`Internal server error`), 500);
     }
   }
 );
@@ -122,6 +131,7 @@ const _addTeamMember = server.post(
 const _removeTeamMember = server.delete(
   "/auth/teams/:teamId/members/:userId",
   requireTeamAccess(),
+  requirePermission("core.team.manage"),
   zodValidator(
     "param",
     z.object({

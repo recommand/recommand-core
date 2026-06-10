@@ -12,6 +12,7 @@ import {
 import { Input } from "@core/components/ui/input";
 import { type Table as TanstackTable } from "@tanstack/react-table";
 import { TableContainer } from "../table-container";
+import { useTranslation } from "@core/hooks/use-translation";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -32,7 +33,7 @@ export function DataTable<TData, TValue>({
 }: DataTableProps<TData, TValue>) {
   const [globalFilter, setGlobalFilter] = useState("");
   const isGlobalFilterEnabled = enableGlobalFilter && table.getState().globalFilter !== undefined;
-
+  const { t } = useTranslation();
   return (
     <div className="space-y-4">
       {isGlobalFilterEnabled && (
@@ -109,7 +110,7 @@ export function DataTable<TData, TValue>({
             ) : (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  No results.
+                  {t`No results.`}
                 </TableCell>
               </TableRow>
             )}

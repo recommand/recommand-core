@@ -8,6 +8,7 @@ import { rc } from "@recommand/lib/client";
 import { stringifyActionFailure } from "@recommand/lib/utils";
 import type { Auth } from "@core/api/auth";
 import { Plus } from "lucide-react";
+import { useTranslation } from "@core/hooks/use-translation";
 
 const client = rc<Auth>("core");
 
@@ -17,10 +18,11 @@ export function CreateTeamButton() {
   const [isCreating, setIsCreating] = useState(false);
   const fetchTeams = useUserStore(x => x.fetchTeams);
   const setActiveTeam = useUserStore(x => x.setActiveTeam);
+  const { t } = useTranslation();
 
   const handleCreateTeam = async () => {
     if (!teamName.trim()) {
-      toast.error("Please enter a team name");
+      toast.error(t`Please enter a team name`);
       return;
     }
 
@@ -32,7 +34,7 @@ export function CreateTeamButton() {
         },
       });
       const json = await response.json();
-      
+
       if (json.success) {
         const newTeam = {
           ...json.data,
@@ -43,13 +45,13 @@ export function CreateTeamButton() {
         setActiveTeam(newTeam);
         setIsDialogOpen(false);
         setTeamName("");
-        toast.success("Team created successfully");
+        toast.success(t`Team created successfully`);
       } else {
         throw new Error(stringifyActionFailure(json.errors));
       }
     } catch (error) {
       console.error("Error creating team:", error);
-      toast.error("Failed to create team");
+      toast.error(t`Failed to create team`);
     } finally {
       setIsCreating(false);
     }
@@ -59,22 +61,22 @@ export function CreateTeamButton() {
     <>
       <Button onClick={() => setIsDialogOpen(true)} className="gap-2">
         <Plus className="w-4 h-4" />
-        Create Team
+        {t`Create Team`}
       </Button>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Create a new team</DialogTitle>
+            <DialogTitle>{t`Create a new team`}</DialogTitle>
             <DialogDescription>
-              Add a new team to get started.
+              {t`Add a new team to get started.`}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Input
                 id="name"
-                placeholder="Team name"
+                placeholder={t`Team name`}
                 value={teamName}
                 onChange={(e) => setTeamName(e.target.value)}
                 onKeyDown={(e) => {
@@ -87,10 +89,10 @@ export function CreateTeamButton() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-              Cancel
+              {t`Cancel`}
             </Button>
             <Button onClick={handleCreateTeam} disabled={isCreating || !teamName.trim()}>
-              {isCreating ? "Creating..." : "Create team"}
+              {isCreating ? t`Creating...` : t`Create team`}
             </Button>
           </DialogFooter>
         </DialogContent>

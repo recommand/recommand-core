@@ -1,30 +1,32 @@
 import { Section, Text } from "@react-email/components";
 import { Button, EmailLayout, EmailHeading, InfoSection, baseUrl } from "./components/shared";
+import { fallbackT, type TranslationFunction } from "@core/lib/translations";
 
 interface EmailConfirmationProps {
-  firstName: string;
+  firstName: string | null;
   confirmationUrl: string;
+  t?: TranslationFunction;
 }
 
 export const SignupEmailConfirmation = ({
   firstName,
   confirmationUrl,
+  t = fallbackT,
 }: EmailConfirmationProps) => (
-  <EmailLayout preview="Confirm your email address">
-    <EmailHeading>Confirm your email</EmailHeading>
-    <Text className="mb-4">Hello {firstName},</Text>
+  <EmailLayout preview={t`Confirm your email address`} t={t}>
+    <EmailHeading>{t`Confirm your email`}</EmailHeading>
+    <Text className="mb-4">{t`Hello ${firstName ?? t`there`},`}</Text>
     <Text className="mb-4">
-      Thank you for signing up for Recommand. Please confirm your email address
-      to get started.
+      {t`Thank you for signing up for Recommand. Please confirm your email address to get started.`}
     </Text>
     <Section className="my-6 text-center">
       <Button variant="primary" href={confirmationUrl}>
-        Confirm email address
+        {t`Confirm email address`}
       </Button>
     </Section>
     <InfoSection>
       <Text className="my-1 text-sm">
-        If you didn't create an account, you can safely ignore this email.
+        {t`If you didn't create an account, you can safely ignore this email.`}
       </Text>
     </InfoSection>
   </EmailLayout>
@@ -37,4 +39,7 @@ SignupEmailConfirmation.PreviewProps = {
 
 export default SignupEmailConfirmation;
 
-export const subject = () => "Confirm your email address";
+export const subject = (props: { t?: TranslationFunction }) => {
+  const t = props.t ?? fallbackT;
+  return t`Confirm your email address`;
+};

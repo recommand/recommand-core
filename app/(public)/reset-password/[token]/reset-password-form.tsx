@@ -7,12 +7,14 @@ import {
   CardHeader,
   CardTitle,
 } from "../../../../components/ui/card";
-import { Input } from "../../../../components/ui/input";
+import { PasswordInput } from "../../../../components/form/password-input";
 import { Label } from "../../../../components/ui/label";
 import { rc } from "@recommand/lib/client";
 import type { Auth } from "api/auth";
 import { toast } from "../../../../components/ui/sonner";
 import { stringifyActionFailure } from "@recommand/lib/utils";
+import { useTranslation } from "@core/hooks/use-translation";
+import { useUIConfig } from "../../../../lib/ui-config-store";
 
 const client = rc<Auth>("core");
 
@@ -24,19 +26,23 @@ export default function ResetPasswordForm({ token }: ResetPasswordFormProps) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { t } = useTranslation();
+  const logoSrc = useUIConfig("auth.logo-src", "/logo.svg");
+  const logoClassName = useUIConfig("auth.logo-class", "h-12 w-auto");
+  const containerClassName = useUIConfig("auth.container-class", "flex flex-col gap-6");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     if (password !== confirmPassword) {
-      toast.error("Passwords do not match");
+      toast.error(t`Passwords do not match`);
       setIsSubmitting(false);
       return;
     }
 
     if (password.length < 8) {
-      toast.error("Password must be at least 8 characters long");
+      toast.error(t`Password must be at least 8 characters long`);
       setIsSubmitting(false);
       return;
     }
@@ -48,18 +54,18 @@ export default function ResetPasswordForm({ token }: ResetPasswordFormProps) {
       const data = await res.json();
 
       if (data.success) {
-        toast.success("Password reset successfully");
+        toast.success(t`Password reset successfully`);
         // Redirect to login page on success
         window.location.href = "/login";
       } else {
-        toast.error("Failed to reset password", {
+        toast.error(t`Failed to reset password`, {
           description: stringifyActionFailure(data.errors),
         });
       }
     } catch (err) {
-      toast.error("Failed to reset password", {
+      toast.error(t`Failed to reset password`, {
         description:
-          err instanceof Error ? err.message : "An unexpected error occurred",
+          err instanceof Error ? err.message : t`An unexpected error occurred`,
       });
     } finally {
       setIsSubmitting(false);
@@ -67,47 +73,45 @@ export default function ResetPasswordForm({ token }: ResetPasswordFormProps) {
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className={containerClassName}>
       <div className="flex justify-center mb-4">
-        <img 
-          src="/logo.svg" 
-          alt="Logo" 
-          className="h-12 w-auto"
+        <img
+          src={logoSrc}
+          alt="Logo"
+          className={logoClassName}
         />
       </div>
       <Card className="mx-auto">
       <CardHeader>
-        <CardTitle>Reset password</CardTitle>
+        <CardTitle>{t`Reset password`}</CardTitle>
         <CardDescription>
-          Enter a new password for your account.
+          {t`Enter a new password for your account.`}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="grid gap-4">
           <div className="grid gap-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
+            <Label htmlFor="password">{t`Password`}</Label>
+            <PasswordInput
               id="password"
-              type="password"
-              placeholder="Enter new password"
+              placeholder={t`Enter new password`}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="confirmPassword">Confirm Password</Label>
-            <Input
+            <Label htmlFor="confirmPassword">{t`Confirm Password`}</Label>
+            <PasswordInput
               id="confirmPassword"
-              type="password"
-              placeholder="Confirm new password"
+              placeholder={t`Confirm new password`}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
             />
           </div>
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Resetting..." : "Reset Password"}
+            {isSubmitting ? t`Resetting...` : t`Reset Password`}
           </Button>
         </form>
       </CardContent>

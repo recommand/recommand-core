@@ -5,16 +5,20 @@ import { createSession, deleteSession } from "@core/lib/session";
 import { actionFailure, actionSuccess } from "@recommand/lib/utils";
 import { Server } from "@recommand/lib/api";
 import { db } from "@recommand/db";
-import { users } from "@core/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { users, userGlobalPermissions, userPermissions } from "@core/db/schema";
+import { eq, inArray, and, sql } from "drizzle-orm";
 import bcrypt from "bcrypt";
-import { createTeam, getUserTeams, updateTeam, deleteTeam } from "@core/data/teams";
+import { createTeam, getUserTeams, updateTeam, deleteTeam, resolveTeamLogoUrl } from "@core/data/teams";
+import { isS3Enabled, isTeamLogoEnabled } from "@core/lib/s3";
 import { requireAdmin, requireAuth, requireTeamAccess } from "@core/lib/auth-middleware";
+import { requirePermission } from "@core/lib/permissions/permission-middleware";
+import { withTranslation } from "@core/lib/translation-middleware";
 import { getCompletedOnboardingSteps } from "@core/data/onboarding";
 import { sendEmail } from "@core/lib/email";
 import { getEmailTemplate } from "@core/emails";
 import { randomBytes } from "crypto";
 import { describeRoute } from "hono-openapi";
+import { createServerT } from "@core/lib/translations-server";
 
 const server = new Server();
 
@@ -25,6 +29,7 @@ function generateSecureToken(): string {
 
 const login = server.post(
   "/auth/login",
+  withTranslation(),
   zodValidator(
     "json",
     z.object({
@@ -33,19 +38,20 @@ const login = server.post(
     })
   ),
   async (c) => {
+    const t = c.get("t");
     try {
       const data = c.req.valid("json");
 
       // Check if user exists and password is correct
       const userInfo = await checkBasicAuth(data.email, data.password);
       if (!userInfo.passwordMatch) {
-        return c.json(actionFailure("Incorrect password"), 401);
+        return c.json(actionFailure(t`Incorrect password`), 401);
       }
       if (!userInfo.emailVerified) {
-        return c.json(actionFailure("Please confirm your email address before logging in"), 401);
+        return c.json(actionFailure(t`Please confirm your email address before logging in`), 401);
       }
       if (!userInfo.user) {
-        return c.json(actionFailure("User not found"), 404);
+        return c.json(actionFailure(t`User not found`), 404);
       }
 
       const user = userInfo.user;
@@ -56,13 +62,14 @@ const login = server.post(
       return c.json(actionSuccess());
     } catch (e) {
       console.error(e);
-      return c.json(actionFailure("Internal server error"), 500);
+      return c.json(actionFailure(t`Internal server error`), 500);
     }
   }
 );
 
 const signup = server.post(
   "/auth/signup",
+  withTranslation(),
   zodValidator(
     "json",
     z.object({
@@ -73,11 +80,13 @@ const signup = server.post(
     })
   ),
   async (c) => {
+    const t = c.get("t");
     try {
       const data = c.req.valid("json");
 
-      // Create user with email verification token
-      const user = await createUser(data);
+      // Create user with email verification token, using the detected language
+      const language = c.get("language");
+      const user = await createUser({ ...data, language });
 
       // Generate email verification token
       const verificationToken = generateSecureToken();
@@ -91,10 +100,10 @@ const signup = server.post(
         })
         .where(eq(users.id, user.id));
 
-      // Send confirmation email
+      // Send confirmation email in the browser's language
       const confirmationUrl = `${process.env.BASE_URL}/email-confirmation/${verificationToken}`;
       const signupEmail = await getEmailTemplate("signup-confirmation");
-      const emailProps = { firstName: "there", confirmationUrl };
+      const emailProps = { firstName: null, confirmationUrl, t };
       await sendEmail({
         to: data.email,
         subject: signupEmail.subject(emailProps),
@@ -104,79 +113,127 @@ const signup = server.post(
       return c.json(
         actionSuccess({
           message:
-            "Account created successfully. Please check your email to confirm your account.",
+            t`Account created successfully. Please check your email to confirm your account.`,
         })
       );
     } catch (e) {
       console.error(e);
 
       if (e instanceof Error && e.message === "User already exists") {
-        return c.json(actionFailure("User already exists"), 409);
+        return c.json(actionFailure(t`User already exists`), 409);
       }
 
-      return c.json(actionFailure("Internal server error"), 500);
+      return c.json(actionFailure(t`Internal server error`), 500);
     }
   }
 );
 
-const logout = server.post("/auth/logout", async (c) => {
+const logout = server.post("/auth/logout", withTranslation(), async (c) => {
+  const t = c.get("t");
   try {
     await deleteSession(c);
     return c.json(actionSuccess());
   } catch (e) {
     console.error(e);
-    return c.json(actionFailure("Internal server error"), 500);
+    return c.json(actionFailure(t`Internal server error`), 500);
   }
 });
 
-const me = server.get("/auth/me", requireAuth(), async (c) => {
+const me = server.get("/auth/me", requireAuth(), withTranslation(), async (c) => {
+  const t = c.get("t");
   try {
     const user = await getCurrentUser(c);
     if (!user) {
-      return c.json(actionFailure("User not found"), 404);
+      return c.json(actionFailure(t`User not found`), 404);
     }
     const completedOnboardingSteps = await getCompletedOnboardingSteps(user.id);
+
+    // Fetch all scoped permissions for the authenticated user
+    const teamIds = user.teams?.filter(tm => tm.isMember).map(tm => tm.id) ?? [];
+    let teamPermissions: Record<string, string[]> = {};
+    let globalPermissions: string[] = [];
+
+    if (teamIds.length > 0) {
+      const permissions = await db
+        .select({
+          teamId: userPermissions.teamId,
+          permissionId: userPermissions.permissionId,
+        })
+        .from(userPermissions)
+        .where(
+          and(
+            eq(userPermissions.userId, user.id),
+            inArray(userPermissions.teamId, teamIds),
+          )
+        );
+
+      // Group permissions by team
+      for (const perm of permissions) {
+        if (!teamPermissions[perm.teamId]) {
+          teamPermissions[perm.teamId] = [];
+        }
+        teamPermissions[perm.teamId].push(perm.permissionId);
+      }
+    }
+
+    const globalPermissionRows = await db
+      .select({ permissionId: userGlobalPermissions.permissionId })
+      .from(userGlobalPermissions)
+      .where(eq(userGlobalPermissions.userId, user.id));
+
+    globalPermissions = globalPermissionRows.map((permission) => permission.permissionId);
+
     return c.json(
       actionSuccess({
         data: {
           ...user,
+          teams: user.teams?.map(resolveTeamLogoUrl),
           completedOnboardingSteps,
+          teamPermissions,
+          globalPermissions,
+          features: {
+            s3Enabled: isS3Enabled(),
+            teamLogoEnabled: isTeamLogoEnabled(),
+          },
         },
       })
     );
   } catch (e) {
     console.error(e);
-    return c.json(actionFailure("Internal server error"), 500);
+    return c.json(actionFailure(t`Internal server error`), 500);
   }
 });
 
-const teams = server.get("/auth/teams", requireAuth(), async (c) => {
+const teams = server.get("/auth/teams", requireAuth(), withTranslation(), async (c) => {
+  const t = c.get("t");
   try {
     const userId = c.get("user")?.id;
     if (!userId) {
-      return c.json(actionFailure("Unauthorized"), 401);
+      return c.json(actionFailure(t`Unauthorized`), 401);
     }
-    const teams = await getUserTeams(userId);
-    return c.json(actionSuccess({ data: teams }));
+    const userTeams = await getUserTeams(userId);
+    return c.json(actionSuccess({ data: userTeams.map(resolveTeamLogoUrl) }));
   } catch (e) {
     console.error(e);
-    return c.json(actionFailure("Internal server error"), 500);
+    return c.json(actionFailure(t`Internal server error`), 500);
   }
 });
 
-const getUsersEndpoint = server.get("/auth/users", requireAdmin(), async (c) => {
+const getUsersEndpoint = server.get("/auth/users", requireAdmin(), withTranslation(), async (c) => {
+  const t = c.get("t");
   try {
     const usersWithoutPassword: UserWithoutPassword[] = await getUsers();
     return c.json(actionSuccess({ usersWithoutPassword }));
   } catch (e) {
     console.error(e);
-    return c.json(actionFailure("Internal server error"), 500);
+    return c.json(actionFailure(t`Internal server error`), 500);
   }
 });
 
 const createTeamEndpoint = server.post(
   "/auth/teams",
   requireAuth(),
+  withTranslation(),
   zodValidator(
     "json",
     z.object({
@@ -185,27 +242,29 @@ const createTeamEndpoint = server.post(
     })
   ),
   async (c) => {
+    const t = c.get("t");
     try {
       const data = c.req.valid("json");
       const user = c.get("user");
       if (!user?.id) {
-        return c.json(actionFailure("Unauthorized"), 401);
+        return c.json(actionFailure(t`Unauthorized`), 401);
       }
       const team = await createTeam(user.id, {
         name: data.name,
         teamDescription: data.teamDescription,
       });
 
-      return c.json(actionSuccess({ data: team }));
+      return c.json(actionSuccess({ data: resolveTeamLogoUrl(team) }));
     } catch (e) {
       console.error(e);
-      return c.json(actionFailure("Internal server error"), 500);
+      return c.json(actionFailure(t`Internal server error`), 500);
     }
   }
 );
 
 const requestPasswordReset = server.post(
   "/auth/request-password-reset",
+  withTranslation(),
   zodValidator(
     "json",
     z.object({
@@ -213,6 +272,7 @@ const requestPasswordReset = server.post(
     })
   ),
   async (c) => {
+    const t = c.get("t");
     try {
       const { email } = c.req.valid("json");
       const normalizedEmail = email.toLowerCase().trim();
@@ -222,6 +282,7 @@ const requestPasswordReset = server.post(
         .select({
           id: users.id,
           email: users.email,
+          language: users.language,
         })
         .from(users)
         .where(eq(users.email, normalizedEmail));
@@ -244,10 +305,11 @@ const requestPasswordReset = server.post(
         })
         .where(eq(users.id, user.id));
 
-      // Send reset email
+      // Send reset email in the user's preferred language
+      const emailT = await createServerT(user.language);
       const resetLink = `${process.env.BASE_URL}/reset-password/${resetToken}`;
       const passwordResetEmail = await getEmailTemplate("password-reset-email");
-      const resetEmailProps = { firstName: "there", resetPasswordLink: resetLink };
+      const resetEmailProps = { firstName: null, resetPasswordLink: resetLink, t: emailT };
       await sendEmail({
         to: normalizedEmail,
         subject: passwordResetEmail.subject(resetEmailProps),
@@ -257,13 +319,14 @@ const requestPasswordReset = server.post(
       return c.json(actionSuccess());
     } catch (e) {
       console.error(e);
-      return c.json(actionFailure("Internal server error"), 500);
+      return c.json(actionFailure(t`Internal server error`), 500);
     }
   }
 );
 
 const confirmEmail = server.post(
   "/auth/confirm-email",
+  withTranslation(),
   zodValidator(
     "json",
     z.object({
@@ -271,6 +334,7 @@ const confirmEmail = server.post(
     })
   ),
   async (c) => {
+    const t = c.get("t");
     try {
       const { token } = c.req.valid("json");
 
@@ -289,13 +353,13 @@ const confirmEmail = server.post(
       const user = matchingUsers[0];
       if (!user) {
         return c.json(
-          actionFailure("Invalid or expired confirmation token"),
+          actionFailure(t`Invalid or expired confirmation token`),
           400
         );
       }
 
       if (user.emailVerified) {
-        return c.json(actionFailure("Email already verified"), 400);
+        return c.json(actionFailure(t`Email already verified`), 400);
       }
 
       // Mark email as verified and clear verification token
@@ -318,18 +382,19 @@ const confirmEmail = server.post(
 
       return c.json(
         actionSuccess({
-          message: "Email confirmed successfully. You are now logged in.",
+          message: t`Email confirmed successfully. You are now logged in.`,
         })
       );
     } catch (e) {
       console.error(e);
-      return c.json(actionFailure("Internal server error"), 500);
+      return c.json(actionFailure(t`Internal server error`), 500);
     }
   }
 );
 
 const resendConfirmationEmail = server.post(
   "/auth/resend-confirmation",
+  withTranslation(),
   zodValidator(
     "json",
     z.object({
@@ -337,6 +402,7 @@ const resendConfirmationEmail = server.post(
     })
   ),
   async (c) => {
+    const t = c.get("t");
     try {
       const { email } = c.req.valid("json");
       const normalizedEmail = email.toLowerCase().trim();
@@ -347,6 +413,7 @@ const resendConfirmationEmail = server.post(
           id: users.id,
           email: users.email,
           emailVerified: users.emailVerified,
+          language: users.language,
         })
         .from(users)
         .where(eq(users.email, normalizedEmail));
@@ -357,13 +424,13 @@ const resendConfirmationEmail = server.post(
         return c.json(
           actionSuccess({
             message:
-              "If an account with that email exists and is not verified, a confirmation email has been sent.",
+              t`If an account with that email exists and is not verified, a confirmation email has been sent.`,
           })
         );
       }
 
       if (user.emailVerified) {
-        return c.json(actionFailure("Email is already verified"), 400);
+        return c.json(actionFailure(t`Email is already verified`), 400);
       }
 
       // Generate new verification token
@@ -378,10 +445,11 @@ const resendConfirmationEmail = server.post(
         })
         .where(eq(users.id, user.id));
 
-      // Send confirmation email
+      // Send confirmation email in the user's preferred language
+      const emailT = await createServerT(user.language);
       const confirmationUrl = `${process.env.BASE_URL}/email-confirmation/${verificationToken}`;
       const signupEmail = await getEmailTemplate("signup-confirmation");
-      const emailProps = { firstName: "there", confirmationUrl };
+      const emailProps = { firstName: null, confirmationUrl, t: emailT };
       await sendEmail({
         to: normalizedEmail,
         subject: signupEmail.subject(emailProps),
@@ -391,18 +459,19 @@ const resendConfirmationEmail = server.post(
       return c.json(
         actionSuccess({
           message:
-            "If an account with that email exists and is not verified, a confirmation email has been sent.",
+            t`If an account with that email exists and is not verified, a confirmation email has been sent.`,
         })
       );
     } catch (e) {
       console.error(e);
-      return c.json(actionFailure("Internal server error"), 500);
+      return c.json(actionFailure(t`Internal server error`), 500);
     }
   }
 );
 
 const resetPassword = server.post(
   "/auth/reset-password",
+  withTranslation(),
   zodValidator(
     "json",
     z.object({
@@ -413,6 +482,7 @@ const resetPassword = server.post(
     })
   ),
   async (c) => {
+    const t = c.get("t");
     try {
       const { token, password } = c.req.valid("json");
 
@@ -428,7 +498,7 @@ const resetPassword = server.post(
 
       const user = matchingUsers[0];
       if (!user) {
-        return c.json(actionFailure("Invalid or expired reset token"), 400);
+        return c.json(actionFailure(t`Invalid or expired reset token`), 400);
       }
 
       // Hash new password
@@ -450,7 +520,7 @@ const resetPassword = server.post(
       return c.json(actionSuccess());
     } catch (e) {
       console.error(e);
-      return c.json(actionFailure("Internal server error"), 500);
+      return c.json(actionFailure(t`Internal server error`), 500);
     }
   }
 );
@@ -458,6 +528,8 @@ const resetPassword = server.post(
 const updateTeamEndpoint = server.put(
   "/auth/teams/:teamId",
   requireTeamAccess(),
+  requirePermission("core.team.manage"),
+  withTranslation(),
   zodValidator(
     "json",
     z.object({
@@ -466,16 +538,17 @@ const updateTeamEndpoint = server.put(
     })
   ),
   async (c) => {
+    const t = c.get("t");
     try {
       const data = c.req.valid("json");
       const team = c.get("team");
 
       const updatedTeam = await updateTeam(team.id, data);
 
-      return c.json(actionSuccess({ data: updatedTeam }));
+      return c.json(actionSuccess({ data: resolveTeamLogoUrl(updatedTeam) }));
     } catch (e) {
       console.error(e);
-      return c.json(actionFailure("Internal server error"), 500);
+      return c.json(actionFailure(t`Internal server error`), 500);
     }
   }
 );
@@ -483,6 +556,8 @@ const updateTeamEndpoint = server.put(
 const deleteTeamEndpoint = server.delete(
   "/auth/teams/:teamId",
   requireTeamAccess(),
+  requirePermission("core.team.manage"),
+  withTranslation(),
   zodValidator(
     "param",
     z.object({
@@ -490,15 +565,19 @@ const deleteTeamEndpoint = server.delete(
     })
   ),
   async (c) => {
+    const t = c.get("t");
     try {
       const team = c.get("team");
-      
+
       await deleteTeam(team.id);
-      
-      return c.json(actionSuccess({ message: "Team deleted successfully" }));
+
+      return c.json(actionSuccess({ message: t`Team deleted successfully` }));
     } catch (e) {
       console.error(e);
-      return c.json(actionFailure("Internal server error"), 500);
+      if (e instanceof Error && e.name === "UserFacingError") {
+        return c.json(actionFailure(e.message), 400);
+      }
+      return c.json(actionFailure(t`Internal server error`), 500);
     }
   }
 );
@@ -567,12 +646,14 @@ const verify = server.get(
       },
     },
   }),
+  withTranslation(),
   async (c) => {
+    const t = c.get("t");
     try {
       return c.json(actionSuccess());
     } catch (e) {
       console.error(e);
-      return c.json(actionFailure("Internal server error"), 500);
+      return c.json(actionFailure(t`Internal server error`), 500);
     }
   }
 );

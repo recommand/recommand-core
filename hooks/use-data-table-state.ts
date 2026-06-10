@@ -4,6 +4,7 @@ import type {
   ColumnFiltersState,
   VisibilityState,
   PaginationState,
+  SortingState,
   Updater,
 } from "@tanstack/react-table";
 
@@ -15,6 +16,7 @@ interface StoredPreferences {
 interface UseDataTableStateOptions {
   tableId: string;
   defaultLimit?: number;
+  defaultSorting?: SortingState;
   defaultColumnVisibility?: VisibilityState;
   defaultColumnFilters?: ColumnFiltersState;
 }
@@ -23,6 +25,7 @@ export function useDataTableState(options: UseDataTableStateOptions) {
   const {
     tableId,
     defaultLimit = 10,
+    defaultSorting = [],
     defaultColumnVisibility = {},
     defaultColumnFilters = [],
   } = options;
@@ -80,6 +83,46 @@ export function useDataTableState(options: UseDataTableStateOptions) {
       );
     },
     [setSearchParams, defaultLimit]
+  );
+
+  // URL-based sorting (supports multiple columns: sort=col1.asc,col2.desc)
+  const sortingState: SortingState = useMemo(() => {
+    const sort = searchParams.get("sort");
+    if (sort) {
+      return sort.split(",").map((part) => {
+        const lastDot = part.lastIndexOf(".");
+        if (lastDot === -1) return { id: part, desc: false };
+        const id = part.slice(0, lastDot);
+        const dir = part.slice(lastDot + 1);
+        return { id, desc: dir === "desc" };
+      });
+    }
+    return defaultSorting;
+  }, [searchParams, defaultSorting]);
+
+  const onSortingChange = useCallback(
+    (updater: Updater<SortingState>) => {
+      const newSorting =
+        typeof updater === "function" ? updater(sortingState) : updater;
+
+      setSearchParams(
+        (prev) => {
+          if (newSorting.length > 0) {
+            prev.set(
+              "sort",
+              newSorting
+                .map((s) => `${s.id}.${s.desc ? "desc" : "asc"}`)
+                .join(",")
+            );
+          } else {
+            prev.delete("sort");
+          }
+          return prev;
+        },
+        { replace: true }
+      );
+    },
+    [setSearchParams, sortingState]
   );
 
   // localStorage-based preferences
@@ -157,6 +200,10 @@ export function useDataTableState(options: UseDataTableStateOptions) {
     setPage,
     limit,
     setLimit,
+
+    // Sorting (URL-based)
+    sortingState,
+    onSortingChange,
 
     // Preferences (localStorage-based)
     columnFilters,

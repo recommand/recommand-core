@@ -14,6 +14,8 @@ import { type FormEvent, useState } from "react";
 import { cn } from "../../../lib/utils";
 import { useUserStore } from "../../../lib/user-store";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "@core/hooks/use-translation";
+import { useUIConfig } from "../../../lib/ui-config-store";
 
 export function LoginForm({
   className,
@@ -23,6 +25,10 @@ export function LoginForm({
   const [password, setPassword] = useState("");
   const { login } = useUserStore();
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  const logoSrc = useUIConfig("auth.logo-src", "/logo.svg");
+  const logoClassName = useUIConfig("auth.logo-class", "h-12 w-auto");
+  const containerClassName = useUIConfig("auth.container-class", "flex flex-col gap-6");
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -30,36 +36,36 @@ export function LoginForm({
       await login(email, password);
       navigate("/");
     } catch (error) {
-      toast.error("Login failed", {
+      toast.error(t`Login failed`, {
         description:
           error instanceof Error
             ? error.message
-            : "An unexpected error occurred",
+            : t`An unexpected error occurred`,
       });
     }
   };
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
+    <div className={cn(containerClassName, className)} {...props}>
       <div className="flex justify-center mb-4">
-        <img 
-          src="/logo.svg" 
-          alt="Logo" 
-          className="h-12 w-auto"
+        <img
+          src={logoSrc}
+          alt="Logo"
+          className={logoClassName}
         />
       </div>
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">Login</CardTitle>
+          <CardTitle className="text-2xl">{t`Login`}</CardTitle>
           <CardDescription>
-            Enter your email below to login to your account
+            {t`Enter your email below to login to your account`}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit}>
             <div className="flex flex-col gap-6">
               <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t`Email`}</Label>
                 <Input
                   id="email"
                   name="email"
@@ -75,13 +81,13 @@ export function LoginForm({
               </div>
               <div className="grid gap-2">
                 <div className="flex items-center">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password">{t`Password`}</Label>
                   <a
                     href="/reset-password"
                     className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
                     tabIndex={5}
                   >
-                    Forgot your password?
+                    {t`Forgot your password?`}
                   </a>
                 </div>
                 <PasswordInput
@@ -95,17 +101,17 @@ export function LoginForm({
                 />
               </div>
               <Button type="submit" className="w-full" tabIndex={3}>
-                Login
+                {t`Login`}
               </Button>
             </div>
             <div className="mt-4 text-center text-sm">
-              Don&apos;t have an account?{" "}
+              {t`Don't have an account?`}{" "}
               <a
                 href="/signup"
                 className="underline underline-offset-4"
                 tabIndex={4}
               >
-                Sign up
+                {t`Sign up`}
               </a>
             </div>
           </form>

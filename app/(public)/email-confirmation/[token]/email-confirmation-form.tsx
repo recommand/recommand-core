@@ -13,6 +13,8 @@ import { toast } from "../../../../components/ui/sonner";
 import { stringifyActionFailure } from "@recommand/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useUserStore } from "../../../../lib/user-store";
+import { useTranslation } from "@core/hooks/use-translation";
+import { useUIConfig } from "../../../../lib/ui-config-store";
 
 const client = rc<Auth>("core");
 
@@ -28,6 +30,10 @@ export default function EmailConfirmationForm({
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { fetchUser } = useUserStore();
+  const { t } = useTranslation();
+  const logoSrc = useUIConfig("auth.logo-src", "/logo.svg");
+  const logoClassName = useUIConfig("auth.logo-class", "h-12 w-auto");
+  const containerClassName = useUIConfig("auth.container-class", "flex flex-col gap-6");
 
   useEffect(() => {
     if (token) {
@@ -37,7 +43,7 @@ export default function EmailConfirmationForm({
 
   const confirmEmail = async () => {
     if (!token) {
-      setError("Invalid confirmation link");
+      setError(t`Invalid confirmation link`);
       return;
     }
 
@@ -54,7 +60,7 @@ export default function EmailConfirmationForm({
         setIsConfirmed(true);
         // Fetch user data after successful confirmation
         await fetchUser();
-        toast.success("Email confirmed successfully!");
+        toast.success(t`Email confirmed successfully!`);
         // Redirect to dashboard after a short delay
         setTimeout(() => {
           navigate("/");
@@ -64,7 +70,7 @@ export default function EmailConfirmationForm({
       }
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "An unexpected error occurred"
+        err instanceof Error ? err.message : t`An unexpected error occurred`
       );
     } finally {
       setIsConfirming(false);
@@ -75,17 +81,17 @@ export default function EmailConfirmationForm({
     return (
       <div className="flex flex-col gap-6">
         <div className="flex justify-center mb-4">
-          <img 
-            src="/logo.svg" 
-            alt="Logo" 
+          <img
+            src="/logo.svg"
+            alt="Logo"
             className="h-12 w-auto"
           />
         </div>
         <Card className="mx-auto max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl">Confirming Email</CardTitle>
+          <CardTitle className="text-2xl">{t`Confirming Email`}</CardTitle>
           <CardDescription>
-            Please wait while we confirm your email address...
+            {t`Please wait while we confirm your email address...`}
           </CardDescription>
         </CardHeader>
       </Card>
@@ -97,23 +103,22 @@ export default function EmailConfirmationForm({
     return (
       <div className="flex flex-col gap-6">
         <div className="flex justify-center mb-4">
-          <img 
-            src="/logo.svg" 
-            alt="Logo" 
+          <img
+            src="/logo.svg"
+            alt="Logo"
             className="h-12 w-auto"
           />
         </div>
         <Card className="mx-auto max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl">Email Confirmed!</CardTitle>
+          <CardTitle className="text-2xl">{t`Email Confirmed!`}</CardTitle>
           <CardDescription>
-            Your email has been successfully confirmed. You are now logged in
-            and will be redirected to the dashboard.
+            {t`Your email has been successfully confirmed. You are now logged in and will be redirected to the dashboard.`}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Button onClick={() => navigate("/")} className="w-full">
-            Go to Dashboard
+            {t`Go to Dashboard`}
           </Button>
         </CardContent>
       </Card>
@@ -125,22 +130,22 @@ export default function EmailConfirmationForm({
     return (
       <div className="flex flex-col gap-6">
         <div className="flex justify-center mb-4">
-          <img 
-            src="/logo.svg" 
-            alt="Logo" 
+          <img
+            src="/logo.svg"
+            alt="Logo"
             className="h-12 w-auto"
           />
         </div>
         <Card className="mx-auto max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl">Confirmation Failed</CardTitle>
+          <CardTitle className="text-2xl">{t`Confirmation Failed`}</CardTitle>
           <CardDescription className="text-destructive">
             {error}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Your confirmation link may have expired or been used already.
+            {t`Your confirmation link may have expired or been used already.`}
           </p>
           <div className="flex flex-col space-y-2">
             <Button
@@ -148,10 +153,10 @@ export default function EmailConfirmationForm({
               variant="outline"
               className="w-full"
             >
-              Create New Account
+              {t`Create New Account`}
             </Button>
             <Button onClick={() => navigate("/login")} className="w-full">
-              Try Logging In
+              {t`Try Logging In`}
             </Button>
           </div>
         </CardContent>
@@ -161,24 +166,24 @@ export default function EmailConfirmationForm({
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className={containerClassName}>
       <div className="flex justify-center mb-4">
-        <img 
-          src="/logo.svg" 
-          alt="Logo" 
-          className="h-12 w-auto"
+        <img
+          src={logoSrc}
+          alt="Logo"
+          className={logoClassName}
         />
       </div>
       <Card className="mx-auto max-w-md">
       <CardHeader>
-        <CardTitle className="text-2xl">Invalid Link</CardTitle>
+        <CardTitle className="text-2xl">{t`Invalid Link`}</CardTitle>
         <CardDescription>
-          The confirmation link appears to be invalid or missing.
+          {t`The confirmation link appears to be invalid or missing.`}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <Button onClick={() => navigate("/login")} className="w-full">
-          Go to Login
+          {t`Go to Login`}
         </Button>
       </CardContent>
     </Card>

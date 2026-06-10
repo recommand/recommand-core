@@ -66,7 +66,7 @@ export function NavUser({
             sideOffset={4}
           >
             <DropdownMenuLabel className="p-0 font-normal">
-              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+              <Link to="/account" className="flex items-center gap-2 px-1 py-1.5 text-left text-sm rounded-sm hover:bg-accent transition-colors cursor-default">
                 <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarImage src={user.avatar} alt={user.name} />
                   <AvatarFallback className="rounded-lg">
@@ -77,7 +77,7 @@ export function NavUser({
                   <span className="truncate font-medium">{user.name}</span>
                   <span className="truncate text-xs">{user.email}</span>
                 </div>
-              </div>
+              </Link>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             {Object.entries(userMenuItems).map(([group, items], index) => (

@@ -36,7 +36,11 @@ export function NavMain({
     }[];
   }[];
 }) {
-  const { state } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar();
+
+  const closeMobileSidebar = () => {
+    if (isMobile) setOpenMobile(false);
+  };
 
   return (
     <SidebarGroup>
@@ -82,7 +86,7 @@ export function NavMain({
                               <span>{item.title}</span>
                             </>
                           ) : (
-                            <Link to={item.url}>
+                            <Link to={item.url} onClick={closeMobileSidebar}>
                               {item.icon && <item.icon />}
                               <span>{item.title}</span>
                             </Link>
@@ -113,7 +117,7 @@ export function NavMain({
                                 {subItem.onClick ? (
                                   <span>{subItem.title}</span>
                                 ) : (
-                                  <Link to={subItem.url}>
+                                  <Link to={subItem.url} onClick={closeMobileSidebar}>
                                     <span>{subItem.title}</span>
                                   </Link>
                                 )}
@@ -142,7 +146,7 @@ export function NavMain({
                     <span>{item.title}</span>
                   </>
                 ) : (
-                  <Link to={item.url}>
+                  <Link to={item.url} onClick={closeMobileSidebar}>
                     {item.icon && <item.icon />}
                     <span>{item.title}</span>
                   </Link>

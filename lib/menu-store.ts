@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { useMemo } from 'react';
 import type { LucideIcon } from 'lucide-react';
+import { usePermissionChecker } from '@core/hooks/user';
 
 export interface MenuGroup {
     id: string; // E.g. "main.general" or "main.admin", where "main" indicates the main menu
@@ -15,6 +16,7 @@ export interface MenuItem {
     href?: string;
     isActive?: boolean;
     groupId?: string;
+    requiredPermission?: string; // If set, the menu item is only visible to users with this permission
 }
 
 interface MenuStore {
@@ -51,13 +53,28 @@ const useMenuStore = create<MenuStore>((set, get) => ({
     },
 }));
 
+function useFilteredMenuItems(): MenuItem[] {
+    const items = useMenuStore((state) => state.items);
+    const hasPermission = usePermissionChecker();
+
+    return useMemo(() => {
+        return items.filter(item => {
+            if (!item.requiredPermission) {
+                return true;
+            }
+            return hasPermission(item.requiredPermission);
+        });
+    }, [items, hasPermission]);
+}
+
 export const useMenuItems = (): MenuItem[] => {
-    return useMenuStore((state) => state.items);
+    return useFilteredMenuItems();
 }
 
 export const useGroupedMenuItems = (): Record<string, MenuItem[]> => {
-    return useMenuStore((state) => {
-        const items = state.items;
+    const items = useFilteredMenuItems();
+    
+    return useMemo(() => {
         const groupedItems: Record<string, MenuItem[]> = {};
         items.forEach(item => {
             const groupId = item.groupId ?? "_default";
@@ -67,7 +84,7 @@ export const useGroupedMenuItems = (): Record<string, MenuItem[]> => {
             groupedItems[groupId].push(item);
         });
         return groupedItems;
-    });
+    }, [items]);
 }
 
 export const useMenuItemActions = (): { registerMenuItem: (item: MenuItem) => void, registerMenuGroup: (group: MenuGroup) => void } => {

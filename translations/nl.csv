@@ -1,0 +1,235 @@
+Login,Inloggen
+Enter your email below to login to your account,Vul je e-mailadres in om in te loggen
+Email,E-mail
+Password,Wachtwoord
+Forgot your password?,Wachtwoord vergeten?
+Don't have an account?,Heb je nog geen account?
+Sign up,Registreren
+Login failed,Inloggen mislukt
+An unexpected error occurred,Er is een onverwachte fout opgetreden
+Logout,Uitloggen
+Logged out successfully,Succesvol uitgelogd
+Failed to log out,Uitloggen mislukt
+Save,Opslaan
+Cancel,Annuleren
+Delete,Verwijderen
+Close,Sluiten
+API Keys,API-sleutels
+Team,Team
+Change password,Wachtwoord wijzigen
+Password reset email sent,E-mail voor wachtwoordherstel verzonden
+Check your email for instructions to reset your password,Controleer je e-mail voor instructies om je wachtwoord te resetten
+Failed to send reset link,Verzenden van resetlink mislukt
+Unable to change password,Kan wachtwoord niet wijzigen
+User email not available,E-mailadres niet beschikbaar
+Create account,Account aanmaken
+Enter your details below to create an account,Vul je gegevens in om een account aan te maken
+Confirm your email address,Bevestig je e-mailadres
+Reset your password,Herstel je wachtwoord
+New password,Nieuw wachtwoord
+Reset password,Wachtwoord herstellen
+Enter your email to receive a password reset link,Vul je e-mailadres in om een link te ontvangen voor het herstellen van je wachtwoord
+Send reset link,Resetlink verzenden
+Confirm your email,Bevestig je e-mail
+Hello {0}\,,Hallo {0}\,
+Thank you for signing up for Recommand. Please confirm your email address to get started.,Bedankt voor je registratie bij Recommand. Bevestig je e-mailadres om te beginnen.
+Confirm email address,E-mailadres bevestigen
+If you didn't create an account\, you can safely ignore this email.,Als je geen account hebt aangemaakt\, kun je deze e-mail negeren.
+Reset your Recommand password,Herstel je Recommand wachtwoord
+We received a request to reset your password for your Recommand account.,We hebben een verzoek ontvangen om je wachtwoord voor je Recommand account te herstellen.
+This link will expire in 1 hour for security reasons.,Deze link verloopt na 1 uur om veiligheidsredenen.
+If you didn't request this\, you can safely ignore this email.,Als je dit niet hebt aangevraagd\, kun je deze e-mail negeren.
+You've been invited to join {0} on Recommand,Je bent uitgenodigd om lid te worden van {0} op Recommand
+You're invited,Je bent uitgenodigd
+You've been invited to join {0} on Recommand. We've created an account for you.,Je bent uitgenodigd om lid te worden van {0} op Recommand. We hebben een account voor je aangemaakt.
+Set your password,Stel je wachtwoord in
+This invitation will expire in 7 days.,Deze uitnodiging verloopt na 7 dagen.
+After that\, ask your team administrator to resend the invitation.,Vraag daarna je teambeheerder om de uitnodiging opnieuw te verzenden.
+User not found,Gebruiker niet gevonden
+Unauthorized,Niet geautoriseerd
+Internal server error,Interne serverfout
+Team deleted successfully,Team succesvol verwijderd
+Incorrect password,Onjuist wachtwoord
+Please confirm your email address before logging in,Bevestig je e-mailadres voordat je inlogt
+Account created successfully. Please check your email to confirm your account.,Account succesvol aangemaakt. Controleer je e-mail om je account te bevestigen.
+User already exists,Gebruiker bestaat al
+Invalid or expired confirmation token,Ongeldige of verlopen bevestigingstoken
+Email already verified,E-mail is al geverifieerd
+Email confirmed successfully. You are now logged in.,E-mail succesvol bevestigd. Je bent nu ingelogd.
+If an account with that email exists and is not verified\, a confirmation email has been sent.,Als er een account met dat e-mailadres bestaat en niet is geverifieerd\, is er een bevestigingsmail verzonden.
+Email is already verified,E-mail is al geverifieerd
+Invalid or expired reset token,Ongeldige of verlopen resettoken
+User ID is required,Gebruikers-ID is vereist
+Permission not found,Machtiging niet gevonden
+User is already a member of this team,Gebruiker is al lid van dit team
+Invitation sent successfully,Uitnodiging succesvol verzonden
+User added to team,Gebruiker toegevoegd aan team
+Account created successfully!,Account succesvol aangemaakt!
+Please check your email to confirm your account.,Controleer je e-mail om je account te bevestigen.
+Signup failed,Registratie mislukt
+Confirmation email sent!,Bevestigingsmail verzonden!
+Failed to resend confirmation,Opnieuw verzenden van bevestiging mislukt
+Check your email,Controleer je e-mail
+We've sent a confirmation link to,We hebben een bevestigingslink gestuurd naar
+Please check your email and click the confirmation link to activate your account.,Controleer je e-mail en klik op de bevestigingslink om je account te activeren.
+Sending...,Verzenden...
+Resend confirmation email,Bevestigingsmail opnieuw verzenden
+Already have an account?,Heb je al een account?
+Enter your email below to create your account,Vul je e-mailadres in om je account aan te maken
+Reset link sent,Resetlink verzonden
+A password reset link has been sent to your email address. Please check your inbox and follow the instructions to reset your password.,Er is een link voor wachtwoordherstel naar je e-mailadres gestuurd. Controleer je inbox en volg de instructies om je wachtwoord te herstellen.
+Forgot password,Wachtwoord vergeten
+Enter your email address below and we'll send you a link to reset your password.,Vul hieronder je e-mailadres in en we sturen je een link om je wachtwoord te herstellen.
+Passwords do not match,Wachtwoorden komen niet overeen
+Password must be at least 8 characters long,Wachtwoord moet minimaal 8 tekens lang zijn
+Password reset successfully,Wachtwoord succesvol hersteld
+Failed to reset password,Wachtwoord herstellen mislukt
+Enter a new password for your account.,Voer een nieuw wachtwoord in voor je account.
+Enter new password,Voer nieuw wachtwoord in
+Confirm Password,Wachtwoord bevestigen
+Confirm new password,Bevestig nieuw wachtwoord
+Resetting...,Herstellen...
+Reset Password,Wachtwoord herstellen
+Invalid confirmation link,Ongeldige bevestigingslink
+Email confirmed successfully!,E-mail succesvol bevestigd!
+Confirming Email,E-mail bevestigen
+Please wait while we confirm your email address...,Even geduld terwijl we je e-mailadres bevestigen...
+Email Confirmed!,E-mail bevestigd!
+Your email has been successfully confirmed. You are now logged in and will be redirected to the dashboard.,Je e-mail is succesvol bevestigd. Je bent nu ingelogd en wordt doorgestuurd naar het dashboard.
+Go to Dashboard,Ga naar dashboard
+Confirmation Failed,Bevestiging mislukt
+Your confirmation link may have expired or been used already.,Je bevestigingslink is mogelijk verlopen of al gebruikt.
+Create New Account,Nieuw account aanmaken
+Try Logging In,Probeer in te loggen
+Invalid Link,Ongeldige link
+The confirmation link appears to be invalid or missing.,De bevestigingslink lijkt ongeldig of ontbreekt.
+Go to Login,Ga naar inloggen
+Failed to load API keys,API-sleutels laden mislukt
+Please enter a valid name for the API key,Voer een geldige naam in voor de API-sleutel
+Please enter a valid expiration duration,Voer een geldige verloopduur in
+API key created successfully,API-sleutel succesvol aangemaakt
+Name,Naam
+Type,Type
+API Key,API-sleutel
+API Key copied to clipboard,API-sleutel gekopieerd naar klembord
+Expires At,Verloopt op
+Never,Nooit
+Created At,Aangemaakt op
+API key deleted successfully,API-sleutel succesvol verwijderd
+Failed to delete API key,API-sleutel verwijderen mislukt
+User Settings,Gebruikersinstellingen
+API Key Creation Not Available,API-sleutel aanmaken niet beschikbaar
+API key creation is currently restricted for security reasons. When the JWT-based token flow with assertion is enabled\, keys can only be created via the API using a signed JWT assertion. Contact support if you have any questions.,API-sleutel aanmaken is momenteel beperkt om veiligheidsredenen. Wanneer de JWT-gebaseerde tokenflow met assertie is ingeschakeld\, kunnen sleutels alleen via de API worden aangemaakt met een ondertekende JWT-assertie. Neem contact op met support als je vragen hebt.
+New API Key Name,Nieuwe API-sleutelnaam
+Basic Authentication,Basisauthenticatie
+JWT Token,JWT-token
+Create API Key,API-sleutel aanmaken
+API Key Expiration in,API-sleutel verloopt over
+Hours,Uren
+Days,Dagen
+Team ID,Team-ID
+This is your unique team identifier,Dit is je unieke team-ID
+Team ID copied to clipboard,Team-ID gekopieerd naar klembord
+New API Key Created,Nieuwe API-sleutel aangemaakt
+Please save these credentials. They will only be shown once.,Sla deze gegevens op. Ze worden slechts één keer getoond.
+Secret,Geheim
+Secret copied to clipboard,Geheim gekopieerd naar klembord
+View Authorization Header,Autorisatieheader bekijken
+Authorization Header,Autorisatieheader
+Authorization header copied to clipboard,Autorisatieheader gekopieerd naar klembord
+JWT token copied to clipboard,JWT-token gekopieerd naar klembord
+Failed to load team members,Teamleden laden mislukt
+Please enter a valid email address,Voer een geldig e-mailadres in
+Team member added successfully,Teamlid succesvol toegevoegd
+Failed to add team member,Teamlid toevoegen mislukt
+No active team selected,Geen actief team geselecteerd
+Failed to delete team,Team verwijderen mislukt
+User ID,Gebruikers-ID
+User ID copied to clipboard,Gebruikers-ID gekopieerd naar klembord
+Verified,Geverifieerd
+Unverified,Niet geverifieerd
+Joined At,Lid sinds
+Manage permissions,Machtigingen beheren
+Remove team member,Teamlid verwijderen
+Team member removed successfully,Teamlid succesvol verwijderd
+Failed to remove team member,Teamlid verwijderen mislukt
+Delete Team,Team verwijderen
+Are you sure you want to delete the team "{0}"? This action cannot be undone. All team members\, API keys\, and associated data will be permanently removed.,Weet je zeker dat je het team "{0}" wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt. Alle teamleden\, API-sleutels en bijbehorende gegevens worden permanent verwijderd.
+Deleting...,Verwijderen...
+Email address to invite,E-mailadres om uit te nodigen
+Inviting...,Uitnodigen...
+Invite Member,Lid uitnodigen
+Team Name,Teamnaam
+Team name copied to clipboard,Teamnaam gekopieerd naar klembord
+Failed to load permissions data,Machtigingsgegevens laden mislukt
+Permission revoked,Machtiging ingetrokken
+Permission granted,Machtiging verleend
+Failed to update permission,Machtiging bijwerken mislukt
+Member Permissions,Lidmachtigingen
+Permissions for {0},Machtigingen voor {0}
+Manage what this team member is allowed to do. Toggle permissions on or off instantly.,Beheer wat dit teamlid mag doen. Schakel machtigingen direct in of uit.
+Permissions,Machtigingen
+Select which permissions this team member should have,Selecteer welke machtigingen dit teamlid moet hebben
+No permissions are available to manage.,Er zijn geen machtigingen beschikbaar om te beheren.
+You don't have permission to grant or revoke this permission.,Je hebt geen machtiging om deze machtiging te verlenen of in te trekken.
+You must be in a team to complete this step,Je moet in een team zitten om deze stap te voltooien
+Failed to complete step,Stap voltooien mislukt
+Continue,Doorgaan
+Please enter a team name,Voer een teamnaam in
+Team created successfully,Team succesvol aangemaakt
+Failed to create team,Team aanmaken mislukt
+Team name updated successfully,Teamnaam succesvol bijgewerkt
+Failed to update team name,Teamnaam bijwerken mislukt
+Search teams...,Teams zoeken...
+My Teams,Mijn teams
+Other Teams,Andere teams
+No teams found,Geen teams gevonden
+Add team,Team toevoegen
+Create a new team,Nieuw team aanmaken
+Add a new team to collaborate with others.,Voeg een nieuw team toe om samen te werken.
+Team name,Teamnaam
+Creating...,Aanmaken...
+Create team,Team aanmaken
+Edit team name,Teamnaam bewerken
+Update the name of "{0}".,Wijzig de naam van "{0}".
+Updating...,Bijwerken...
+Update team,Team bijwerken
+Create Team,Team aanmaken
+Add a new team to get started.,Voeg een nieuw team toe om te beginnen.
+No results.,Geen resultaten.
+Account,Account
+Dashboard,Dashboard
+Manage your account settings,Beheer je accountinstellingen
+Profile,Profiel
+Your personal information,Je persoonlijke gegevens
+Language,Taal
+Select a language,Selecteer een taal
+Profile updated,Profiel bijgewerkt
+Failed to update profile,Profiel bijwerken mislukt
+Update your password,Wijzig je wachtwoord
+Current password,Huidig wachtwoord
+Password must be at least 8 characters,Wachtwoord moet minimaal 8 tekens bevatten
+Password changed successfully,Wachtwoord succesvol gewijzigd
+Failed to change password,Wachtwoord wijzigen mislukt
+Current password is incorrect,Huidig wachtwoord is onjuist
+Best regards\,,Met vriendelijke groet\,
+The Recommand Team,Het Recommand Team
+Team name updated,Teamnaam bijgewerkt
+Team Logo,Teamlogo
+Upload Logo,Logo uploaden
+Change Logo,Logo wijzigen
+Remove,Verwijderen
+Logo uploaded successfully,Logo succesvol geüpload
+Failed to upload logo,Logo uploaden mislukt
+Logo removed successfully,Logo succesvol verwijderd
+Failed to remove logo,Logo verwijderen mislukt
+File storage is not enabled,Bestandsopslag is niet ingeschakeld
+No logo file provided,Geen logobestand opgegeven
+Invalid file type. Allowed: PNG\, JPEG\, WebP\, SVG,Ongeldig bestandstype. Toegestaan: PNG\, JPEG\, WebP\, SVG
+File too large. Maximum size is 2MB,Bestand te groot. Maximale grootte is 2MB
+I agree to the,Ik ga akkoord met de
+Terms of Use,Gebruiksvoorwaarden
+Privacy Policy,Privacybeleid
+and,en
+You must accept the terms to continue,Je moet de voorwaarden accepteren om door te gaan
+there,daar

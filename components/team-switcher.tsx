@@ -1,4 +1,4 @@
-import { ChevronsUpDown, Plus, GalleryVerticalEnd, Pencil, Search } from "lucide-react";
+import { ChevronsUpDown, Plus, Pencil, Search } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
   DropdownMenu,
@@ -34,6 +34,7 @@ import { rc } from "@recommand/lib/client";
 import { stringifyActionFailure } from "@recommand/lib/utils";
 import type { Auth } from "@core/api/auth";
 import type { MenuItem } from "@core/lib/menu-store";
+import { useTranslation } from "@core/hooks/use-translation";
 
 const client = rc<Auth>("core");
 
@@ -59,10 +60,11 @@ export function TeamSwitcher({
   const [isUpdating, setIsUpdating] = useState(false);
   const fetchTeams = useUserStore((x) => x.fetchTeams);
   const [searchQuery, setSearchQuery] = useState("");
+  const { t } = useTranslation();
 
   const handleCreateTeam = async () => {
     if (!newTeamName.trim()) {
-      toast.error("Please enter a team name");
+      toast.error(t`Please enter a team name`);
       return;
     }
 
@@ -85,13 +87,13 @@ export function TeamSwitcher({
         setActiveTeam(newTeam);
         setIsCreateTeamDialogOpen(false);
         setNewTeamName("");
-        toast.success("Team created successfully");
+        toast.success(t`Team created successfully`);
       } else {
         throw new Error(stringifyActionFailure(json.errors));
       }
     } catch (error) {
       console.error("Error creating team:", error);
-      toast.error("Failed to create team");
+      toast.error(t`Failed to create team`);
     } finally {
       setIsCreating(false);
     }
@@ -106,7 +108,7 @@ export function TeamSwitcher({
 
   const handleUpdateTeam = async () => {
     if (!editTeamName.trim() || !editingTeam) {
-      toast.error("Please enter a team name");
+      toast.error(t`Please enter a team name`);
       return;
     }
 
@@ -133,13 +135,13 @@ export function TeamSwitcher({
         setIsEditTeamDialogOpen(false);
         setEditTeamName("");
         setEditingTeam(null);
-        toast.success("Team name updated successfully");
+        toast.success(t`Team name updated successfully`);
       } else {
         throw new Error(stringifyActionFailure(json.errors));
       }
     } catch (error) {
       console.error("Error updating team:", error);
-      toast.error("Failed to update team name");
+      toast.error(t`Failed to update team name: ${error instanceof Error ? error.message : t`Unknown error`}`);
     } finally {
       setIsUpdating(false);
     }
@@ -169,19 +171,6 @@ export function TeamSwitcher({
     );
   }
 
-  // Transform team data for display
-  const transformedTeams = teams.map((team) => ({
-    name: team.name,
-    logo: GalleryVerticalEnd,
-    plan: team.teamDescription,
-  }));
-
-  const transformedActiveTeam = {
-    name: activeTeam.name,
-    logo: GalleryVerticalEnd,
-    plan: activeTeam.teamDescription,
-  };
-
   return (
     <>
       <SidebarMenu>
@@ -200,15 +189,15 @@ export function TeamSwitcher({
                 size="lg"
                 className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
               >
-                <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <transformedActiveTeam.logo className="size-4" />
+                <div className="flex aspect-square size-10 items-center justify-center rounded-lg border bg-sheet-light p-1 overflow-hidden">
+                  <img src={activeTeam.logoUrl || "/icon.svg"} alt={activeTeam.name} className="size-full object-contain" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">
-                    {transformedActiveTeam.name}
+                    {activeTeam.name}
                   </span>
                   <span className="truncate text-xs">
-                    {transformedActiveTeam.plan}
+                    {activeTeam.teamDescription}
                   </span>
                 </div>
                 <ChevronsUpDown className="ml-auto" />
@@ -224,7 +213,7 @@ export function TeamSwitcher({
                 <div className="relative">
                   <Search className="absolute left-2 top-2.5 size-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search teams..."
+                    placeholder={t`Search teams...`}
                     value={searchQuery}
                     onChange={(e) => handleSearchChange(e.target.value)}
                     className="pl-8 h-9"
@@ -236,7 +225,7 @@ export function TeamSwitcher({
 
               <>
                 <DropdownMenuLabel className="text-muted-foreground text-xs px-2 py-2">
-                  My Teams
+                  {t`My Teams`}
                 </DropdownMenuLabel>
                 <div className="max-h-[300px] overflow-y-auto">
                   {teams
@@ -259,8 +248,8 @@ export function TeamSwitcher({
                             setSearchQuery("");
                           }}
                         >
-                          <div className="flex size-6 items-center justify-center rounded-md border">
-                            <GalleryVerticalEnd className="size-3.5 shrink-0" />
+                          <div className="flex size-8 items-center justify-center rounded-lg border bg-sheet-light p-0.5 overflow-hidden">
+                            <img src={team.logoUrl || "/icon.svg"} alt={team.name} className="size-full object-contain" />
                           </div>
                           {team.name}
                         </div>
@@ -285,7 +274,7 @@ export function TeamSwitcher({
                     <>
                       <DropdownMenuSeparator />
                       <DropdownMenuLabel className="text-muted-foreground text-xs px-2 py-2">
-                        Other Teams
+                        {t`Other Teams`}
                       </DropdownMenuLabel>
                       <div className="max-h-[200px] overflow-y-auto">
                         {teams
@@ -304,8 +293,8 @@ export function TeamSwitcher({
                               setSearchQuery("");
                             }}
                           >
-                            <div className="flex size-6 items-center justify-center rounded-md border">
-                              <GalleryVerticalEnd className="size-3.5 shrink-0" />
+                            <div className="flex size-8 items-center justify-center rounded-lg border bg-sheet-light p-0.5 overflow-hidden">
+                              <img src={team.logoUrl || "/icon.svg"} alt={team.name} className="size-full object-contain" />
                             </div>
                             {team.name}
                           </DropdownMenuItem>
@@ -315,9 +304,9 @@ export function TeamSwitcher({
                   )}
 
                   {searchQuery.trim() &&
-                   teams.filter((t: any) => t.name.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
+                   teams.filter((team: any) => team.name.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
                     <div className="py-6 text-center text-sm text-muted-foreground">
-                      No teams found
+                      {t`No teams found`}
                     </div>
                   )}
 
@@ -331,10 +320,10 @@ export function TeamSwitcher({
                           setIsDropdownOpen(false);
                         }}
                       >
-                        <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
-                          <Plus className="size-4" />
+                        <div className="flex size-8 items-center justify-center rounded-lg border bg-muted">
+                          <Plus className="size-5" />
                         </div>
-                        <div>Add team</div>
+                        <div>{t`Add team`}</div>
                       </DropdownMenuItem>
                     </>
                   )}
@@ -352,8 +341,8 @@ export function TeamSwitcher({
                               >
                                 <Link to={item.href}>
                                   {item.icon && (
-                                    <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
-                                      <item.icon className="size-4" />
+                                    <div className="flex size-8 items-center justify-center rounded-lg border bg-muted">
+                                      <item.icon className="size-5" />
                                     </div>
                                   )}
                                   <span>{item.title}</span>
@@ -368,8 +357,8 @@ export function TeamSwitcher({
                                 className="gap-2 p-2"
                               >
                                 {item.icon && (
-                                  <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
-                                    <item.icon className="size-4" />
+                                  <div className="flex size-8 items-center justify-center rounded-lg border bg-muted">
+                                    <item.icon className="size-5" />
                                   </div>
                                 )}
                                 <span>{item.title}</span>
@@ -391,16 +380,16 @@ export function TeamSwitcher({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Create a new team</DialogTitle>
+            <DialogTitle>{t`Create a new team`}</DialogTitle>
             <DialogDescription>
-              Add a new team to collaborate with others.
+              {t`Add a new team to collaborate with others.`}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Input
                 id="name"
-                placeholder="Team name"
+                placeholder={t`Team name`}
                 value={newTeamName}
                 onChange={(e) => setNewTeamName(e.target.value)}
                 onKeyDown={(e) => {
@@ -416,13 +405,13 @@ export function TeamSwitcher({
               variant="outline"
               onClick={() => setIsCreateTeamDialogOpen(false)}
             >
-              Cancel
+              {t`Cancel`}
             </Button>
             <Button
               onClick={handleCreateTeam}
               disabled={isCreating || !newTeamName.trim()}
             >
-              {isCreating ? "Creating..." : "Create team"}
+              {isCreating ? t`Creating...` : t`Create team`}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -434,16 +423,16 @@ export function TeamSwitcher({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit team name</DialogTitle>
+            <DialogTitle>{t`Edit team name`}</DialogTitle>
             <DialogDescription>
-              Update the name of "{editingTeam?.name}".
+              {t`Update the name of "${editingTeam?.name}".`}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Input
                 id="editName"
-                placeholder="Team name"
+                placeholder={t`Team name`}
                 value={editTeamName}
                 onChange={(e) => setEditTeamName(e.target.value)}
                 onKeyDown={(e) => {
@@ -463,7 +452,7 @@ export function TeamSwitcher({
                 setEditingTeam(null);
               }}
             >
-              Cancel
+              {t`Cancel`}
             </Button>
             <Button
               onClick={handleUpdateTeam}
@@ -473,7 +462,7 @@ export function TeamSwitcher({
                 editTeamName === editingTeam?.name
               }
             >
-              {isUpdating ? "Updating..." : "Update team"}
+              {isUpdating ? t`Updating...` : t`Update team`}
             </Button>
           </DialogFooter>
         </DialogContent>

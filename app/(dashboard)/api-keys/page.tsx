@@ -6,10 +6,10 @@ import { DataTable } from "@core/components/data-table";
 import {
   type ColumnDef,
   getCoreRowModel,
+  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import type { SortingState } from "@tanstack/react-table";
 import { Button } from "@core/components/ui/button";
 import { Input } from "@core/components/ui/input";
 import { Label } from "@core/components/ui/label";
@@ -36,6 +36,9 @@ import {
   AlertDescription,
   AlertTitle,
 } from "@core/components/ui/alert";
+import { useTranslation } from "@core/hooks/use-translation";
+import { useDataTableState } from "@core/hooks/use-data-table-state";
+import { DataTablePagination } from "@core/components/data-table/pagination";
 
 const client = rc<ApiKeys>("core");
 
@@ -51,9 +54,10 @@ export default function Page() {
     | { jwt: string; type: "jwt"; expiresAt: Date }
     | null
   >(null);
-  const [sorting, setSorting] = useState<SortingState>([]);
+  const { paginationState, onPaginationChange, sortingState, onSortingChange } = useDataTableState({ tableId: "core-api-keys" });
   const [isCreationPermitted, setIsCreationPermitted] = useState<boolean | null>(null);
   const activeTeam = useActiveTeam();
+  const { t } = useTranslation();
 
   const fetchApiKeys = useCallback(async () => {
     if (!activeTeam?.id) {
@@ -70,7 +74,7 @@ export default function Page() {
 
       if (!json.success || !Array.isArray(json.apiKeys)) {
         console.error("Invalid API response format:", json);
-        toast.error("Failed to load API keys");
+        toast.error(t`Failed to load API keys`);
         setApiKeys([]);
       } else {
         setApiKeys(
@@ -84,13 +88,13 @@ export default function Page() {
       }
     } catch (error) {
       console.error("Error fetching API keys:", error);
-      toast.error("Failed to load API keys");
+      toast.error(t`Failed to load API keys`);
       setApiKeys([]);
     } finally {
       setIsLoading(false);
     }
   }, [activeTeam?.id]);
-  
+
   const checkCreationPermission = useCallback(async () => {
     if (!activeTeam?.id) {
       setIsCreationPermitted(false);
@@ -124,12 +128,12 @@ export default function Page() {
   const handleCreateKey = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeTeam?.id || !newKeyName.trim()) {
-      toast.error("Please enter a valid name for the API key");
+      toast.error(t`Please enter a valid name for the API key`);
       return;
     }
 
     if (keyType === "jwt" && !isValidExpirationDuration()) {
-      toast.error("Please enter a valid expiration duration");
+      toast.error(t`Please enter a valid expiration duration`);
       return;
     }
 
@@ -188,7 +192,7 @@ export default function Page() {
           expiresAt: new Date(json.apiKey.expiresAt),
         });
       }
-      toast.success("API key created successfully");
+      toast.success(t`API key created successfully`);
     } catch (error: any) {
       toast.error(error.message);
     }
@@ -197,12 +201,12 @@ export default function Page() {
   const columns: ColumnDef<ApiKey>[] = [
     {
       accessorKey: "name",
-      header: ({ column }) => <ColumnHeader column={column} title="Name" />,
+      header: ({ column }) => <ColumnHeader column={column} title={t`Name`} />,
       cell: ({ row }) => (row.getValue("name") as string) ?? "N/A",
     },
     {
       accessorKey: "type",
-      header: ({ column }) => <ColumnHeader column={column} title="Type" />,
+      header: ({ column }) => <ColumnHeader column={column} title={t`Type`} />,
       cell: ({ row }) => {
         const type = row.getValue("type") as string;
         return (
@@ -214,7 +218,7 @@ export default function Page() {
     },
     {
       accessorKey: "id",
-      header: ({ column }) => <ColumnHeader column={column} title="API Key" />,
+      header: ({ column }) => <ColumnHeader column={column} title={t`API Key`} />,
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
           <pre className="font-mono">{row.getValue("id") as string}</pre>
@@ -223,7 +227,7 @@ export default function Page() {
             size="icon"
             onClick={() => {
               navigator.clipboard.writeText(row.getValue("id") as string);
-              toast.success("API Key copied to clipboard");
+              toast.success(t`API Key copied to clipboard`);
             }}
           >
             <Copy className="h-4 w-4" />
@@ -234,11 +238,11 @@ export default function Page() {
     {
       accessorKey: "expiresAt",
       header: ({ column }) => (
-        <ColumnHeader column={column} title="Expires At" />
+        <ColumnHeader column={column} title={t`Expires At`} />
       ),
       cell: ({ row }) => {
         const expiresAt = row.getValue("expiresAt") as Date | null;
-        if (!expiresAt) return "Never";
+        if (!expiresAt) return t`Never`;
         const isExpired = new Date(expiresAt) < new Date();
         return (
           <span className={isExpired ? "text-destructive font-medium" : ""}>
@@ -251,7 +255,7 @@ export default function Page() {
     {
       accessorKey: "createdAt",
       header: ({ column }) => (
-        <ColumnHeader column={column} title="Created At" />
+        <ColumnHeader column={column} title={t`Created At`} />
       ),
       cell: ({ row }) => {
         const date = row.getValue("createdAt") as string;
@@ -285,7 +289,7 @@ export default function Page() {
                   .then(async (res: Response) => {
                     const json = await res.json();
                     if (json.success) {
-                      toast.success("API key deleted successfully");
+                      toast.success(t`API key deleted successfully`);
                       fetchApiKeys();
                     } else {
                       toast.error(stringifyActionFailure(json.errors));
@@ -293,7 +297,7 @@ export default function Page() {
                   })
                   .catch((error) => {
                     console.error("Error deleting API key:", error);
-                    toast.error("Failed to delete API key");
+                    toast.error(t`Failed to delete API key`);
                   });
               }}
             >
@@ -310,30 +314,34 @@ export default function Page() {
     columns,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    onSortingChange: setSorting,
+    getPaginationRowModel: getPaginationRowModel(),
+    onSortingChange: onSortingChange,
+    onPaginationChange: onPaginationChange,
+    autoResetPageIndex: false,
     state: {
-      sorting,
+      sorting: sortingState,
+      pagination: paginationState,
     },
   });
 
   return (
     <PageTemplate
-      breadcrumbs={[{ label: "User Settings" }, { label: "API Keys" }]}
+      breadcrumbs={[{ label: t`User Settings` }, { label: t`API Keys` }]}
     >
       <div className="space-y-6">
         {isCreationPermitted === false ? (
           <Alert variant="default" className="max-w-2xl">
             <AlertCircle />
-            <AlertTitle>API Key Creation Not Available</AlertTitle>
+            <AlertTitle>{t`API Key Creation Not Available`}</AlertTitle>
             <AlertDescription>
-              API key creation is currently restricted for security reasons. When the JWT-based token flow with assertion is enabled, keys can only be created via the API using a signed JWT assertion. Contact support if you have any questions.
+              {t`API key creation is currently restricted for security reasons. When the JWT-based token flow with assertion is enabled, keys can only be created via the API using a signed JWT assertion. Contact support if you have any questions.`}
             </AlertDescription>
           </Alert>
         ) : (
           <div className="space-y-4 max-w-2xl">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
               <Input
-                placeholder="New API Key Name"
+                placeholder={t`New API Key Name`}
                 value={newKeyName}
                 onChange={(e) => setNewKeyName(e.target.value)}
                 onKeyDown={(e) => {
@@ -350,8 +358,8 @@ export default function Page() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="basic">Basic Authentication</SelectItem>
-                  <SelectItem value="jwt">JWT Token</SelectItem>
+                  <SelectItem value="basic">{t`Basic Authentication`}</SelectItem>
+                  <SelectItem value="jwt">{t`JWT Token`}</SelectItem>
                 </SelectContent>
               </Select>
               <Button
@@ -362,12 +370,12 @@ export default function Page() {
                   (keyType === "jwt" && !isValidExpirationDuration())
                 }
               >
-                Create API Key
+                {t`Create API Key`}
               </Button>
             </div>
             {keyType === "jwt" && (
               <div className="space-y-2">
-                <Label htmlFor="expiration-duration">API Key Expiration in</Label>
+                <Label htmlFor="expiration-duration">{t`API Key Expiration in`}</Label>
                 <div className="flex items-center gap-2">
                   <Input
                     id="expiration-duration"
@@ -387,8 +395,8 @@ export default function Page() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="hours">Hours</SelectItem>
-                      <SelectItem value="days">Days</SelectItem>
+                      <SelectItem value="hours">{t`Hours`}</SelectItem>
+                      <SelectItem value="days">{t`Days`}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -398,9 +406,9 @@ export default function Page() {
         )}
         <div className="rounded-lg border p-4 space-y-4 max-w-2xl bg-muted">
           <div className="space-y-2">
-            <h3 className="font-medium">Team ID</h3>
+            <h3 className="font-medium">{t`Team ID`}</h3>
             <p className="text-sm text-muted-foreground">
-              This is your unique team identifier (
+              {t`This is your unique team identifier`} (
               <code className="font-mono">teamId</code>).
             </p>
           </div>
@@ -415,7 +423,7 @@ export default function Page() {
               onClick={() => {
                 if (activeTeam?.id) {
                   navigator.clipboard.writeText(activeTeam.id);
-                  toast.success("Team ID copied to clipboard");
+                  toast.success(t`Team ID copied to clipboard`);
                 }
               }}
             >
@@ -426,16 +434,16 @@ export default function Page() {
         {newKey && (
           <div className="rounded-lg border p-4 space-y-4 max-w-2xl bg-muted">
             <div className="space-y-2">
-              <h3 className="font-medium">New API Key Created</h3>
+              <h3 className="font-medium">{t`New API Key Created`}</h3>
               <p className="text-sm text-muted-foreground">
-                Please save these credentials. They will only be shown once.
+                {t`Please save these credentials. They will only be shown once.`}
               </p>
             </div>
             <div className="space-y-2">
               {newKey.type === "basic" ? (
                 <>
                   <div>
-                    <label className="text-sm font-medium">API Key</label>
+                    <label className="text-sm font-medium">{t`API Key`}</label>
                     <div className="flex items-center gap-2">
                       <Input
                         value={newKey.key}
@@ -446,7 +454,7 @@ export default function Page() {
                         variant="outline"
                         onClick={() => {
                           navigator.clipboard.writeText(newKey.key);
-                          toast.success("API Key copied to clipboard");
+                          toast.success(t`API Key copied to clipboard`);
                         }}
                       >
                         <Copy className="h-4 w-4" />
@@ -454,7 +462,7 @@ export default function Page() {
                     </div>
                   </div>
                   <div>
-                    <label className="text-sm font-medium">Secret</label>
+                    <label className="text-sm font-medium">{t`Secret`}</label>
                     <div className="flex items-center gap-2">
                       <Input
                         value={newKey.secret}
@@ -465,7 +473,7 @@ export default function Page() {
                         variant="outline"
                         onClick={() => {
                           navigator.clipboard.writeText(newKey.secret);
-                          toast.success("Secret copied to clipboard");
+                          toast.success(t`Secret copied to clipboard`);
                         }}
                       >
                         <Copy className="h-4 w-4" />
@@ -479,7 +487,7 @@ export default function Page() {
                         className="w-full font-normal [&[data-state=open]>svg]:rotate-180"
                       >
                         <label className="text-sm font-medium">
-                          View Authorization Header
+                          {t`View Authorization Header`}
                         </label>
                         <ChevronDown className="h-4 w-4 transition-transform duration-200" />
                       </Button>
@@ -487,7 +495,7 @@ export default function Page() {
                     <CollapsibleContent>
                       <div className="pt-2">
                         <label className="text-sm font-medium">
-                          Authorization Header
+                          {t`Authorization Header`}
                         </label>
                         <div className="flex items-center gap-2 mt-2">
                           <Input
@@ -501,7 +509,7 @@ export default function Page() {
                               const authHeader = `Authorization: Basic ${btoa(`${newKey.key}:${newKey.secret}`)}`;
                               navigator.clipboard.writeText(authHeader);
                               toast.success(
-                                "Authorization header copied to clipboard"
+                                t`Authorization header copied to clipboard`
                               );
                             }}
                           >
@@ -515,7 +523,7 @@ export default function Page() {
               ) : (
                 <>
                   <div>
-                    <label className="text-sm font-medium">JWT Token</label>
+                    <label className="text-sm font-medium">{t`JWT Token`}</label>
                     <div className="flex items-center gap-2">
                       <Input
                         value={newKey.jwt}
@@ -526,7 +534,7 @@ export default function Page() {
                         variant="outline"
                         onClick={() => {
                           navigator.clipboard.writeText(newKey.jwt);
-                          toast.success("JWT token copied to clipboard");
+                          toast.success(t`JWT token copied to clipboard`);
                         }}
                       >
                         <Copy className="h-4 w-4" />
@@ -534,7 +542,7 @@ export default function Page() {
                     </div>
                   </div>
                   <div>
-                    <label className="text-sm font-medium">Expires At</label>
+                    <label className="text-sm font-medium">{t`Expires At`}</label>
                     <Input
                       value={newKey.expiresAt.toLocaleString()}
                       readOnly
@@ -548,7 +556,7 @@ export default function Page() {
                         className="w-full font-normal [&[data-state=open]>svg]:rotate-180"
                       >
                         <label className="text-sm font-medium">
-                          View Authorization Header
+                          {t`View Authorization Header`}
                         </label>
                         <ChevronDown className="h-4 w-4 transition-transform duration-200" />
                       </Button>
@@ -556,7 +564,7 @@ export default function Page() {
                     <CollapsibleContent>
                       <div className="pt-2">
                         <label className="text-sm font-medium">
-                          Authorization Header
+                          {t`Authorization Header`}
                         </label>
                         <div className="flex items-center gap-2 mt-2">
                           <Input
@@ -570,7 +578,7 @@ export default function Page() {
                               const authHeader = `Authorization: Bearer ${newKey.jwt}`;
                               navigator.clipboard.writeText(authHeader);
                               toast.success(
-                                "Authorization header copied to clipboard"
+                                t`Authorization header copied to clipboard`
                               );
                             }}
                           >
@@ -584,7 +592,7 @@ export default function Page() {
               )}
             </div>
             <Button variant="outline" onClick={() => setNewKey(null)}>
-              Close
+              {t`Close`}
             </Button>
           </div>
         )}
@@ -593,7 +601,10 @@ export default function Page() {
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <DataTable columns={columns} table={table} />
+          <>
+            <DataTable columns={columns} table={table} />
+            <DataTablePagination table={table} />
+          </>
         )}
       </div>
     </PageTemplate>

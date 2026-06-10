@@ -16,6 +16,7 @@ import {
 } from "@react-email/components";
 import { cva } from "class-variance-authority";
 import * as React from "react";
+import { fallbackT, type TranslationFunction } from "../../lib/translations";
 import {
   STONE,
   DARK_SLATE,
@@ -74,9 +75,10 @@ export const Button = ({
 interface EmailLayoutProps {
   preview: string;
   children: React.ReactNode;
+  t?: TranslationFunction;
 }
 
-export function EmailLayout({ preview, children }: EmailLayoutProps) {
+export function EmailLayout({ preview, children, t = fallbackT }: EmailLayoutProps) {
   return (
     <Html>
       <Head />
@@ -93,9 +95,9 @@ export function EmailLayout({ preview, children }: EmailLayoutProps) {
             />
             {children}
             <Text className={`text-[${DARK_SLATE}] mt-6 mb-0`}>
-              Best regards,
+              {t`Best regards,`}
               <br />
-              The Recommand Team
+              {t`The Recommand Team`}
             </Text>
             <Hr className={`mt-6 mb-4 border-[${SHADOW}]`} />
             <Section className="text-center">

@@ -16,6 +16,7 @@ import {
 import { useLocation } from "react-router-dom";
 import { ButtonLink } from "@core/components/ui/button";
 import { useUserStore } from "@core/lib/user-store";
+import { useTranslation } from "@core/hooks/use-translation";
 
 const buildMenuItems = (menuItems: MenuItem[], currentPath: string, prefix: string) => {
   return menuItems
@@ -67,6 +68,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const menuGroups = useMenuGroups();
   const location = useLocation();
   const { user, teams, activeTeam, setActiveTeam} = useUserStore();
+  const { t } = useTranslation();
 
   // Build the menu hierarchy for main items
   const defaultItems = buildMenuItems(menuItems.filter((item) => !item.groupId), location.pathname, "main");
@@ -129,7 +131,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <div className="p-4">
             <ButtonLink variant="outline" className="w-full" href="/login">
               <LogIn className="mr-2 h-4 w-4" />
-              Login
+              {t`Login`}
             </ButtonLink>
           </div>
         )}

@@ -25,9 +25,27 @@ export const users = pgTable("users", {
   resetToken: text("reset_token"),
   resetTokenExpires: timestamp("reset_token_expires"),
   isAdmin: boolean("is_admin").default(false).notNull(),
+  language: text("language").default("en").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: autoUpdateTimestamp(),
 });
+
+export const userPermissions = pgTable("user_permissions", {
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  teamId: text("team_id").references(() => teams.id, { onDelete: "cascade" }).notNull(),
+  permissionId: text("permission_id").notNull(),
+  grantedByUserId: text("granted_by_user_id"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: autoUpdateTimestamp(),
+}, (table) => [primaryKey({ columns: [table.userId, table.teamId, table.permissionId] })]);
+
+export const userGlobalPermissions = pgTable("user_global_permissions", {
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  permissionId: text("permission_id").notNull(),
+  grantedByUserId: text("granted_by_user_id"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: autoUpdateTimestamp(),
+}, (table) => [primaryKey({ columns: [table.userId, table.permissionId] })]);
 
 export const teams = pgTable("teams", {
   id: text("id")
@@ -35,6 +53,7 @@ export const teams = pgTable("teams", {
     .$defaultFn(() => "team_" + ulid()),
   name: text("name").notNull(),
   teamDescription: text("team_description").notNull().default("-"),
+  logoUrl: text("logo_url"),
   clientAssertionJwks: text("client_assertion_jwks"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: autoUpdateTimestamp(),

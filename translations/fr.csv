@@ -1,0 +1,234 @@
+Login,Connexion
+Enter your email below to login to your account,Entrez votre adresse e-mail ci-dessous pour vous connecter
+Email,E-mail
+Password,Mot de passe
+Forgot your password?,Mot de passe oublié ?
+Don't have an account?,Vous n'avez pas de compte ?
+Sign up,S'inscrire
+Login failed,Échec de la connexion
+An unexpected error occurred,Une erreur inattendue s'est produite
+Logout,Déconnexion
+Logged out successfully,Déconnecté avec succès
+Failed to log out,Échec de la déconnexion
+Save,Enregistrer
+Cancel,Annuler
+Delete,Supprimer
+Close,Fermer
+API Keys,Clés API
+Team,Équipe
+Change password,Changer le mot de passe
+Password reset email sent,E-mail de réinitialisation envoyé
+Check your email for instructions to reset your password,Vérifiez votre e-mail pour les instructions de réinitialisation
+Failed to send reset link,Échec de l'envoi du lien
+Unable to change password,Impossible de changer le mot de passe
+User email not available,Adresse e-mail non disponible
+Create account,Créer un compte
+Enter your details below to create an account,Entrez vos coordonnées ci-dessous pour créer un compte
+Confirm your email address,Confirmez votre adresse e-mail
+Reset your password,Réinitialisez votre mot de passe
+New password,Nouveau mot de passe
+Reset password,Réinitialiser le mot de passe
+Enter your email to receive a password reset link,Entrez votre e-mail pour recevoir un lien de réinitialisation
+Send reset link,Envoyer le lien
+Confirm your email,Confirmez votre e-mail
+Hello {0}\,,Bonjour {0}\,
+Thank you for signing up for Recommand. Please confirm your email address to get started.,Merci de vous être inscrit sur Recommand. Veuillez confirmer votre adresse e-mail pour commencer.
+Confirm email address,Confirmer l'adresse e-mail
+If you didn't create an account\, you can safely ignore this email.,Si vous n'avez pas créé de compte\, vous pouvez ignorer cet e-mail.
+Reset your Recommand password,Réinitialisez votre mot de passe Recommand
+We received a request to reset your password for your Recommand account.,Nous avons reçu une demande de réinitialisation de votre mot de passe Recommand.
+This link will expire in 1 hour for security reasons.,Ce lien expirera dans 1 heure pour des raisons de sécurité.
+If you didn't request this\, you can safely ignore this email.,Si vous n'avez pas fait cette demande\, vous pouvez ignorer cet e-mail.
+You've been invited to join {0} on Recommand,Vous avez été invité à rejoindre {0} sur Recommand
+You're invited,Vous êtes invité
+You've been invited to join {0} on Recommand. We've created an account for you.,Vous avez été invité à rejoindre {0} sur Recommand. Nous avons créé un compte pour vous.
+Set your password,Définissez votre mot de passe
+This invitation will expire in 7 days.,Cette invitation expirera dans 7 jours.
+After that\, ask your team administrator to resend the invitation.,Après cela\, demandez à votre administrateur d'équipe de renvoyer l'invitation.
+User not found,Utilisateur introuvable
+Unauthorized,Non autorisé
+Internal server error,Erreur interne du serveur
+Team deleted successfully,Équipe supprimée avec succès
+Incorrect password,Mot de passe incorrect
+Please confirm your email address before logging in,Veuillez confirmer votre adresse e-mail avant de vous connecter
+Account created successfully. Please check your email to confirm your account.,Compte créé avec succès. Vérifiez votre e-mail pour confirmer votre compte.
+User already exists,L'utilisateur existe déjà
+Invalid or expired confirmation token,Jeton de confirmation invalide ou expiré
+Email already verified,E-mail déjà vérifié
+Email confirmed successfully. You are now logged in.,E-mail confirmé avec succès. Vous êtes maintenant connecté.
+If an account with that email exists and is not verified\, a confirmation email has been sent.,Si un compte avec cet e-mail existe et n'est pas vérifié\, un e-mail de confirmation a été envoyé.
+Email is already verified,L'e-mail est déjà vérifié
+Invalid or expired reset token,Jeton de réinitialisation invalide ou expiré
+User ID is required,L'identifiant utilisateur est requis
+Permission not found,Permission introuvable
+User is already a member of this team,L'utilisateur est déjà membre de cette équipe
+Invitation sent successfully,Invitation envoyée avec succès
+User added to team,Utilisateur ajouté à l'équipe
+Account created successfully!,Compte créé avec succès !
+Please check your email to confirm your account.,Vérifiez votre e-mail pour confirmer votre compte.
+Signup failed,Échec de l'inscription
+Confirmation email sent!,E-mail de confirmation envoyé !
+Failed to resend confirmation,Échec du renvoi de la confirmation
+Check your email,Vérifiez votre e-mail
+We've sent a confirmation link to,Nous avons envoyé un lien de confirmation à
+Please check your email and click the confirmation link to activate your account.,Vérifiez votre e-mail et cliquez sur le lien de confirmation pour activer votre compte.
+Sending...,Envoi...
+Resend confirmation email,Renvoyer l'e-mail de confirmation
+Already have an account?,Vous avez déjà un compte ?
+Enter your email below to create your account,Entrez votre e-mail ci-dessous pour créer votre compte
+Reset link sent,Lien de réinitialisation envoyé
+A password reset link has been sent to your email address. Please check your inbox and follow the instructions to reset your password.,Un lien de réinitialisation a été envoyé à votre adresse e-mail. Vérifiez votre boîte de réception et suivez les instructions pour réinitialiser votre mot de passe.
+Forgot password,Mot de passe oublié
+Enter your email address below and we'll send you a link to reset your password.,Entrez votre adresse e-mail ci-dessous et nous vous enverrons un lien pour réinitialiser votre mot de passe.
+Passwords do not match,Les mots de passe ne correspondent pas
+Password must be at least 8 characters long,Le mot de passe doit contenir au moins 8 caractères
+Password reset successfully,Mot de passe réinitialisé avec succès
+Failed to reset password,Échec de la réinitialisation du mot de passe
+Enter a new password for your account.,Entrez un nouveau mot de passe pour votre compte.
+Enter new password,Entrez un nouveau mot de passe
+Confirm Password,Confirmer le mot de passe
+Confirm new password,Confirmer le nouveau mot de passe
+Resetting...,Réinitialisation...
+Reset Password,Réinitialiser le mot de passe
+Invalid confirmation link,Lien de confirmation invalide
+Email confirmed successfully!,E-mail confirmé avec succès !
+Confirming Email,Confirmation de l'e-mail
+Please wait while we confirm your email address...,Veuillez patienter pendant que nous confirmons votre adresse e-mail...
+Email Confirmed!,E-mail confirmé !
+Your email has been successfully confirmed. You are now logged in and will be redirected to the dashboard.,Votre e-mail a été confirmé avec succès. Vous êtes maintenant connecté et serez redirigé vers le tableau de bord.
+Go to Dashboard,Aller au tableau de bord
+Confirmation Failed,Échec de la confirmation
+Your confirmation link may have expired or been used already.,Votre lien de confirmation a peut-être expiré ou a déjà été utilisé.
+Create New Account,Créer un nouveau compte
+Try Logging In,Essayer de se connecter
+Invalid Link,Lien invalide
+The confirmation link appears to be invalid or missing.,Le lien de confirmation semble invalide ou manquant.
+Go to Login,Aller à la connexion
+Failed to load API keys,Échec du chargement des clés API
+Please enter a valid name for the API key,Veuillez entrer un nom valide pour la clé API
+Please enter a valid expiration duration,Veuillez entrer une durée d'expiration valide
+API key created successfully,Clé API créée avec succès
+Name,Nom
+Type,Type
+API Key,Clé API
+API Key copied to clipboard,Clé API copiée dans le presse-papiers
+Expires At,Expire le
+Never,Jamais
+Created At,Créé le
+API key deleted successfully,Clé API supprimée avec succès
+Failed to delete API key,Échec de la suppression de la clé API
+User Settings,Paramètres utilisateur
+API Key Creation Not Available,Création de clé API non disponible
+API key creation is currently restricted for security reasons. When the JWT-based token flow with assertion is enabled\, keys can only be created via the API using a signed JWT assertion. Contact support if you have any questions.,La création de clés API est actuellement restreinte pour des raisons de sécurité. Lorsque le flux de jetons JWT avec assertion est activé\, les clés ne peuvent être créées que via l'API à l'aide d'une assertion JWT signée. Contactez le support si vous avez des questions.
+New API Key Name,Nouveau nom de clé API
+Basic Authentication,Authentification basique
+JWT Token,Jeton JWT
+Create API Key,Créer une clé API
+API Key Expiration in,Expiration de la clé API dans
+Hours,Heures
+Days,Jours
+Team ID,ID d'équipe
+This is your unique team identifier,Ceci est votre identifiant d'équipe unique
+Team ID copied to clipboard,ID d'équipe copié dans le presse-papiers
+New API Key Created,Nouvelle clé API créée
+Please save these credentials. They will only be shown once.,Veuillez sauvegarder ces identifiants. Ils ne seront affichés qu'une seule fois.
+Secret,Secret
+Secret copied to clipboard,Secret copié dans le presse-papiers
+View Authorization Header,Voir l'en-tête d'autorisation
+Authorization Header,En-tête d'autorisation
+Authorization header copied to clipboard,En-tête d'autorisation copié dans le presse-papiers
+JWT token copied to clipboard,Jeton JWT copié dans le presse-papiers
+Failed to load team members,Échec du chargement des membres de l'équipe
+Please enter a valid email address,Veuillez entrer une adresse e-mail valide
+Team member added successfully,Membre de l'équipe ajouté avec succès
+Failed to add team member,Échec de l'ajout du membre de l'équipe
+No active team selected,Aucune équipe active sélectionnée
+Failed to delete team,Échec de la suppression de l'équipe
+User ID,ID utilisateur
+User ID copied to clipboard,ID utilisateur copié dans le presse-papiers
+Verified,Vérifié
+Unverified,Non vérifié
+Joined At,Rejoint le
+Manage permissions,Gérer les permissions
+Remove team member,Supprimer le membre de l'équipe
+Team member removed successfully,Membre de l'équipe supprimé avec succès
+Failed to remove team member,Échec de la suppression du membre de l'équipe
+Delete Team,Supprimer l'équipe
+Are you sure you want to delete the team "{0}"? This action cannot be undone. All team members\, API keys\, and associated data will be permanently removed.,Êtes-vous sûr de vouloir supprimer l'équipe « {0} » ? Cette action est irréversible. Tous les membres\, clés API et données associées seront définitivement supprimés.
+Deleting...,Suppression...
+Email address to invite,Adresse e-mail à inviter
+Inviting...,Invitation...
+Invite Member,Inviter un membre
+Team Name,Nom de l'équipe
+Team name copied to clipboard,Nom de l'équipe copié dans le presse-papiers
+Failed to load permissions data,Échec du chargement des données de permissions
+Permission revoked,Permission révoquée
+Permission granted,Permission accordée
+Failed to update permission,Échec de la mise à jour de la permission
+Member Permissions,Permissions du membre
+Permissions for {0},Permissions pour {0}
+Manage what this team member is allowed to do. Toggle permissions on or off instantly.,Gérez ce que ce membre de l'équipe est autorisé à faire. Activez ou désactivez les permissions instantanément.
+Permissions,Permissions
+Select which permissions this team member should have,Sélectionnez les permissions que ce membre de l'équipe doit avoir
+No permissions are available to manage.,Aucune permission disponible à gérer.
+You don't have permission to grant or revoke this permission.,Vous n'avez pas la permission d'accorder ou de révoquer cette permission.
+You must be in a team to complete this step,Vous devez être dans une équipe pour compléter cette étape
+Failed to complete step,Échec de l'étape
+Continue,Continuer
+Please enter a team name,Veuillez entrer un nom d'équipe
+Team created successfully,Équipe créée avec succès
+Failed to create team,Échec de la création de l'équipe
+Team name updated successfully,Nom de l'équipe mis à jour avec succès
+Failed to update team name,Échec de la mise à jour du nom de l'équipe
+Search teams...,Rechercher des équipes...
+My Teams,Mes équipes
+Other Teams,Autres équipes
+No teams found,Aucune équipe trouvée
+Add team,Ajouter une équipe
+Create a new team,Créer une nouvelle équipe
+Add a new team to collaborate with others.,Ajoutez une nouvelle équipe pour collaborer avec d'autres.
+Team name,Nom de l'équipe
+Creating...,Création...
+Create team,Créer l'équipe
+Edit team name,Modifier le nom de l'équipe
+Update the name of "{0}".,Modifier le nom de « {0} ».
+Updating...,Mise à jour...
+Update team,Mettre à jour l'équipe
+Create Team,Créer une équipe
+Add a new team to get started.,Ajoutez une nouvelle équipe pour commencer.
+No results.,Aucun résultat.
+Account,Compte
+Dashboard,Tableau de bord
+Manage your account settings,Gérez les paramètres de votre compte
+Profile,Profil
+Your personal information,Vos informations personnelles
+Language,Langue
+Select a language,Sélectionnez une langue
+Profile updated,Profil mis à jour
+Failed to update profile,Échec de la mise à jour du profil
+Update your password,Mettre à jour votre mot de passe
+Current password,Mot de passe actuel
+Password must be at least 8 characters,Le mot de passe doit contenir au moins 8 caractères
+Password changed successfully,Mot de passe modifié avec succès
+Failed to change password,Échec du changement de mot de passe
+Current password is incorrect,Le mot de passe actuel est incorrect
+Best regards\,,Cordialement\,
+The Recommand Team,L'équipe Recommand
+Team name updated,Nom de l'équipe mis à jour
+Team Logo,Logo de l'équipe
+Upload Logo,Télécharger le logo
+Change Logo,Changer le logo
+Remove,Supprimer
+Logo uploaded successfully,Logo téléchargé avec succès
+Failed to upload logo,Échec du téléchargement du logo
+Logo removed successfully,Logo supprimé avec succès
+Failed to remove logo,Échec de la suppression du logo
+File storage is not enabled,Le stockage de fichiers n'est pas activé
+No logo file provided,Aucun fichier de logo fourni
+Invalid file type. Allowed: PNG\, JPEG\, WebP\, SVG,Type de fichier invalide. Autorisé : PNG\, JPEG\, WebP\, SVG
+File too large. Maximum size is 2MB,Fichier trop volumineux. Taille maximale : 2 Mo
+I agree to the,J'accepte les
+Terms of Use,Conditions d'utilisation
+Privacy Policy,Politique de confidentialité
+and,et
+You must accept the terms to continue,Vous devez accepter les conditions pour continuer

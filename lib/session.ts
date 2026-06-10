@@ -25,12 +25,13 @@ const cookie = {
 
 export async function createSession(
   c: Context,
-  user: { id: string; isAdmin: boolean }
+  user: { id: string; isAdmin: boolean; language?: string }
 ) {
   const expires = addMilliseconds(new Date(), cookie.duration);
   const session = await sign({
     userId: user.id,
     isAdmin: user.isAdmin,
+    language: user.language ?? "en",
     expires,
   }, expires);
 
@@ -43,6 +44,7 @@ export async function createSession(
 export type Session = {
   userId: string | null;
   isAdmin: boolean;
+  language: string;
   apiKey: ApiKey | null;
   teamId: string | null;
 }
@@ -58,7 +60,7 @@ export async function verifySession(c: Context, extensions: SessionVerificationE
     throw new Error("JWT_SECRET is not set");
   }
 
-  let result: { userId: string | null; isAdmin: boolean; apiKey: ApiKey | null; teamId: string | null } | null = null;
+  let result: { userId: string | null; isAdmin: boolean; language: string; apiKey: ApiKey | null; teamId: string | null } | null = null;
 
   const verificationMethods = [
     verifySessionCookie,
@@ -86,6 +88,9 @@ export async function verifySession(c: Context, extensions: SessionVerificationE
     id: result.userId,
     isAdmin: result.isAdmin,
   });
+
+  // Add language to context
+  c.set("language", result.language ?? "en");
 
   // Add api key to context
   if (result.apiKey) {
@@ -126,6 +131,7 @@ async function verifySessionCookie(c: Context): Promise<Session | null> {
   return {
     userId: session.userId as string,
     isAdmin: session.isAdmin as boolean,
+    language: (session.language as string) ?? "en",
     apiKey: null,
     teamId: null,
   };
@@ -173,6 +179,7 @@ async function verifyJwtAuth(c: Context): Promise<Session | null> {
   return {
     userId: jwtPayload.sub as string,
     isAdmin,
+    language: "en",
     apiKey,
     teamId: apiKey.teamId,
   }
@@ -207,6 +214,7 @@ async function verifyBasicAuth(c: Context): Promise<Session | null> {
   return {
     userId: apiKey.user.id,
     isAdmin: apiKey.user.isAdmin,
+    language: "en",
     apiKey: apiKey.apiKey,
     teamId: apiKey.apiKey.teamId
   };

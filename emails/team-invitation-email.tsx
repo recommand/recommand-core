@@ -6,36 +6,38 @@ import {
   InfoSection,
   baseUrl,
 } from "./components/shared";
+import { fallbackT, type TranslationFunction } from "@core/lib/translations";
 
 interface TeamInvitationEmailProps {
-  firstName: string;
+  firstName: string | null;
   teamName: string;
   resetPasswordLink: string;
+  t?: TranslationFunction;
 }
 
 export const TeamInvitationEmail = ({
-  firstName = "there",
+  firstName,
   teamName = "Team",
   resetPasswordLink = "https://example.com/reset-password/token",
+  t = fallbackT,
 }: TeamInvitationEmailProps) => (
-  <EmailLayout preview={`You've been invited to join ${teamName} on Recommand`}>
-    <EmailHeading>You're invited</EmailHeading>
-    <Text className="mb-4">Hello {firstName},</Text>
+  <EmailLayout preview={t`You've been invited to join ${teamName} on Recommand`} t={t}>
+    <EmailHeading>{t`You're invited`}</EmailHeading>
+    <Text className="mb-4">{t`Hello ${firstName ?? t`there`},`}</Text>
     <Text className="mb-4">
-      You've been invited to join <strong>{teamName}</strong> on Recommand.
-      We've created an account for you.
+      {t`You've been invited to join ${teamName} on Recommand. We've created an account for you.`}
     </Text>
     <Section className="my-6 text-center">
       <Button variant="primary" href={resetPasswordLink}>
-        Set your password
+        {t`Set your password`}
       </Button>
     </Section>
     <InfoSection>
       <Text className="my-1 text-sm">
-        This invitation will expire in <strong>7 days</strong>.
+        {t`This invitation will expire in 7 days.`}
       </Text>
       <Text className="my-1 text-sm">
-        After that, ask your team administrator to resend the invitation.
+        {t`After that, ask your team administrator to resend the invitation.`}
       </Text>
     </InfoSection>
   </EmailLayout>
@@ -49,5 +51,7 @@ TeamInvitationEmail.PreviewProps = {
 
 export default TeamInvitationEmail;
 
-export const subject = (props: { teamName: string }) =>
-  `You've been invited to join ${props.teamName} on Recommand`;
+export const subject = (props: { teamName: string; t?: TranslationFunction }) => {
+  const t = props.t ?? fallbackT;
+  return t`You've been invited to join ${props.teamName} on Recommand`;
+};
