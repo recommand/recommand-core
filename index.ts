@@ -36,6 +36,6 @@ server.route("/", languages);
 server.route("/", account);
 server.route("/", teamLogo);
 server.route("/", manifest);
-server.route("/v1", rules);
+server.route("/", rules);
 
 export default server;

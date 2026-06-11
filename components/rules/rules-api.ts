@@ -1,5 +1,5 @@
 export async function requestJson(path: string, init?: RequestInit) {
-  const response = await fetch(`/api/core/v1${path}`, {
+  const response = await fetch(`/api/core${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
