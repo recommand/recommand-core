@@ -58,6 +58,10 @@ export async function deleteFile(key: string) {
   await getS3().delete(key);
 }
 
+export async function listFiles(prefix: string, options?: { maxKeys?: number }) {
+  return getS3().list({ prefix, maxKeys: options?.maxKeys });
+}
+
 export async function fileExists(key: string) {
   return getS3().exists(key);
 }
