@@ -54,6 +54,38 @@ export function presignUrl(
   });
 }
 
+export async function downloadTextFile(
+  key: string,
+  options?: { timeoutMs?: number }
+) {
+  const controller = new AbortController();
+  const timeoutMs = options?.timeoutMs;
+  const timer =
+    timeoutMs === undefined
+      ? undefined
+      : setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(
+      presignUrl(key, { expiresIn: 60, method: "GET" }),
+      { signal: controller.signal }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Download ${key} failed with ${response.status}`);
+    }
+
+    return await response.text();
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error(`Download ${key} timed out after ${timeoutMs}ms`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function deleteFile(key: string) {
   await getS3().delete(key);
 }
