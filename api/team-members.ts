@@ -73,7 +73,7 @@ const _addTeamMember = server.post(
       const teamId = c.get("team").id;
       const team = c.get("team");
 
-      let user: { id: string; email: string; emailVerified: boolean } | null = null;
+      let user: { id: string; email: string; emailVerified: boolean } | null;
       let isNewUser = false;
 
       user = await getUserByEmail(reqJson.email);
