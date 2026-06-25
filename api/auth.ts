@@ -19,6 +19,7 @@ import { getEmailTemplate } from "@core/emails";
 import { randomBytes } from "crypto";
 import { describeRoute } from "hono-openapi";
 import { createServerT } from "@core/lib/translations-server";
+import { audit, hashAuditIdentifier } from "@core/lib/audit";
 
 const server = new Server();
 
@@ -45,12 +46,36 @@ const login = server.post(
       // Check if user exists and password is correct
       const userInfo = await checkBasicAuth(data.email, data.password);
       if (!userInfo.passwordMatch) {
+        await audit(c, {
+          action: "authenticate",
+          subsystem: "core.auth",
+          outcome: "denied",
+          objectType: "core.user",
+          reasonCode: "invalid_credentials",
+          metadata: { emailHash: hashAuditIdentifier(data.email) },
+        });
         return c.json(actionFailure(t`Incorrect password`), 401);
       }
       if (!userInfo.emailVerified) {
+        await audit(c, {
+          action: "authenticate",
+          subsystem: "core.auth",
+          outcome: "denied",
+          objectType: "core.user",
+          reasonCode: "email_not_verified",
+          metadata: { emailHash: hashAuditIdentifier(data.email) },
+        });
         return c.json(actionFailure(t`Please confirm your email address before logging in`), 401);
       }
       if (!userInfo.user) {
+        await audit(c, {
+          action: "authenticate",
+          subsystem: "core.auth",
+          outcome: "denied",
+          objectType: "core.user",
+          reasonCode: "user_not_found",
+          metadata: { emailHash: hashAuditIdentifier(data.email) },
+        });
         return c.json(actionFailure(t`User not found`), 404);
       }
 
@@ -58,6 +83,13 @@ const login = server.post(
 
       // Create session
       await createSession(c, user);
+      await audit(c, {
+        action: "authenticate",
+        subsystem: "core.auth",
+        actorUserId: user.id,
+        objectType: "core.user",
+        objectId: user.id,
+      });
 
       return c.json(actionSuccess());
     } catch (e) {
@@ -87,6 +119,13 @@ const signup = server.post(
       // Create user with email verification token, using the detected language
       const language = c.get("language");
       const user = await createUser({ ...data, language });
+      await audit(c, {
+        action: "create",
+        subsystem: "core.auth",
+        objectType: "core.user",
+        objectId: user.id,
+        metadata: { emailHash: hashAuditIdentifier(data.email) },
+      });
 
       // Generate email verification token
       const verificationToken = generateSecureToken();
@@ -99,6 +138,14 @@ const signup = server.post(
           emailVerificationExpires: sql`CURRENT_TIMESTAMP + INTERVAL '24 hours'`,
         })
         .where(eq(users.id, user.id));
+      await audit(c, {
+        action: "update",
+        subsystem: "core.auth",
+        objectType: "core.user",
+        objectId: user.id,
+        after: { emailVerificationToken: "changed" },
+        metadata: { changedFields: ["emailVerificationToken", "emailVerificationExpires"], reason: "resend_confirmation" },
+      });
 
       // Send confirmation email in the browser's language
       const confirmationUrl = `${process.env.BASE_URL}/email-confirmation/${verificationToken}`;
@@ -253,6 +300,17 @@ const createTeamEndpoint = server.post(
         name: data.name,
         teamDescription: data.teamDescription,
       });
+      await audit(c, {
+        action: "create",
+        subsystem: "core.team",
+        objectType: "core.team",
+        objectId: team.id,
+        teamId: team.id,
+        after: {
+          name: team.name,
+          teamDescription: team.teamDescription,
+        },
+      });
 
       return c.json(actionSuccess({ data: resolveTeamLogoUrl(team) }));
     } catch (e) {
@@ -304,6 +362,14 @@ const requestPasswordReset = server.post(
           resetTokenExpires: sql`CURRENT_TIMESTAMP + INTERVAL '1 hour'`,
         })
         .where(eq(users.id, user.id));
+      await audit(c, {
+        action: "update",
+        subsystem: "core.auth",
+        objectType: "core.user",
+        objectId: user.id,
+        after: { resetToken: "changed" },
+        metadata: { changedFields: ["resetToken", "resetTokenExpires"] },
+      });
 
       // Send reset email in the user's preferred language
       const emailT = await createServerT(user.language);
@@ -371,6 +437,15 @@ const confirmEmail = server.post(
           emailVerificationExpires: null,
         })
         .where(eq(users.id, user.id));
+      await audit(c, {
+        action: "update",
+        subsystem: "core.auth",
+        objectType: "core.user",
+        objectId: user.id,
+        before: { emailVerified: false },
+        after: { emailVerified: true, emailVerificationToken: "cleared" },
+        metadata: { changedFields: ["emailVerified", "emailVerificationToken", "emailVerificationExpires"] },
+      });
 
       // Create default team after email verification
       await createTeam(user.id, {
@@ -379,6 +454,14 @@ const confirmEmail = server.post(
 
       // Create session for the user
       await createSession(c, { id: user.id, isAdmin: false });
+      await audit(c, {
+        action: "authenticate",
+        subsystem: "core.auth",
+        actorUserId: user.id,
+        objectType: "core.user",
+        objectId: user.id,
+        metadata: { reason: "email_confirmation" },
+      });
 
       return c.json(
         actionSuccess({
@@ -516,6 +599,15 @@ const resetPassword = server.post(
           emailVerificationExpires: null,
         })
         .where(eq(users.id, user.id));
+      await audit(c, {
+        action: "update",
+        subsystem: "core.auth",
+        objectType: "core.user",
+        objectId: user.id,
+        before: { passwordHash: "changed", resetToken: "present" },
+        after: { passwordHash: "changed", resetToken: "cleared", emailVerified: true },
+        metadata: { changedFields: ["passwordHash", "resetToken", "resetTokenExpires", "emailVerified", "emailVerificationToken", "emailVerificationExpires"] },
+      });
 
       return c.json(actionSuccess());
     } catch (e) {
@@ -544,6 +636,20 @@ const updateTeamEndpoint = server.put(
       const team = c.get("team");
 
       const updatedTeam = await updateTeam(team.id, data);
+      await audit(c, {
+        action: "update",
+        subsystem: "core.team",
+        objectType: "core.team",
+        objectId: team.id,
+        before: {
+          name: team.name,
+          teamDescription: team.teamDescription,
+        },
+        after: {
+          name: updatedTeam.name,
+          teamDescription: updatedTeam.teamDescription,
+        },
+      });
 
       return c.json(actionSuccess({ data: resolveTeamLogoUrl(updatedTeam) }));
     } catch (e) {
@@ -570,6 +676,16 @@ const deleteTeamEndpoint = server.delete(
       const team = c.get("team");
 
       await deleteTeam(team.id);
+      await audit(c, {
+        action: "delete",
+        subsystem: "core.team",
+        objectType: "core.team",
+        objectId: team.id,
+        before: {
+          name: team.name,
+          teamDescription: team.teamDescription,
+        },
+      });
 
       return c.json(actionSuccess({ message: t`Team deleted successfully` }));
     } catch (e) {

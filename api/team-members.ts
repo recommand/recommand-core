@@ -14,6 +14,7 @@ import { randomBytes } from "crypto";
 import { db } from "@recommand/db";
 import { users } from "@core/db/schema";
 import { eq, sql } from "drizzle-orm";
+import { audit, hashAuditIdentifier } from "@core/lib/audit";
 
 const server = new Server();
 
@@ -90,6 +91,20 @@ const _addTeamMember = server.post(
 
       // Add user to team
       const result = await addTeamMember(teamId, user.id);
+      await audit(c, {
+        action: "grant_access",
+        subsystem: "core.team_members",
+        objectType: "core.team_member",
+        objectId: user.id,
+        after: {
+          userId: user.id,
+          teamId,
+        },
+        metadata: {
+          invitedEmailHash: hashAuditIdentifier(reqJson.email),
+          isNewUser,
+        },
+      });
 
       // If this is a new user or existing unverified user, send invitation email
       if (isNewUser || !user.emailVerified) {
@@ -141,7 +156,19 @@ const _removeTeamMember = server.delete(
   ),
   async (c) => {
     try {
-      await removeTeamMember(c.get("team").id, c.req.param("userId"));
+      const teamId = c.get("team").id;
+      const userId = c.req.param("userId");
+      await removeTeamMember(teamId, userId);
+      await audit(c, {
+        action: "revoke_access",
+        subsystem: "core.team_members",
+        objectType: "core.team_member",
+        objectId: userId,
+        before: {
+          userId,
+          teamId,
+        },
+      });
       return c.json(actionSuccess());
     } catch (error) {
       return c.json(actionFailure(error as Error), 500);

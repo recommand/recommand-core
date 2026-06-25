@@ -94,6 +94,36 @@ export const apiKeys = pgTable(
   (table) => [index("api_keys_secret_hash_idx").using("hash", table.secretHash)]
 );
 
+export const auditEvents = pgTable("audit_events", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => "aud_" + ulid()),
+  occurredAt: timestamp("occurred_at", { withTimezone: true }).defaultNow().notNull(),
+  action: text("action").notNull(),
+  subsystem: text("subsystem").notNull(),
+  outcome: text("outcome").notNull().default("allowed"),
+  actorUserId: text("actor_user_id"),
+  actorApiKeyId: text("actor_api_key_id"),
+  actorIp: text("actor_ip"),
+  actorUserAgent: text("actor_user_agent"),
+  teamId: text("team_id"),
+  objectType: text("object_type"),
+  objectId: text("object_id"),
+  reasonCode: text("reason_code"),
+  requestId: text("request_id"),
+  before: jsonb("before"),
+  after: jsonb("after"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("audit_events_occurred_at_idx").on(table.occurredAt),
+  index("audit_events_actor_user_idx").on(table.actorUserId),
+  index("audit_events_team_idx").on(table.teamId),
+  index("audit_events_object_idx").on(table.objectType, table.objectId),
+  index("audit_events_action_idx").on(table.action),
+  index("audit_events_outcome_idx").on(table.outcome),
+]);
+
 export const completedOnboardingSteps = pgTable(
   "completed_onboarding_steps",
   {

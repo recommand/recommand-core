@@ -4,6 +4,7 @@ import { actionFailure, actionSuccess } from "@recommand/lib/utils";
 import { Server } from "@recommand/lib/api";
 import { createApiKey, deleteApiKey, getApiKeys, isApiKeyCreationPermitted } from "@core/data/api-keys";
 import { requireTeamAccess } from "@core/lib/auth-middleware";
+import { audit } from "@core/lib/audit";
 
 const server = new Server();
 
@@ -56,6 +57,17 @@ const _createApiKey = server.post(
         type: c.req.valid("json").type,
         expiresInSeconds: c.req.valid("json").expiresInSeconds,
       });
+      await audit(c, {
+        action: "create",
+        subsystem: "core.api_keys",
+        objectType: "core.api_key",
+        objectId: apiKey.id,
+        after: {
+          name: apiKey.name,
+          type: apiKey.type,
+          expiresAt: apiKey.expiresAt?.toISOString() ?? null,
+        },
+      });
       return c.json(actionSuccess({ apiKey }));
     } catch (error) {
       return c.json(actionFailure(error as Error), 500);
@@ -91,7 +103,14 @@ const _deleteApiKey = server.delete(
   ),
   async (c) => {
     try {
-      await deleteApiKey(c.var.user.id, c.var.team.id, c.req.param("apiKeyId"));
+      const apiKeyId = c.req.param("apiKeyId");
+      await deleteApiKey(c.var.user.id, c.var.team.id, apiKeyId);
+      await audit(c, {
+        action: "delete",
+        subsystem: "core.api_keys",
+        objectType: "core.api_key",
+        objectId: apiKeyId,
+      });
       return c.json(actionSuccess());
     } catch (error) {
       return c.json(actionFailure(error as Error), 500);

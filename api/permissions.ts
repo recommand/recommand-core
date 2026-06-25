@@ -19,6 +19,7 @@ import {
   revokePermission,
 } from "@core/data/permissions";
 import { requirePermission } from "@core/lib/permissions/permission-middleware";
+import { audit } from "@core/lib/audit";
 
 const server = new Server();
 
@@ -148,6 +149,17 @@ const _grantPermission = server.post(
       }
 
       const permission = await grantPermission(userId, teamId, permissionId, actorUserId);
+      await audit(c, {
+        action: "grant_access",
+        subsystem: "core.permissions",
+        objectType: "core.permission",
+        objectId: permissionId,
+        after: {
+          userId,
+          teamId,
+          permissionId,
+        },
+      });
       return c.json(actionSuccess({ permission }));
     } catch (error) {
       if (error instanceof PermissionNotRegisteredError) {
@@ -157,6 +169,17 @@ const _grantPermission = server.post(
         return c.json(actionFailure(error.message), 400);
       }
       if (error instanceof NotAuthorizedError) {
+        const { userId } = c.req.valid("param");
+        const { permissionId } = c.req.valid("json");
+        await audit(c, {
+          action: "grant_access",
+          subsystem: "core.permissions",
+          outcome: "denied",
+          objectType: "core.permission",
+          objectId: permissionId,
+          reasonCode: "not_authorized",
+          metadata: { userId },
+        });
         return c.json(actionFailure(error.message), 403);
       }
       console.error(error);
@@ -192,6 +215,17 @@ const _revokePermission = server.delete(
       if (!wasRevoked) {
         return c.json(actionFailure(t`Permission not found`), 404);
       }
+      await audit(c, {
+        action: "revoke_access",
+        subsystem: "core.permissions",
+        objectType: "core.permission",
+        objectId: permissionId,
+        before: {
+          userId,
+          teamId,
+          permissionId,
+        },
+      });
       return c.json(actionSuccess());
     } catch (error) {
       if (error instanceof PermissionNotRegisteredError) {
@@ -201,6 +235,16 @@ const _revokePermission = server.delete(
         return c.json(actionFailure(error.message), 400);
       }
       if (error instanceof NotAuthorizedError) {
+        const { userId, permissionId } = c.req.valid("param");
+        await audit(c, {
+          action: "revoke_access",
+          subsystem: "core.permissions",
+          outcome: "denied",
+          objectType: "core.permission",
+          objectId: permissionId,
+          reasonCode: "not_authorized",
+          metadata: { userId },
+        });
         return c.json(actionFailure(error.message), 403);
       }
       console.error(error);
@@ -282,6 +326,16 @@ const _grantGlobalPermission = server.post(
       }
 
       const permission = await grantGlobalPermission(userId, permissionId, actorUserId);
+      await audit(c, {
+        action: "grant_access",
+        subsystem: "core.permissions",
+        objectType: "core.global_permission",
+        objectId: permissionId,
+        after: {
+          userId,
+          permissionId,
+        },
+      });
       return c.json(actionSuccess({ permission }));
     } catch (error) {
       if (error instanceof PermissionNotRegisteredError) {
@@ -291,6 +345,17 @@ const _grantGlobalPermission = server.post(
         return c.json(actionFailure(error.message), 400);
       }
       if (error instanceof NotAuthorizedError) {
+        const { userId } = c.req.valid("param");
+        const { permissionId } = c.req.valid("json");
+        await audit(c, {
+          action: "grant_access",
+          subsystem: "core.permissions",
+          outcome: "denied",
+          objectType: "core.global_permission",
+          objectId: permissionId,
+          reasonCode: "not_authorized",
+          metadata: { userId },
+        });
         return c.json(actionFailure(error.message), 403);
       }
       console.error(error);
@@ -323,6 +388,16 @@ const _revokeGlobalPermission = server.delete(
       if (!wasRevoked) {
         return c.json(actionFailure(t`Permission not found`), 404);
       }
+      await audit(c, {
+        action: "revoke_access",
+        subsystem: "core.permissions",
+        objectType: "core.global_permission",
+        objectId: permissionId,
+        before: {
+          userId,
+          permissionId,
+        },
+      });
       return c.json(actionSuccess());
     } catch (error) {
       if (error instanceof PermissionNotRegisteredError) {
@@ -332,6 +407,16 @@ const _revokeGlobalPermission = server.delete(
         return c.json(actionFailure(error.message), 400);
       }
       if (error instanceof NotAuthorizedError) {
+        const { userId, permissionId } = c.req.valid("param");
+        await audit(c, {
+          action: "revoke_access",
+          subsystem: "core.permissions",
+          outcome: "denied",
+          objectType: "core.global_permission",
+          objectId: permissionId,
+          reasonCode: "not_authorized",
+          metadata: { userId },
+        });
         return c.json(actionFailure(error.message), 403);
       }
       console.error(error);

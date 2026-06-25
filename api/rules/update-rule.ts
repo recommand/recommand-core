@@ -7,7 +7,9 @@ import { z } from "zod";
 import "zod-openapi/extend";
 import { updateRule } from "../../data/rules/rules";
 import { describeErrorResponse, describeSuccessResponseWithZod } from "../../lib/api-docs";
+import { audit } from "../../lib/audit";
 import { updateRuleSchema } from "../../lib/rules/types";
+import { ruleAuditSnapshot } from "./audit";
 import { type UpdateRuleContext, ruleIdParamSchema, ruleIdParamSchemaWithTeamId, ruleResponseSchema } from "./shared";
 
 const server = new Server();
@@ -46,10 +48,18 @@ const _updateRule = server.patch(
 
 async function _updateRuleImplementation(c: UpdateRuleContext) {
   try {
-    const rule = await updateRule(c.var.team.id, c.req.valid("param").id, c.req.valid("json"));
+    const ruleId = c.req.valid("param").id;
+    const rule = await updateRule(c.var.team.id, ruleId, c.req.valid("json"));
     if (!rule) {
       return c.json(actionFailure("Rule not found"), 404);
     }
+    await audit(c, {
+      action: "update",
+      subsystem: "core.rules",
+      objectType: "core.rule",
+      objectId: rule.id,
+      after: ruleAuditSnapshot(rule),
+    });
     return c.json(actionSuccess({ rule }));
   } catch (error) {
     console.error(error);
