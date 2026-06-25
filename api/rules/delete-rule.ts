@@ -6,6 +6,7 @@ import { describeRoute } from "hono-openapi";
 import "zod-openapi/extend";
 import { deleteRule } from "../../data/rules/rules";
 import { describeErrorResponse, describeSuccessResponse } from "../../lib/api-docs";
+import { audit } from "../../lib/audit";
 import { type RuleContext, ruleIdParamSchema, ruleIdParamSchemaWithTeamId } from "./shared";
 
 const server = new Server();
@@ -39,7 +40,14 @@ const _deleteRule = server.delete(
 
 async function _deleteRuleImplementation(c: RuleContext) {
   try {
-    await deleteRule(c.var.team.id, c.req.valid("param").id);
+    const ruleId = c.req.valid("param").id;
+    await deleteRule(c.var.team.id, ruleId);
+    await audit(c, {
+      action: "delete",
+      subsystem: "core.rules",
+      objectType: "core.rule",
+      objectId: ruleId,
+    });
     return c.json(actionSuccess({}));
   } catch (error) {
     console.error(error);

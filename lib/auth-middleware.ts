@@ -3,6 +3,7 @@ import { createMiddleware } from "hono/factory";
 import { verifySession, type SessionVerificationExtension } from "./session";
 import { actionFailure } from "@recommand/lib/utils";
 import { getTeam, isMember, type Team } from "@core/data/teams";
+import { audit } from "@core/lib/audit";
 
 export type AuthenticatedUserContext = {
   Variables: {
@@ -31,6 +32,14 @@ export function requireAuth(options: AuthOptions = {}) {
     const session = await verifySession(c, options.extensions);
     // Fetch user data
     if (!session?.userId) {
+      await audit(c, {
+        action: "authorize",
+        subsystem: "core.auth",
+        outcome: "denied",
+        objectType: "core.route",
+        objectId: c.req.path,
+        reasonCode: "unauthenticated",
+      });
       return c.json(actionFailure("Unauthorized"), 401);
     }
 
@@ -44,12 +53,28 @@ export function requireAdmin() {
     // Verify user's session
     const session = await verifySession(c);
     if (!session?.userId) {
+      await audit(c, {
+        action: "authorize",
+        subsystem: "core.auth",
+        outcome: "denied",
+        objectType: "core.route",
+        objectId: c.req.path,
+        reasonCode: "unauthenticated",
+      });
       return c.json(actionFailure("Unauthorized"), 401);
     }
 
     // Fetch user data
     const user: { id: string; isAdmin: boolean } | null = c.get("user");
     if (!user?.isAdmin) {
+      await audit(c, {
+        action: "authorize",
+        subsystem: "core.auth",
+        outcome: "denied",
+        objectType: "core.route",
+        objectId: c.req.path,
+        reasonCode: "not_admin",
+      });
       return c.json(actionFailure("Unauthorized"), 401);
     }
 
@@ -70,6 +95,14 @@ export function requireTeamAccess(options: TeamAccessOptions = {}) {
       // Verify user's session
       const session = await verifySession(c, options.extensions);
       if(!session) {
+        await audit(c, {
+          action: "authorize",
+          subsystem: "core.team_access",
+          outcome: "denied",
+          objectType: "core.route",
+          objectId: c.req.path,
+          reasonCode: "unauthenticated",
+        });
         return c.json(actionFailure("Unauthorized"), 401);
       }
 
@@ -83,12 +116,29 @@ export function requireTeamAccess(options: TeamAccessOptions = {}) {
         // Get user from context
         const user: { id: string; isAdmin: boolean } | null = c.get("user");
         if (!user?.id) {
+          await audit(c, {
+            action: "authorize",
+            subsystem: "core.team_access",
+            outcome: "denied",
+            objectType: "core.team",
+            objectId: teamIdFromRequest,
+            reasonCode: "unauthenticated",
+          });
           return c.json(actionFailure("Unauthorized"), 401);
         }
 
         // If the user is not authenticated via an API key, ensure they are a member of the team
         // Admins bypass this check and can access any team
         if (!user.isAdmin && !(await isMember(user.id, teamIdFromRequest))) {
+          await audit(c, {
+            action: "authorize",
+            subsystem: "core.team_access",
+            outcome: "denied",
+            objectType: "core.team",
+            objectId: teamIdFromRequest,
+            teamId: teamIdFromRequest,
+            reasonCode: "not_team_member",
+          });
           return c.json(actionFailure("Unauthorized"), 401);
         }
 
@@ -100,6 +150,15 @@ export function requireTeamAccess(options: TeamAccessOptions = {}) {
       }
 
       if (teamIdFromRequest && teamIdFromRequest !== teamId && c.var.user?.isAdmin !== true) {
+        await audit(c, {
+          action: "authorize",
+          subsystem: "core.team_access",
+          outcome: "denied",
+          objectType: "core.team",
+          objectId: teamIdFromRequest,
+          teamId,
+          reasonCode: "team_id_mismatch",
+        });
         return c.json(actionFailure("Unauthorized: provided teamId does not match API key's teamId"), 401);
       }
 

@@ -9,6 +9,7 @@ import bcrypt from "bcrypt";
 import { requireAuth } from "@core/lib/auth-middleware";
 import { withTranslation } from "@core/lib/translation-middleware";
 import { createSession } from "@core/lib/session";
+import { audit } from "@core/lib/audit";
 
 const server = new Server();
 
@@ -36,6 +37,14 @@ const _updateProfile = server.put(
         .update(users)
         .set({ language })
         .where(eq(users.id, userId));
+      await audit(c, {
+        action: "update",
+        subsystem: "core.account",
+        objectType: "core.user",
+        objectId: userId,
+        after: { language },
+        metadata: { changedFields: ["language"] },
+      });
 
       // Refresh session with updated language
       const user = await db
@@ -91,6 +100,15 @@ const _changePassword = server.put(
 
       const passwordMatch = await bcrypt.compare(currentPassword, user[0].passwordHash);
       if (!passwordMatch) {
+        await audit(c, {
+          action: "update",
+          subsystem: "core.account",
+          outcome: "denied",
+          objectType: "core.user",
+          objectId: userId,
+          reasonCode: "invalid_current_password",
+          metadata: { changedFields: ["passwordHash"] },
+        });
         return c.json(actionFailure(t`Current password is incorrect`), 400);
       }
 
@@ -99,6 +117,13 @@ const _changePassword = server.put(
         .update(users)
         .set({ passwordHash })
         .where(eq(users.id, userId));
+      await audit(c, {
+        action: "update",
+        subsystem: "core.account",
+        objectType: "core.user",
+        objectId: userId,
+        metadata: { changedFields: ["passwordHash"] },
+      });
 
       return c.json(actionSuccess());
     } catch (e) {

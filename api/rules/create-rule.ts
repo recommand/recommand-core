@@ -7,7 +7,9 @@ import { z } from "zod";
 import "zod-openapi/extend";
 import { createRule } from "../../data/rules/rules";
 import { describeErrorResponse, describeSuccessResponseWithZod } from "../../lib/api-docs";
+import { audit } from "../../lib/audit";
 import { createRuleApiSchema } from "../../lib/rules/types";
+import { ruleAuditSnapshot } from "./audit";
 import { type CreateRuleContext, ruleResponseSchema, teamIdParamSchema } from "./shared";
 
 const server = new Server();
@@ -45,6 +47,13 @@ const _createRule = server.post(
 async function _createRuleImplementation(c: CreateRuleContext) {
   try {
     const rule = await createRule(c.var.team.id, c.req.valid("json"));
+    await audit(c, {
+      action: "create",
+      subsystem: "core.rules",
+      objectType: "core.rule",
+      objectId: rule.id,
+      after: ruleAuditSnapshot(rule),
+    });
     return c.json(actionSuccess({ rule }));
   } catch (error) {
     console.error(error);
