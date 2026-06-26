@@ -17,6 +17,7 @@ import { useTranslation } from "@core/hooks/use-translation";
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   table: TanstackTable<TData>;
+  topSummaryRow?: React.ReactNode;
   summaryRow?: React.ReactNode;
   renderSubComponent?: (props: { row: any }) => React.ReactNode;
   enableGlobalFilter?: boolean;
@@ -26,6 +27,7 @@ interface DataTableProps<TData, TValue> {
 export function DataTable<TData, TValue>({
   columns,
   table,
+  topSummaryRow,
   summaryRow,
   renderSubComponent,
   enableGlobalFilter = false,
@@ -80,6 +82,7 @@ export function DataTable<TData, TValue>({
           <TableBody>
             {table.getRowModel().rows?.length ? (
               <>
+                {topSummaryRow}
                 {table.getRowModel().rows.map((row) => (
                   <React.Fragment key={row.id}>
                     <TableRow
