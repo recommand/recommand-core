@@ -13,6 +13,7 @@ import { Input } from "@core/components/ui/input";
 import { type Table as TanstackTable } from "@tanstack/react-table";
 import { TableContainer } from "../table-container";
 import { useTranslation } from "@core/hooks/use-translation";
+import { cn } from "@core/lib/utils";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -22,6 +23,7 @@ interface DataTableProps<TData, TValue> {
   renderSubComponent?: (props: { row: any }) => React.ReactNode;
   enableGlobalFilter?: boolean;
   globalFilterPlaceholder?: string;
+  rowClassName?: (row: any) => string | undefined;
 }
 
 export function DataTable<TData, TValue>({
@@ -32,10 +34,24 @@ export function DataTable<TData, TValue>({
   renderSubComponent,
   enableGlobalFilter = false,
   globalFilterPlaceholder = "Zoeken...",
+  rowClassName,
 }: DataTableProps<TData, TValue>) {
   const [globalFilter, setGlobalFilter] = useState("");
   const isGlobalFilterEnabled = enableGlobalFilter && table.getState().globalFilter !== undefined;
   const { t } = useTranslation();
+  const getColumnStyle = (column: any) => {
+    const widthPercent = column.columnDef.meta?.widthPercent;
+
+    if (typeof widthPercent === "number") {
+      return { width: `${widthPercent}%` };
+    }
+
+    return column.columnDef.size &&
+      column.columnDef.size !== table._getDefaultColumnDef().size
+      ? { width: `${column.columnDef.size}px` }
+      : undefined;
+  };
+
   return (
     <div className="space-y-4">
       {isGlobalFilterEnabled && (
@@ -59,13 +75,7 @@ export function DataTable<TData, TValue>({
                   return (
                     <TableHead
                       key={header.id}
-                      style={
-                        header.column.columnDef.size &&
-                          header.column.columnDef.size !==
-                          table._getDefaultColumnDef().size
-                          ? { width: `${header.column.columnDef.size}px` }
-                          : undefined
-                      }
+                      style={getColumnStyle(header.column)}
                     >
                       {header.isPlaceholder
                         ? null
@@ -87,17 +97,12 @@ export function DataTable<TData, TValue>({
                   <React.Fragment key={row.id}>
                     <TableRow
                       data-state={row.getIsSelected() && "selected"}
+                      className={cn(rowClassName?.(row))}
                     >
                       {row.getVisibleCells().map((cell) => (
                         <TableCell
                           key={cell.id}
-                          style={
-                            cell.column.columnDef.size &&
-                              cell.column.columnDef.size !==
-                              table._getDefaultColumnDef().size
-                              ? { width: `${cell.column.columnDef.size}px` }
-                              : undefined
-                          }
+                          style={getColumnStyle(cell.column)}
                         >
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </TableCell>
