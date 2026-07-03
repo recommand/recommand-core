@@ -24,6 +24,7 @@ interface DataTableProps<TData, TValue> {
   enableGlobalFilter?: boolean;
   globalFilterPlaceholder?: string;
   rowClassName?: (row: any) => string | undefined;
+  rowProps?: (row: any) => React.HTMLAttributes<HTMLTableRowElement>;
 }
 
 export function DataTable<TData, TValue>({
@@ -35,6 +36,7 @@ export function DataTable<TData, TValue>({
   enableGlobalFilter = false,
   globalFilterPlaceholder = "Zoeken...",
   rowClassName,
+  rowProps,
 }: DataTableProps<TData, TValue>) {
   const [globalFilter, setGlobalFilter] = useState("");
   const isGlobalFilterEnabled = enableGlobalFilter && table.getState().globalFilter !== undefined;
@@ -110,27 +112,32 @@ export function DataTable<TData, TValue>({
             {table.getRowModel().rows?.length ? (
               <>
                 {topSummaryRow}
-                {table.getRowModel().rows.map((row) => (
-                  <React.Fragment key={row.id}>
-                    <TableRow
-                      data-state={row.getIsSelected() && "selected"}
-                      className={cn(rowClassName?.(row))}
-                    >
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell
-                          key={cell.id}
-                          className={cn(getCellClassName(cell))}
-                          style={getCellStyle(cell)}
-                        >
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                    {row.getIsExpanded() && renderSubComponent && (
-                      renderSubComponent({ row })
-                    )}
-                  </React.Fragment>
-                ))}
+                {table.getRowModel().rows.map((row) => {
+                  const resolvedRowProps = rowProps?.(row);
+
+                  return (
+                    <React.Fragment key={row.id}>
+                      <TableRow
+                        {...resolvedRowProps}
+                        data-state={row.getIsSelected() && "selected"}
+                        className={cn(rowClassName?.(row), resolvedRowProps?.className)}
+                      >
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell
+                            key={cell.id}
+                            className={cn(getCellClassName(cell))}
+                            style={getCellStyle(cell)}
+                          >
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                      {row.getIsExpanded() && renderSubComponent && (
+                        renderSubComponent({ row })
+                      )}
+                    </React.Fragment>
+                  );
+                })}
                 {summaryRow}
               </>
             ) : (
