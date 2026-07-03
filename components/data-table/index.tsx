@@ -51,6 +51,23 @@ export function DataTable<TData, TValue>({
       ? { width: `${column.columnDef.size}px` }
       : undefined;
   };
+  const getCellClassName = (cell: any) => {
+    const cellClassName = cell.column.columnDef.meta?.cellClassName;
+
+    return typeof cellClassName === "function"
+      ? cellClassName(cell)
+      : cellClassName;
+  };
+  const getCellStyle = (cell: any) => {
+    const cellStyle = cell.column.columnDef.meta?.cellStyle;
+    const resolvedCellStyle =
+      typeof cellStyle === "function" ? cellStyle(cell) : cellStyle;
+
+    return {
+      ...getColumnStyle(cell.column),
+      ...resolvedCellStyle,
+    };
+  };
 
   return (
     <div className="space-y-4">
@@ -102,7 +119,8 @@ export function DataTable<TData, TValue>({
                       {row.getVisibleCells().map((cell) => (
                         <TableCell
                           key={cell.id}
-                          style={getColumnStyle(cell.column)}
+                          className={cn(getCellClassName(cell))}
+                          style={getCellStyle(cell)}
                         >
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </TableCell>
