@@ -17,6 +17,11 @@ export interface MenuItem {
     isActive?: boolean;
     groupId?: string;
     requiredPermission?: string; // If set, the menu item is only visible to users with this permission
+    // Sort weight within its menu (lower = higher up, default 0). Items with
+    // equal order keep registration order — which across packages is effect
+    // timing (reverse-alphabetical by package), so anything that cares about
+    // its position should pin itself explicitly.
+    order?: number;
 }
 
 interface MenuStore {
@@ -58,12 +63,15 @@ function useFilteredMenuItems(): MenuItem[] {
     const hasPermission = usePermissionChecker();
 
     return useMemo(() => {
-        return items.filter(item => {
-            if (!item.requiredPermission) {
-                return true;
-            }
-            return hasPermission(item.requiredPermission);
-        });
+        return items
+            .filter(item => {
+                if (!item.requiredPermission) {
+                    return true;
+                }
+                return hasPermission(item.requiredPermission);
+            })
+            // Stable sort: equal (or absent) order preserves registration order.
+            .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     }, [items, hasPermission]);
 }
 
