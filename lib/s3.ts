@@ -54,7 +54,7 @@ export function presignUrl(
   });
 }
 
-export async function downloadTextFile(
+async function fetchFile(
   key: string,
   options?: { timeoutMs?: number }
 ) {
@@ -75,7 +75,7 @@ export async function downloadTextFile(
       throw new Error(`Download ${key} failed with ${response.status}`);
     }
 
-    return await response.text();
+    return response;
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
       throw new Error(`Download ${key} timed out after ${timeoutMs}ms`);
@@ -84,6 +84,20 @@ export async function downloadTextFile(
   } finally {
     clearTimeout(timer);
   }
+}
+
+export async function downloadTextFile(
+  key: string,
+  options?: { timeoutMs?: number }
+) {
+  return await (await fetchFile(key, options)).text();
+}
+
+export async function downloadBinaryFile(
+  key: string,
+  options?: { timeoutMs?: number }
+) {
+  return Buffer.from(await (await fetchFile(key, options)).arrayBuffer());
 }
 
 export async function deleteFile(key: string) {
