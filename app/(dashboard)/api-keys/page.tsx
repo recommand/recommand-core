@@ -42,6 +42,12 @@ import { DataTablePagination } from "@core/components/data-table/pagination";
 
 const client = rc<ApiKeys>("core");
 
+type CreationPermissionState =
+  | { status: "loading" }
+  | { status: "permitted" }
+  | { status: "restricted"; reason: "client_assertion_enabled" | "team_not_found" }
+  | { status: "check_failed" };
+
 export default function Page() {
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [newKeyName, setNewKeyName] = useState("");
@@ -55,7 +61,7 @@ export default function Page() {
     | null
   >(null);
   const { paginationState, onPaginationChange, sortingState, onSortingChange } = useDataTableState({ tableId: "core-api-keys" });
-  const [isCreationPermitted, setIsCreationPermitted] = useState<boolean | null>(null);
+  const [creationPermission, setCreationPermission] = useState<CreationPermissionState>({ status: "loading" });
   const activeTeam = useActiveTeam();
   const { t } = useTranslation();
 
@@ -97,18 +103,31 @@ export default function Page() {
 
   const checkCreationPermission = useCallback(async () => {
     if (!activeTeam?.id) {
-      setIsCreationPermitted(false);
+      setCreationPermission({ status: "check_failed" });
       return;
     }
+    setCreationPermission({ status: "loading" });
     try {
       const response = await client[":teamId"]["api-keys"]["is-creation-permitted"].$get({
         param: { teamId: activeTeam.id },
       });
       const json = await response.json();
-      setIsCreationPermitted(json.success && json.isPermitted);
+      if (!json.success) {
+        setCreationPermission({ status: "check_failed" });
+        return;
+      }
+      if (json.isPermitted) {
+        setCreationPermission({ status: "permitted" });
+        return;
+      }
+      if (json.reason === "client_assertion_enabled" || json.reason === "team_not_found") {
+        setCreationPermission({ status: "restricted", reason: json.reason });
+        return;
+      }
+      setCreationPermission({ status: "check_failed" });
     } catch (error) {
       console.error("Error checking API key creation permission:", error);
-      setIsCreationPermitted(false);
+      setCreationPermission({ status: "check_failed" });
     }
   }, [activeTeam?.id]);
 
@@ -329,15 +348,31 @@ export default function Page() {
       breadcrumbs={[{ label: t`User Settings` }, { label: t`API Keys` }]}
     >
       <div className="space-y-6">
-        {isCreationPermitted === false ? (
+        {creationPermission.status === "restricted" && creationPermission.reason === "client_assertion_enabled" ? (
           <Alert variant="default" className="max-w-2xl">
             <AlertCircle />
             <AlertTitle>{t`API Key Creation Not Available`}</AlertTitle>
             <AlertDescription>
-              {t`API key creation is currently restricted for security reasons. When the JWT-based token flow with assertion is enabled, keys can only be created via the API using a signed JWT assertion. Contact support if you have any questions.`}
+              {t`API key creation in the dashboard is disabled because JWT-based token flow with assertion is enabled for this team. Keys can only be created via the API using a signed JWT assertion. Contact support if you have any questions.`}
             </AlertDescription>
           </Alert>
-        ) : (
+        ) : creationPermission.status === "restricted" && creationPermission.reason === "team_not_found" ? (
+          <Alert variant="destructive" className="max-w-2xl">
+            <AlertCircle />
+            <AlertTitle>{t`API Key Creation Not Available`}</AlertTitle>
+            <AlertDescription>
+              {t`The selected team could not be found. Try switching teams or contact support if the problem persists.`}
+            </AlertDescription>
+          </Alert>
+        ) : creationPermission.status === "check_failed" ? (
+          <Alert variant="destructive" className="max-w-2xl">
+            <AlertCircle />
+            <AlertTitle>{t`Could Not Verify API Key Creation`}</AlertTitle>
+            <AlertDescription>
+              {t`We could not determine whether API key creation is available for this team. Please refresh the page or contact support if the problem persists.`}
+            </AlertDescription>
+          </Alert>
+        ) : creationPermission.status === "permitted" ? (
           <div className="space-y-4 max-w-2xl">
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
               <Input
@@ -403,7 +438,7 @@ export default function Page() {
               </div>
             )}
           </div>
-        )}
+        ) : null}
         <div className="rounded-lg border p-4 space-y-4 max-w-2xl bg-muted">
           <div className="space-y-2">
             <h3 className="font-medium">{t`Team ID`}</h3>

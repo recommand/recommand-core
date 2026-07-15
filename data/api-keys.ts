@@ -26,12 +26,24 @@ export async function getApiKey(apiKeyId: string) {
     return res[0];
 }
 
-export async function isApiKeyCreationPermitted(teamId: string) {
+export type ApiKeyCreationStatus =
+    | { permitted: true }
+    | { permitted: false; reason: "client_assertion_enabled" | "team_not_found" };
+
+export async function getApiKeyCreationStatus(teamId: string): Promise<ApiKeyCreationStatus> {
     const team = await db.select({ clientAssertionJwks: teams.clientAssertionJwks }).from(teams).where(eq(teams.id, teamId));
-    if (team.length === 0 || team[0].clientAssertionJwks) {
-        return false;
+    if (team.length === 0) {
+        return { permitted: false, reason: "team_not_found" };
     }
-    return true;
+    if (team[0].clientAssertionJwks) {
+        return { permitted: false, reason: "client_assertion_enabled" };
+    }
+    return { permitted: true };
+}
+
+export async function isApiKeyCreationPermitted(teamId: string) {
+    const status = await getApiKeyCreationStatus(teamId);
+    return status.permitted;
 }
 
 export async function createApiKey({

@@ -2,7 +2,7 @@ import { zodValidator } from "@recommand/lib/zod-validator";
 import { z } from "zod";
 import { actionFailure, actionSuccess } from "@recommand/lib/utils";
 import { Server } from "@recommand/lib/api";
-import { createApiKey, deleteApiKey, getApiKeys, isApiKeyCreationPermitted } from "@core/data/api-keys";
+import { createApiKey, deleteApiKey, getApiKeys, getApiKeyCreationStatus } from "@core/data/api-keys";
 import { requireTeamAccess } from "@core/lib/auth-middleware";
 import { audit } from "@core/lib/audit";
 
@@ -85,8 +85,10 @@ const _isApiKeyCreationEnabled = server.get(
     })
   ),
   async (c) => {
+    const status = await getApiKeyCreationStatus(c.var.team.id);
     return c.json(actionSuccess({
-      isPermitted: await isApiKeyCreationPermitted(c.var.team.id),
+      isPermitted: status.permitted,
+      reason: status.permitted ? null : status.reason,
     }))
   }
 );
