@@ -119,7 +119,10 @@ API key deleted successfully,API-sleutel succesvol verwijderd
 Failed to delete API key,API-sleutel verwijderen mislukt
 User Settings,Gebruikersinstellingen
 API Key Creation Not Available,API-sleutel aanmaken niet beschikbaar
-API key creation is currently restricted for security reasons. When the JWT-based token flow with assertion is enabled\, keys can only be created via the API using a signed JWT assertion. Contact support if you have any questions.,API-sleutel aanmaken is momenteel beperkt om veiligheidsredenen. Wanneer de JWT-gebaseerde tokenflow met assertie is ingeschakeld\, kunnen sleutels alleen via de API worden aangemaakt met een ondertekende JWT-assertie. Neem contact op met support als je vragen hebt.
+API key creation in the dashboard is disabled because JWT-based token flow with assertion is enabled for this team. Keys can only be created via the API using a signed JWT assertion. Contact support if you have any questions.,Het aanmaken van API-sleutels in het dashboard is uitgeschakeld omdat JWT-gebaseerde tokenflow met assertie is ingeschakeld voor dit team. Sleutels kunnen alleen via de API worden aangemaakt met een ondertekende JWT-assertie. Neem contact op met support als je vragen hebt.
+The selected team could not be found. Try switching teams or contact support if the problem persists.,Het geselecteerde team kon niet worden gevonden. Probeer van team te wisselen of neem contact op met support als het probleem aanhoudt.
+Could Not Verify API Key Creation,Kan API-sleutel aanmaken niet verifiëren
+We could not determine whether API key creation is available for this team. Please refresh the page or contact support if the problem persists.,We konden niet bepalen of het aanmaken van API-sleutels beschikbaar is voor dit team. Vernieuw de pagina of neem contact op met support als het probleem aanhoudt.
 New API Key Name,Nieuwe API-sleutelnaam
 Basic Authentication,Basisauthenticatie
 JWT Token,JWT-token
