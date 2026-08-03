@@ -72,9 +72,9 @@ export function RulesTable({
             </TableRow>
           ) : rules.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={8} className="p-6">
-                <div className="flex min-h-56 items-center justify-center px-6 py-10">
-                  <div className="mx-auto max-w-xl text-center">
+              <TableCell colSpan={8} className="whitespace-normal p-6">
+                <div className="flex w-full min-h-56 items-center justify-center px-6 py-10">
+                  <div className="w-full max-w-xl min-w-0 text-center">
                     <h3 className="text-base font-semibold">
                       {t`No webhooks or rules yet`}
                     </h3>
