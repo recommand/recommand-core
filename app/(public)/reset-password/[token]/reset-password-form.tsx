@@ -65,7 +65,7 @@ export default function ResetPasswordForm({ token }: ResetPasswordFormProps) {
     } catch (err) {
       toast.error(t`Failed to reset password`, {
         description:
-          err instanceof Error ? err.message : t`An unexpected error occurred`,
+          err instanceof Error ? t(err.message) : t`An unexpected error occurred`,
       });
     } finally {
       setIsSubmitting(false);
@@ -77,7 +77,7 @@ export default function ResetPasswordForm({ token }: ResetPasswordFormProps) {
       <div className="flex justify-center mb-4">
         <img
           src={logoSrc}
-          alt="Logo"
+          alt={t`Logo`}
           className={logoClassName}
         />
       </div>

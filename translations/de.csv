@@ -1,0 +1,391 @@
+{0} #{1},{0} Nr. {1}
+{0} actions,{0} Aktionen
+{0} of {1} rows selected.,{0} von {1} Zeilen ausgewählt.
+{0} selected,{0} ausgewählt
+A password reset link has been sent to your email address. Please check your inbox and follow the instructions to reset your password.,Ein Link zum Zurücksetzen des Passworts wurde an Ihre E-Mail-Adresse gesendet. Prüfen Sie Ihren Posteingang und folgen Sie den Anweisungen, um Ihr Passwort zurückzusetzen.
+Account,Konto
+Account created successfully!,Konto erfolgreich erstellt!
+Account created successfully. Please check your email to confirm your account.,Konto erfolgreich erstellt. Prüfen Sie Ihre E-Mails, um Ihr Konto zu bestätigen.
+Action,Aktion
+Action type,Aktionstyp
+Actions,Aktionen
+Add a new team to collaborate with others.,Fügen Sie ein neues Team hinzu, um mit anderen zusammenzuarbeiten.
+Add a new team to get started.,Fügen Sie ein neues Team hinzu, um loszulegen.
+Add condition,Bedingung hinzufügen
+Add email,E-Mail hinzufügen
+Add team,Team hinzufügen
+Add webhook,Webhook hinzufügen
+After that\, ask your team administrator to resend the invitation.,Bitten Sie anschließend Ihren Teamadministrator, die Einladung erneut zu senden.
+All action types,Alle Aktionstypen
+All event types,Alle Ereignistypen
+All supported webhook events,Alle unterstützten Webhook-Ereignisse
+Already have an account?,Sie haben bereits ein Konto?
+An unexpected error occurred,Ein unerwarteter Fehler ist aufgetreten
+and,und
+API Key,API-Schlüssel
+API Key copied to clipboard,API-Schlüssel in die Zwischenablage kopiert
+API key created successfully,API-Schlüssel erfolgreich erstellt
+API key creation in the dashboard is disabled because JWT-based token flow with assertion is enabled for this team. Keys can only be created via the API using a signed JWT assertion. Contact support if you have any questions.,Die Erstellung von API-Schlüsseln im Dashboard ist deaktiviert, da für dieses Team der JWT-basierte Token-Ablauf mit Assertion aktiviert ist. Schlüssel können nur über die API mit einer signierten JWT-Assertion erstellt werden. Wenden Sie sich bei Fragen an den Support.
+API Key Creation Not Available,API-Schlüssel können nicht erstellt werden
+API key deleted successfully,API-Schlüssel erfolgreich gelöscht
+API Key Expiration in,API-Schlüssel läuft ab in
+API Keys,API-Schlüssel
+Are you sure you want to delete the team "{0}"? This action cannot be undone. All team members\, API keys\, and associated data will be permanently removed.,Möchten Sie das Team „{0}“ wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden. Alle Teammitglieder, API-Schlüssel und zugehörigen Daten werden dauerhaft entfernt.
+Are you sure you want to delete this rule? This action cannot be undone.,Möchten Sie diese Regel wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.
+Array member,Array-Element
+Ascending,Aufsteigend
+Attachments,Anhänge
+Attempts,Versuche
+Authorization Header,Authorization-Header
+Authorization header copied to clipboard,Authorization-Header in die Zwischenablage kopiert
+Basic,Basis
+Basic Authentication,Basisauthentifizierung
+Best regards\,,Mit freundlichen Grüßen,
+Breadcrumb,Brotkrümelnavigation
+Cancel,Abbrechen
+Carousel,Karussell
+Change Logo,Logo ändern
+Change password,Passwort ändern
+Check your email,Prüfen Sie Ihre E-Mails
+Choose what should happen when this rule matches.,Wählen Sie aus, was geschehen soll, wenn diese Regel zutrifft.
+Choose when this rule should run and what it should do.,Wählen Sie aus, wann diese Regel ausgeführt werden soll und was sie tun soll.
+Clear filters,Filter löschen
+Close,Schließen
+Comma or newline separated email addresses,Durch Kommas oder Zeilenumbrüche getrennte E-Mail-Adressen
+Comma-separated ISO dates,Durch Kommas getrennte ISO-Datumswerte
+Comma-separated numbers,Durch Kommas getrennte Zahlen
+Comma-separated values,Durch Kommas getrennte Werte
+Command Palette,Befehlspalette
+Conditions,Bedingungen
+Confirm email address,E-Mail-Adresse bestätigen
+Confirm new password,Neues Passwort bestätigen
+Confirm Password,Passwort bestätigen
+Confirm your email,Bestätigen Sie Ihre E-Mail-Adresse
+Confirm your email address,Bestätigen Sie Ihre E-Mail-Adresse
+Confirmation email sent!,Bestätigungs-E-Mail gesendet!
+Confirmation Failed,Bestätigung fehlgeschlagen
+Confirming Email,E-Mail wird bestätigt
+Contains,Enthält
+Continue,Weiter
+Copy rule ID,Regel-ID kopieren
+Could not create API key: {0},API-Schlüssel konnte nicht erstellt werden: {0}
+Could Not Verify API Key Creation,Verfügbarkeit der API-Schlüsselerstellung konnte nicht geprüft werden
+Create a new team,Neues Team erstellen
+Create a rule to send webhooks or trigger email automations when supported events happen.,Erstellen Sie eine Regel, um Webhooks zu senden oder E-Mail-Automatisierungen auszulösen, wenn unterstützte Ereignisse eintreten.
+Create API Key,API-Schlüssel erstellen
+Create New Account,Neues Konto erstellen
+Create rule,Regel erstellen
+Create team,Team erstellen
+Create Team,Team erstellen
+Created At,Erstellt am
+Creating...,Wird erstellt...
+Current password,Aktuelles Passwort
+Current password is incorrect,Das aktuelle Passwort ist falsch
+Dark mode,Dunkler Modus
+Dashboard,Dashboard
+Days,Tage
+Delete,Löschen
+Delete rule,Regel löschen
+Delete Team,Team löschen
+Deleting...,Wird gelöscht...
+Delivery failed,Zustellung fehlgeschlagen
+Delivery health,Zustellungsstatus
+Delivery in progress,Zustellung läuft
+Delivery queued,Zustellung in Warteschlange
+Descending,Absteigend
+Deutsch,Deutsch
+Disabled,Deaktiviert
+Displays the mobile sidebar.,Zeigt die mobile Seitenleiste an.
+Does not exist,Ist nicht vorhanden
+Doesn't equal,Ist ungleich
+Don't have an account?,Sie haben noch kein Konto?
+Edit rule,Regel bearbeiten
+Edit team name,Teamnamen bearbeiten
+Email,E-Mail
+Email action,E-Mail-Aktion
+Email address to invite,E-Mail-Adresse für die Einladung
+Email already verified,E-Mail-Adresse bereits verifiziert
+Email confirmed successfully!,E-Mail-Adresse erfolgreich bestätigt!
+Email confirmed successfully. You are now logged in.,E-Mail-Adresse erfolgreich bestätigt. Sie sind jetzt angemeldet.
+Email Confirmed!,E-Mail bestätigt!
+Email is already verified,E-Mail-Adresse ist bereits verifiziert
+Enabled,Aktiviert
+Enabled and disabled,Aktiviert und deaktiviert
+English,Englisch
+Enter a new password for your account.,Geben Sie ein neues Passwort für Ihr Konto ein.
+Enter new password,Neues Passwort eingeben
+Enter your email address below and we'll send you a link to reset your password.,Geben Sie unten Ihre E-Mail-Adresse ein. Wir senden Ihnen einen Link zum Zurücksetzen Ihres Passworts.
+Enter your email below to create your account,Geben Sie unten Ihre E-Mail-Adresse ein, um Ihr Konto zu erstellen
+Enter your email below to login to your account,Geben Sie unten Ihre E-Mail-Adresse ein, um sich bei Ihrem Konto anzumelden
+Equals,Ist gleich
+Event type,Ereignistyp
+Exists,Ist vorhanden
+Expires At,Läuft ab am
+Failed,Fehlgeschlagen
+Failed to add team member,Teammitglied konnte nicht hinzugefügt werden
+Failed to change password,Passwort konnte nicht geändert werden
+Failed to complete step,Schritt konnte nicht abgeschlossen werden
+Failed to create team,Team konnte nicht erstellt werden
+Failed to delete API key,API-Schlüssel konnte nicht gelöscht werden
+Failed to delete rule,Regel konnte nicht gelöscht werden
+Failed to delete team,Team konnte nicht gelöscht werden
+Failed to delete team. {0},Team konnte nicht gelöscht werden. {0}
+Failed to load API keys,API-Schlüssel konnten nicht geladen werden
+Failed to load deliveries,Zustellungen konnten nicht geladen werden
+Failed to load permissions data,Berechtigungsdaten konnten nicht geladen werden
+Failed to load rules and event metadata,Regeln und Ereignismetadaten konnten nicht geladen werden
+Failed to load team members,Teammitglieder konnten nicht geladen werden
+Failed to log out,Abmeldung fehlgeschlagen
+Failed to remove logo,Logo konnte nicht entfernt werden
+Failed to remove team member,Teammitglied konnte nicht entfernt werden
+Failed to requeue delivery,Zustellung konnte nicht erneut in die Warteschlange gestellt werden
+Failed to resend confirmation,Bestätigungs-E-Mail konnte nicht erneut gesendet werden
+Failed to reset password,Passwort konnte nicht zurückgesetzt werden
+Failed to save rule,Regel konnte nicht gespeichert werden
+Failed to send reset link,Link zum Zurücksetzen konnte nicht gesendet werden
+Failed to update permission,Berechtigung konnte nicht aktualisiert werden
+Failed to update profile,Profil konnte nicht aktualisiert werden
+Failed to update team name: {0},Teamname konnte nicht aktualisiert werden: {0}
+Failed to upload logo,Logo konnte nicht hochgeladen werden
+False,Falsch
+File storage is not enabled,Dateispeicherung ist nicht aktiviert
+File too large. Maximum size is 2MB,Die Datei ist zu groß. Die maximale Größe beträgt 2 MB
+Forgot password,Passwort vergessen
+Forgot your password?,Passwort vergessen?
+Français,Französisch
+Giving up,Aufgegeben
+Global permissions,Globale Berechtigungen
+Go to Dashboard,Zum Dashboard
+Go to first page,Zur ersten Seite
+Go to last page,Zur letzten Seite
+Go to Login,Zur Anmeldung
+Go to next page,Zur nächsten Seite
+Go to previous page,Zur vorherigen Seite
+Hello {0}\,,Hallo {0},
+Hide,Ausblenden
+Hide password,Passwort ausblenden
+Hours,Stunden
+I agree to the,Ich stimme den
+ID,ID
+If an account with that email exists and is not verified\, a confirmation email has been sent.,Wenn ein Konto mit dieser E-Mail-Adresse vorhanden und noch nicht verifiziert ist, wurde eine Bestätigungs-E-Mail gesendet.
+If you didn't create an account\, you can safely ignore this email.,Wenn Sie kein Konto erstellt haben, können Sie diese E-Mail ignorieren.
+If you didn't request this\, you can safely ignore this email.,Wenn Sie dies nicht angefordert haben, können Sie diese E-Mail ignorieren.
+In flight,In Bearbeitung
+Incorrect password,Falsches Passwort
+Internal server error,Interner Serverfehler
+Invalid confirmation link,Ungültiger Bestätigungslink
+Invalid file type. Allowed: PNG\, JPEG\, WebP\, SVG,Ungültiger Dateityp. Zulässig sind: PNG, JPEG, WebP und SVG
+Invalid Link,Ungültiger Link
+Invalid or expired confirmation token,Ungültiges oder abgelaufenes Bestätigungstoken
+Invalid or expired reset token,Ungültiges oder abgelaufenes Token zum Zurücksetzen
+Invalid token,Ungültiges Token
+Invitation sent successfully,Einladung erfolgreich gesendet
+Invite Member,Mitglied einladen
+Inviting...,Wird eingeladen...
+Is not one of,Ist keines von
+Is one of,Ist eines von
+ISO date,ISO-Datum
+Joined At,Beigetreten am
+JWT Token,JWT-Token
+JWT token copied to clipboard,JWT-Token in die Zwischenablage kopiert
+Language,Sprache
+Last delivery succeeded,Letzte Zustellung erfolgreich
+Last error,Letzter Fehler
+Light mode,Heller Modus
+Loading rules...,Regeln werden geladen...
+Logged out successfully,Erfolgreich abgemeldet
+Login,Anmelden
+Login failed,Anmeldung fehlgeschlagen
+Logo,Logo
+Logo removed successfully,Logo erfolgreich entfernt
+Logo uploaded successfully,Logo erfolgreich hochgeladen
+Logout,Abmelden
+Manage permissions,Berechtigungen verwalten
+Manage Team,Team verwalten
+Manage the team and its members,Team und seine Mitglieder verwalten
+Manage what this team member is allowed to do. Toggle permissions on or off instantly.,Legen Sie fest, was dieses Teammitglied tun darf. Aktivieren oder deaktivieren Sie Berechtigungen sofort.
+Manage your account settings,Kontoeinstellungen verwalten
+Member Permissions,Mitgliedsberechtigungen
+More,Mehr
+More pages,Weitere Seiten
+My Teams,Meine Teams
+N/A,k. A.
+Name,Name
+Narrow this rule to only the events you care about.,Beschränken Sie diese Regel auf die Ereignisse, die für Sie relevant sind.
+Nederlands,Niederländisch
+Never,Nie
+New API Key Created,Neuer API-Schlüssel erstellt
+New API Key Name,Name des neuen API-Schlüssels
+New password,Neues Passwort
+Next,Weiter
+Next slide,Nächste Folie
+No actions,Keine Aktionen
+No active team selected,Kein aktives Team ausgewählt
+No conditions yet. This rule will run for every event of the selected type.,Noch keine Bedingungen. Diese Regel wird für jedes Ereignis des ausgewählten Typs ausgeführt.
+No deliveries yet,Noch keine Zustellungen
+No deliveries yet.,Noch keine Zustellungen.
+No global permissions are available to manage.,Es sind keine globalen Berechtigungen verfügbar.
+No logo file provided,Keine Logodatei angegeben
+No options available.,Keine Optionen verfügbar.
+No options found.,Keine Optionen gefunden.
+No permissions are available to manage.,Es sind keine Berechtigungen verfügbar.
+No results found.,Keine Ergebnisse gefunden.
+No results.,Keine Ergebnisse.
+No teams found,Keine Teams gefunden
+No webhooks or rules yet,Noch keine Webhooks oder Regeln
+Number,Zahl
+One matched rule with two actions produces two delivery rows.,Eine zutreffende Regel mit zwei Aktionen erzeugt zwei Zustellungszeilen.
+Optional,Optional
+Other Teams,Andere Teams
+Page {0} of {1},Seite {0} von {1}
+Pagination,Seitennavigation
+Password,Passwort
+Password changed successfully,Passwort erfolgreich geändert
+Password input,Passwortfeld
+Password must be at least 8 characters,Das Passwort muss mindestens 8 Zeichen lang sein
+Password must be at least 8 characters long,Das Passwort muss mindestens 8 Zeichen lang sein
+Password reset successfully,Passwort erfolgreich zurückgesetzt
+Passwords do not match,Die Passwörter stimmen nicht überein
+Pending,Ausstehend
+Permission granted,Berechtigung gewährt
+Permission not found,Berechtigung nicht gefunden
+Permission revoked,Berechtigung entzogen
+Permissions for {0},Berechtigungen für {0}
+Pick a date,Datum auswählen
+Please check your email and click the confirmation link to activate your account.,Prüfen Sie Ihre E-Mails und klicken Sie auf den Bestätigungslink, um Ihr Konto zu aktivieren.
+Please check your email to confirm your account.,Prüfen Sie Ihre E-Mails, um Ihr Konto zu bestätigen.
+Please confirm your email address before logging in,Bestätigen Sie Ihre E-Mail-Adresse, bevor Sie sich anmelden
+Please enter a team name,Geben Sie einen Teamnamen ein
+Please enter a valid email address,Geben Sie eine gültige E-Mail-Adresse ein
+Please enter a valid expiration duration,Geben Sie eine gültige Gültigkeitsdauer ein
+Please enter a valid name for the API key,Geben Sie einen gültigen Namen für den API-Schlüssel ein
+Please save these credentials. They will only be shown once.,Speichern Sie diese Anmeldedaten. Sie werden nur einmal angezeigt.
+Please wait while we confirm your email address...,Bitte warten Sie, während wir Ihre E-Mail-Adresse bestätigen...
+Previous,Zurück
+Previous slide,Vorherige Folie
+Privacy Policy,Datenschutzrichtlinie
+Processed,Verarbeitet
+Profile,Profil
+Profile updated,Profil aktualisiert
+Recipients,Empfänger
+Recommand Logo,Recommand-Logo
+Redeliver,Erneut zustellen
+Remove,Entfernen
+Remove action,Aktion entfernen
+Remove condition,Bedingung entfernen
+Remove team member,Teammitglied entfernen
+Resend confirmation email,Bestätigungs-E-Mail erneut senden
+Reset,Zurücksetzen
+Reset link sent,Link zum Zurücksetzen gesendet
+Reset password,Passwort zurücksetzen
+Reset Password,Passwort zurücksetzen
+Reset your password,Setzen Sie Ihr Passwort zurück
+Reset your Recommand password,Setzen Sie Ihr Recommand-Passwort zurück
+Resetting...,Wird zurückgesetzt...
+Retry,Wiederholen
+Retry scheduled,Erneuter Versuch geplant
+Rows per page,Zeilen pro Seite
+Rule created successfully,Regel erfolgreich erstellt
+Rule deleted successfully,Regel erfolgreich gelöscht
+Rule deliveries,Regelzustellungen
+Rule ID copied to clipboard,Regel-ID in die Zwischenablage kopiert
+Rule name,Regelname
+Rule updated successfully,Regel erfolgreich aktualisiert
+Save,Speichern
+Save rule,Regel speichern
+Search {0}...,Nach {0} suchen...
+Search for a command to run...,Nach einem auszuführenden Befehl suchen...
+Search rules,Regeln suchen
+Search teams...,Teams suchen...
+Search...,Suchen...
+Secret,Secret
+Secret copied to clipboard,Secret in die Zwischenablage kopiert
+Select {0},{0} auswählen
+Select a language,Sprache auswählen
+Select an option...,Option auswählen...
+Select event type,Ereignistyp auswählen
+Select value,Wert auswählen
+Select values,Werte auswählen
+Select which permissions this team member should have within {0}.,Wählen Sie aus, welche Berechtigungen dieses Teammitglied innerhalb von {0} haben soll.
+Send reset link,Link zum Zurücksetzen senden
+Sending...,Wird gesendet...
+Set your password,Legen Sie Ihr Passwort fest
+Show password,Passwort anzeigen
+Showing {0} - {1} of {2},{0}–{1} von {2} werden angezeigt
+Sidebar,Seitenleiste
+Sign up,Registrieren
+Signing secret,Signatur-Secret
+Signup failed,Registrierung fehlgeschlagen
+Slide,Folie
+Status,Status
+Succeeded,Erfolgreich
+Target URL,Ziel-URL
+Team,Team
+Team created successfully,Team erfolgreich erstellt
+Team deleted successfully,Team erfolgreich gelöscht
+Team ID,Team-ID
+Team ID copied to clipboard,Team-ID in die Zwischenablage kopiert
+Team Logo,Teamlogo
+Team member added successfully,Teammitglied erfolgreich hinzugefügt
+Team member removed successfully,Teammitglied erfolgreich entfernt
+Team name,Teamname
+Team Name,Teamname
+Team name updated,Teamname aktualisiert
+Team name updated successfully,Teamname erfolgreich aktualisiert
+Team permissions,Teamberechtigungen
+Terms of Use,Nutzungsbedingungen
+Thank you for signing up for Recommand. Please confirm your email address to get started.,Vielen Dank für Ihre Registrierung bei Recommand. Bestätigen Sie Ihre E-Mail-Adresse, um loszulegen.
+The confirmation link appears to be invalid or missing.,Der Bestätigungslink scheint ungültig zu sein oder zu fehlen.
+The Recommand Team,Das Recommand-Team
+The selected team could not be found. Try switching teams or contact support if the problem persists.,Das ausgewählte Team wurde nicht gefunden. Wechseln Sie das Team oder wenden Sie sich an den Support, wenn das Problem weiterhin besteht.
+These permissions apply to this user across all teams. Only administrators can manage them.,Diese Berechtigungen gelten für diesen Benutzer in allen Teams. Nur Administratoren können sie verwalten.
+This invitation will expire in 7 days.,Diese Einladung läuft in 7 Tagen ab.
+This is your unique team identifier,Dies ist Ihre eindeutige Teamkennung
+This link will expire in 1 hour for security reasons.,Dieser Link läuft aus Sicherheitsgründen in 1 Stunde ab.
+this team,diesem Team
+Toggle columns,Spalten ein-/ausblenden
+Toggle Sidebar,Seitenleiste ein-/ausblenden
+Trigger,Auslöser
+Triggered by,Ausgelöst durch
+True,Wahr
+True or false,Wahr oder falsch
+Try Logging In,Anmeldung versuchen
+Type,Typ
+Unauthorized,Nicht autorisiert
+Unknown error,Unbekannter Fehler
+Unverified,Nicht verifiziert
+Update team,Team aktualisieren
+Update the name of "{0}".,Den Namen von „{0}“ aktualisieren.
+Update your password,Passwort aktualisieren
+Updated,Aktualisiert
+Updating...,Wird aktualisiert...
+Upload Logo,Logo hochladen
+User added to team,Benutzer zum Team hinzugefügt
+User already exists,Benutzer ist bereits vorhanden
+User ID,Benutzer-ID
+User ID copied to clipboard,Benutzer-ID in die Zwischenablage kopiert
+User ID is required,Benutzer-ID ist erforderlich
+User is already a member of this team,Der Benutzer ist bereits Mitglied dieses Teams
+User not found,Benutzer nicht gefunden
+User Settings,Benutzereinstellungen
+Value,Wert
+Verified,Verifiziert
+Columns,Spalten
+View Authorization Header,Authorization-Header anzeigen
+View deliveries,Zustellungen anzeigen
+We could not determine whether API key creation is available for this team. Please refresh the page or contact support if the problem persists.,Wir konnten nicht feststellen, ob die Erstellung von API-Schlüsseln für dieses Team verfügbar ist. Aktualisieren Sie die Seite oder wenden Sie sich an den Support, wenn das Problem weiterhin besteht.
+We received a request to reset your password for your Recommand account.,Wir haben eine Anfrage zum Zurücksetzen des Passworts für Ihr Recommand-Konto erhalten.
+We've sent a confirmation link to,Wir haben einen Bestätigungslink gesendet an
+Webhook,Webhook
+Webhook action,Webhook-Aktion
+Webhooks and rules,Webhooks und Regeln
+You must accept the terms to continue,Sie müssen den Bedingungen zustimmen, um fortzufahren
+You must be in a team to complete this step,Sie müssen Mitglied eines Teams sein, um diesen Schritt abzuschließen
+You're invited,Sie wurden eingeladen
+You've been invited to join {0} on Recommand,Sie wurden eingeladen, {0} auf Recommand beizutreten
+You've been invited to join {0} on Recommand. We've created an account for you.,Sie wurden eingeladen, {0} auf Recommand beizutreten. Wir haben ein Konto für Sie erstellt.
+Your confirmation link may have expired or been used already.,Ihr Bestätigungslink ist möglicherweise abgelaufen oder wurde bereits verwendet.
+Your email has been successfully confirmed. You are now logged in and will be redirected to the dashboard.,Ihre E-Mail-Adresse wurde erfolgreich bestätigt. Sie sind jetzt angemeldet und werden zum Dashboard weitergeleitet.
+Your personal information,Ihre persönlichen Daten
+Hello\,,Hallo\,
+Unsupported language,Nicht unterstützte Sprache

@@ -2,6 +2,7 @@ import { Checkbox } from "@core/components/ui/checkbox";
 import { Combobox } from "@core/components/ui/combobox";
 import { Label } from "@core/components/ui/label";
 import { useId } from "react";
+import { useTranslation } from "@core/hooks/use-translation";
 import type { ConditionValueInputProps } from "./types";
 
 export function PickerValueInput({
@@ -11,6 +12,7 @@ export function PickerValueInput({
   conditionOptions,
   onChange,
 }: ConditionValueInputProps) {
+  const { t } = useTranslation();
   const inputIdPrefix = useId();
   const baseOptions = field.picker ? (conditionOptions?.[field.picker] ?? []) : [];
   const scalarValue = typeof value === "string" ? value : null;
@@ -31,7 +33,7 @@ export function PickerValueInput({
     return (
       <div className="grid gap-2 rounded-md border p-3">
         {options.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No options available.</p>
+          <p className="text-sm text-muted-foreground">{t`No options available.`}</p>
         ) : (
           options.map((option) => {
             const checked = selectedValues.includes(option.value);
@@ -62,9 +64,9 @@ export function PickerValueInput({
       value={typeof value === "string" ? value : undefined}
       onValueChange={onChange}
       options={options}
-      placeholder={`Select ${field.label.toLowerCase()}`}
-      searchPlaceholder={`Search ${field.label.toLowerCase()}...`}
-      emptyText="No options found."
+      placeholder={t`Select ${field.label.toLowerCase()}`}
+      searchPlaceholder={t`Search ${field.label.toLowerCase()}...`}
+      emptyText={t`No options found.`}
     />
   );
 }

@@ -18,6 +18,7 @@ import {
 } from "@core/components/ui/select";
 import { Switch } from "@core/components/ui/switch";
 import { useState, type Dispatch, type SetStateAction } from "react";
+import { useTranslation } from "@core/hooks/use-translation";
 import type { ConditionPickerOptions } from "./condition-fields/types";
 import { RuleActionEditor } from "./rule-action-editor";
 import { RuleConditionEditor } from "./rule-condition-editor";
@@ -62,6 +63,7 @@ export function RuleEditorDialog({
   setRecipientInputs,
 }: RuleEditorDialogProps) {
   const [openSelectId, setOpenSelectId] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   function handleOpenSelectChange(selectId: string, open: boolean) {
     setOpenSelectId(open ? selectId : null);
@@ -80,22 +82,22 @@ export function RuleEditorDialog({
     >
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[900px]">
         <DialogHeader>
-          <DialogTitle>{editingRule ? "Edit rule" : "Create rule"}</DialogTitle>
+          <DialogTitle>{editingRule ? t`Edit rule` : t`Create rule`}</DialogTitle>
           <DialogDescription>
-            Choose when this rule should run and what it should do.
+            {t`Choose when this rule should run and what it should do.`}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 pt-4">
           <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
             <div className="space-y-2">
-              <Label>Name</Label>
+              <Label>{t`Name`}</Label>
               <Input
                 value={draft.name}
                 onChange={(event) =>
                   setDraft((current) => ({ ...current, name: event.target.value }))
                 }
-                placeholder="Rule name"
+                placeholder={t`Rule name`}
               />
             </div>
 
@@ -106,12 +108,12 @@ export function RuleEditorDialog({
                   setDraft((current) => ({ ...current, enabled: checked }))
                 }
               />
-              <span className="font-medium">Enabled</span>
+              <span className="font-medium">{t`Enabled`}</span>
             </label>
           </div>
 
           <div className="space-y-2">
-            <Label>Event type</Label>
+            <Label>{t`Event type`}</Label>
             <Select
               value={draft.eventType}
               open={openSelectId === "event-type"}
@@ -119,12 +121,12 @@ export function RuleEditorDialog({
               onValueChange={onEventTypeChange}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select event type" />
+                <SelectValue placeholder={t`Select event type`} />
               </SelectTrigger>
               <SelectContent>
                 {wildcardAvailable && (
                   <SelectItem value={wildcardEventType}>
-                    All supported webhook events
+                    {t`All supported webhook events`}
                   </SelectItem>
                 )}
                 {eventTypes.map((eventType) => (
@@ -165,9 +167,9 @@ export function RuleEditorDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t`Cancel`}
           </Button>
-          <Button onClick={onSaveRule}>Save rule</Button>
+          <Button onClick={onSaveRule}>{t`Save rule`}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

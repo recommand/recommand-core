@@ -23,7 +23,7 @@ export const TeamInvitationEmail = ({
 }: TeamInvitationEmailProps) => (
   <EmailLayout preview={t`You've been invited to join ${teamName} on Recommand`} t={t}>
     <EmailHeading>{t`You're invited`}</EmailHeading>
-    <Text className="mb-4">{t`Hello ${firstName ?? t`there`},`}</Text>
+    <Text className="mb-4">{firstName ? t`Hello ${firstName},` : t`Hello,`}</Text>
     <Text className="mb-4">
       {t`You've been invited to join ${teamName} on Recommand. We've created an account for you.`}
     </Text>

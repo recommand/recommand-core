@@ -8,6 +8,7 @@ import { eq } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import { requireAuth } from "@core/lib/auth-middleware";
 import { withTranslation } from "@core/lib/translation-middleware";
+import { getSupportedLanguages } from "@core/lib/translations-server";
 import { createSession } from "@core/lib/session";
 import { audit } from "@core/lib/audit";
 
@@ -32,6 +33,11 @@ const _updateProfile = server.put(
       }
 
       const { language } = c.req.valid("json");
+
+      const supported = await getSupportedLanguages();
+      if (!supported.includes(language)) {
+        return c.json(actionFailure(t`Unsupported language`), 400);
+      }
 
       await db
         .update(users)

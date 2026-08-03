@@ -47,7 +47,7 @@ export default function ForgotPasswordForm() {
     } catch (err) {
       toast.error(t`Failed to send reset link`, {
         description:
-          err instanceof Error ? err.message : t`An unexpected error occurred`,
+          err instanceof Error ? t(err.message) : t`An unexpected error occurred`,
       });
     } finally {
       setIsSubmitting(false);
@@ -60,7 +60,7 @@ export default function ForgotPasswordForm() {
         <div className="flex justify-center mb-4">
           <img
             src="/logo.svg"
-            alt="Logo"
+            alt={t`Logo`}
             className="h-12 w-auto"
           />
         </div>
@@ -81,7 +81,7 @@ export default function ForgotPasswordForm() {
       <div className="flex justify-center mb-4">
         <img
           src={logoSrc}
-          alt="Logo"
+          alt={t`Logo`}
           className={logoClassName}
         />
       </div>

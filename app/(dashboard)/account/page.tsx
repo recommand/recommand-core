@@ -9,6 +9,7 @@ import { AsyncButton } from "@core/components/async-button";
 import { toast } from "@core/components/ui/sonner";
 import { useTranslation } from "@core/hooks/use-translation";
 import { useUser } from "@core/hooks/user";
+import { languageOptionLabel, sortByLanguageOptionLabel } from "@core/lib/languages";
 import { useUserStore } from "@core/lib/user-store";
 import { rc } from "@recommand/lib/client";
 import type { Languages } from "@core/api/languages";
@@ -21,7 +22,7 @@ const accountClient = rc<Account>("core");
 type Language = { code: string; name: string };
 
 export default function AccountPage() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const user = useUser();
   const fetchUser = useUserStore((state) => state.fetchUser);
 
@@ -130,9 +131,9 @@ export default function AccountPage() {
                   <SelectValue placeholder={t`Select a language`} />
                 </SelectTrigger>
                 <SelectContent>
-                  {languages.map((lang) => (
+                  {sortByLanguageOptionLabel(languages, language).map((lang) => (
                     <SelectItem key={lang.code} value={lang.code}>
-                      {lang.name}
+                      {languageOptionLabel(lang.code, language, lang.name)}
                     </SelectItem>
                   ))}
                 </SelectContent>

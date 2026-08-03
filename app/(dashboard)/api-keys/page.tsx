@@ -63,7 +63,7 @@ export default function Page() {
   const { paginationState, onPaginationChange, sortingState, onSortingChange } = useDataTableState({ tableId: "core-api-keys" });
   const [creationPermission, setCreationPermission] = useState<CreationPermissionState>({ status: "loading" });
   const activeTeam = useActiveTeam();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
 
   const fetchApiKeys = useCallback(async () => {
     if (!activeTeam?.id) {
@@ -178,9 +178,7 @@ export default function Page() {
 
       const json = await response.json();
       if (!json.success) {
-        throw new Error(
-          "Could not create API key: " + stringifyActionFailure(json.errors)
-        );
+        throw new Error(t`Could not create API key: ${stringifyActionFailure(json.errors)}`);
       }
 
       const newApiKey = {
@@ -213,7 +211,7 @@ export default function Page() {
       }
       toast.success(t`API key created successfully`);
     } catch (error: any) {
-      toast.error(error.message);
+      toast.error(t(error.message));
     }
   };
 
@@ -221,7 +219,7 @@ export default function Page() {
     {
       accessorKey: "name",
       header: ({ column }) => <ColumnHeader column={column} title={t`Name`} />,
-      cell: ({ row }) => (row.getValue("name") as string) ?? "N/A",
+      cell: ({ row }) => (row.getValue("name") as string) ?? t`N/A`,
     },
     {
       accessorKey: "type",
@@ -265,7 +263,7 @@ export default function Page() {
         const isExpired = new Date(expiresAt) < new Date();
         return (
           <span className={isExpired ? "text-destructive font-medium" : ""}>
-            {new Date(expiresAt).toLocaleString()}
+            {new Date(expiresAt).toLocaleString(language)}
           </span>
         );
       },
@@ -278,7 +276,7 @@ export default function Page() {
       ),
       cell: ({ row }) => {
         const date = row.getValue("createdAt") as string;
-        return date ? new Date(date).toLocaleDateString() : "N/A";
+        return date ? new Date(date).toLocaleDateString(language) : t`N/A`;
       },
       sortingFn: "datetime",
     },
@@ -579,7 +577,7 @@ export default function Page() {
                   <div>
                     <label className="text-sm font-medium">{t`Expires At`}</label>
                     <Input
-                      value={newKey.expiresAt.toLocaleString()}
+                      value={newKey.expiresAt.toLocaleString(language)}
                       readOnly
                       className="font-mono"
                     />

@@ -179,7 +179,7 @@ export default function UserPermissionsPage() {
       }
     } catch (error) {
       console.error("Error toggling permission:", error);
-      toast.error(error instanceof Error ? error.message : t`Failed to update permission`);
+      toast.error(error instanceof Error ? t(error.message) : t`Failed to update permission`);
     } finally {
       // Remove from pending set
       setPendingPermissions((prev) => {
@@ -226,7 +226,7 @@ export default function UserPermissionsPage() {
       }
     } catch (error) {
       console.error("Error toggling global permission:", error);
-      toast.error(error instanceof Error ? error.message : t`Failed to update permission`);
+      toast.error(error instanceof Error ? t(error.message) : t`Failed to update permission`);
     } finally {
       setPendingPermissions((prev) => {
         const newSet = new Set(prev);
@@ -304,10 +304,10 @@ export default function UserPermissionsPage() {
                           htmlFor={permission.id}
                           className={`text-sm font-medium cursor-pointer ${isDisabled ? "cursor-not-allowed" : ""}`}
                         >
-                          {permission.name}
+                          {t(permission.name)}
                         </Label>
                         {permission.description && (
-                          <p className="text-sm text-muted-foreground">{permission.description}</p>
+                          <p className="text-sm text-muted-foreground">{t(permission.description)}</p>
                         )}
                       </div>
                     </div>
@@ -360,10 +360,10 @@ export default function UserPermissionsPage() {
                             htmlFor={`global-${permission.id}`}
                             className={`text-sm font-medium cursor-pointer ${isDisabled ? "cursor-not-allowed" : ""}`}
                           >
-                            {permission.name}
+                            {t(permission.name)}
                           </Label>
                           {permission.description && (
-                            <p className="text-sm text-muted-foreground">{permission.description}</p>
+                            <p className="text-sm text-muted-foreground">{t(permission.description)}</p>
                           )}
                         </div>
                       </div>

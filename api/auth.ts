@@ -18,7 +18,7 @@ import { sendEmail } from "@core/lib/email";
 import { getEmailTemplate } from "@core/emails";
 import { randomBytes } from "crypto";
 import { describeRoute } from "hono-openapi";
-import { createServerT } from "@core/lib/translations-server";
+import { createServerT, getSupportedLanguages } from "@core/lib/translations-server";
 import { audit, hashAuditIdentifier } from "@core/lib/audit";
 
 const server = new Server();
@@ -116,8 +116,14 @@ const signup = server.post(
     try {
       const data = c.req.valid("json");
 
-      // Create user with email verification token, using the detected language
-      const language = c.get("language");
+      // Create user with email verification token, using the detected language.
+      // Accept-Language can name a language we ship no translations for; storing
+      // it would leave the account stuck on an option the picker cannot show.
+      const detectedLanguage = c.get("language");
+      const supported = await getSupportedLanguages();
+      const language = supported.includes(detectedLanguage)
+        ? detectedLanguage
+        : "en";
       const user = await createUser({ ...data, language });
       await audit(c, {
         action: "create",

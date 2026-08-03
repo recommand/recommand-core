@@ -54,7 +54,7 @@ export default function Main({ children }: { children: React.ReactNode }) {
 
         registerMenuItem({
             id: 'user.session.theme',
-            title: theme === 'dark' ? 'Light mode' : 'Dark mode',
+            title: theme === 'dark' ? t`Light mode` : t`Dark mode`,
             icon: theme === 'dark' ? Sun : Moon,
             onClick: () => {
                 setTheme(theme === 'dark' ? 'light' : 'dark');

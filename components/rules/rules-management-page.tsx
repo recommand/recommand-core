@@ -3,9 +3,10 @@ import { Button } from "@core/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@core/components/ui/card";
 import { toast } from "@core/components/ui/sonner";
 import { useActiveTeam } from "@core/hooks/user";
+import { useTranslation } from "@core/hooks/use-translation";
 import { stringifyActionFailure } from "@recommand/lib/utils";
 import { Plus } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { RuleDeliveriesDialog } from "./rule-deliveries-dialog";
 import { RuleEditorDialog } from "./rule-editor-dialog";
 import {
@@ -37,6 +38,7 @@ export function RulesManagementPage({
   breadcrumbs,
   conditionOptions,
 }: RulesManagementPageProps) {
+  const { t } = useTranslation();
   const [rules, setRules] = useState<RuleDto[]>([]);
   const [eventTypes, setEventTypes] = useState<EventTypeDto[]>([]);
   const [deliveryHealth, setDeliveryHealth] = useState<Record<string, RuleDeliveryDto | undefined>>({});
@@ -64,7 +66,41 @@ export function RulesManagementPage({
     actions: [structuredClone(emptyWebhookAction)],
   });
 
-  const availableEventTypes = eventTypes;
+  const availableEventTypes = useMemo<EventTypeDto[]>(
+    () => eventTypes.map((eventType) => ({
+      ...eventType,
+      conditionFields: eventType.conditionFields.map((field) => ({
+        ...field,
+        label: t(field.label),
+        enumOptions: field.enumValues?.map((value) => ({
+          value,
+          label: t(value),
+        })),
+      })),
+      email: eventType.email
+        ? {
+            ...eventType.email,
+            attachments: eventType.email.attachments?.map((attachment) => ({
+              ...attachment,
+              label: t(attachment.label),
+              description: attachment.description
+                ? t(attachment.description)
+                : undefined,
+            })),
+          }
+        : undefined,
+      ui: eventType.ui
+        ? {
+            label: t(eventType.ui.label),
+            description: eventType.ui.description
+              ? t(eventType.ui.description)
+              : undefined,
+            group: eventType.ui.group ? t(eventType.ui.group) : undefined,
+          }
+        : undefined,
+    })),
+    [eventTypes, t]
+  );
   const wildcardAvailable = availableEventTypes.some((eventType) => Boolean(eventType.webhook));
   const selectedEventType = availableEventTypes.find((eventType) => eventType.type === draft.eventType);
 
@@ -110,7 +146,7 @@ export function RulesManagementPage({
       setDeliveryHealth(Object.fromEntries(deliveryEntries));
     } catch (error) {
       console.error(error);
-      toast.error("Failed to load rules and event metadata");
+      toast.error(t`Failed to load rules and event metadata`);
     } finally {
       setLoading(false);
     }
@@ -134,7 +170,7 @@ export function RulesManagementPage({
       setDeliveriesTotal(result.total);
     } catch (error) {
       console.error(error);
-      toast.error("Failed to load deliveries");
+      toast.error(t`Failed to load deliveries`);
     }
   }
 
@@ -146,7 +182,7 @@ export function RulesManagementPage({
     const matchesSearch =
       globalFilter.trim().length === 0 ||
       rule.name.toLowerCase().includes(globalFilter.toLowerCase()) ||
-      toTriggerLabel(rule, availableEventTypes)
+      toTriggerLabel(rule, availableEventTypes, t)
         .toLowerCase()
         .includes(globalFilter.toLowerCase());
 
@@ -251,7 +287,7 @@ export function RulesManagementPage({
 
   async function saveRule() {
     if (!activeTeam?.id) {
-      toast.error("No active team selected");
+      toast.error(t`No active team selected`);
       return;
     }
 
@@ -277,18 +313,18 @@ export function RulesManagementPage({
         throw new Error(stringifyActionFailure(json.errors));
       }
 
-      toast.success(editingRule ? "Rule updated successfully" : "Rule created successfully");
+      toast.success(editingRule ? t`Rule updated successfully` : t`Rule created successfully`);
       setEditorOpen(false);
       await fetchRulesAndMetadata();
     } catch (error) {
       console.error(error);
-      toast.error(error instanceof Error ? error.message : "Failed to save rule");
+      toast.error(error instanceof Error ? t(error.message) : t`Failed to save rule`);
     }
   }
 
   async function deleteRule(ruleId: string) {
     if (!activeTeam?.id) {
-      toast.error("No active team selected");
+      toast.error(t`No active team selected`);
       return;
     }
 
@@ -301,11 +337,11 @@ export function RulesManagementPage({
         throw new Error(stringifyActionFailure(json.errors));
       }
 
-      toast.success("Rule deleted successfully");
+      toast.success(t`Rule deleted successfully`);
       await fetchRulesAndMetadata();
     } catch (error) {
       console.error(error);
-      toast.error("Failed to delete rule");
+      toast.error(t`Failed to delete rule`);
     } finally {
       setDeletingRuleId((current) => (current === ruleId ? null : current));
     }
@@ -313,7 +349,7 @@ export function RulesManagementPage({
 
   async function retryDelivery(ruleId: string, deliveryId: string) {
     if (!activeTeam?.id) {
-      toast.error("No active team selected");
+      toast.error(t`No active team selected`);
       return;
     }
 
@@ -328,14 +364,14 @@ export function RulesManagementPage({
         throw new Error(stringifyActionFailure(json.errors));
       }
 
-      toast.success("Delivery queued");
+      toast.success(t`Delivery queued`);
       if (deliveriesRule) {
         await fetchDeliveries(deliveriesRule, deliveriesPage);
       }
       await fetchRulesAndMetadata();
     } catch (error) {
       console.error(error);
-      toast.error("Failed to requeue delivery");
+      toast.error(t`Failed to requeue delivery`);
     }
   }
 
@@ -352,7 +388,7 @@ export function RulesManagementPage({
   const pageButtons = [
     <Button key="create-rule" onClick={openCreateDialog}>
       <Plus className="size-4" />
-      Create rule
+      {t`Create rule`}
     </Button>,
   ];
 
@@ -365,7 +401,7 @@ export function RulesManagementPage({
     >
       <Card>
         <CardHeader>
-          <CardTitle>Webhooks and rules</CardTitle>
+          <CardTitle>{t`Webhooks and rules`}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <RulesFilters

@@ -1,4 +1,7 @@
-export type TranslationFunction = (strings: TemplateStringsArray, ...values: unknown[]) => string;
+export type TranslationFunction = {
+  (strings: TemplateStringsArray, ...values: unknown[]): string;
+  (key: string): string;
+};
 
 /**
  * Derive a translation key from a tagged template literal's static parts.
@@ -41,7 +44,15 @@ function concatenate(strings: TemplateStringsArray, values: unknown[]): string {
 export function createT(
   translations: Map<string, string>
 ): TranslationFunction {
-  return (strings: TemplateStringsArray, ...values: unknown[]): string => {
+  return (strings: TemplateStringsArray | string, ...values: unknown[]): string => {
+    // The key form is often called with a runtime value (a server error message,
+    // a label from the database) that is not guaranteed to be a string.
+    if (typeof strings !== "object" || strings === null) {
+      if (strings === null || strings === undefined) return "";
+      const key = String(strings);
+      return translations.get(key) ?? key;
+    }
+
     if (translations.size === 0) {
       return concatenate(strings, values);
     }

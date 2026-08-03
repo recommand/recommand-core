@@ -65,7 +65,7 @@ export default function SignupForm({
       toast.error(t`Signup failed`, {
         description:
           error instanceof Error
-            ? error.message
+            ? t(error.message)
             : t`An unexpected error occurred`,
       });
     }
@@ -81,7 +81,7 @@ export default function SignupForm({
 
       if (data.success) {
         toast.success(t`Confirmation email sent!`, {
-          description: data.message,
+          description: t(data.message),
         });
       } else {
         toast.error(t`Failed to resend confirmation`, {
@@ -92,7 +92,7 @@ export default function SignupForm({
       toast.error(t`Failed to resend confirmation`, {
         description:
           error instanceof Error
-            ? error.message
+            ? t(error.message)
             : t`An unexpected error occurred`,
       });
     } finally {
@@ -106,7 +106,7 @@ export default function SignupForm({
         <div className="flex justify-center mb-4">
           <img
             src={logoSrc}
-            alt="Logo"
+            alt={t`Logo`}
             className={logoClassName}
           />
         </div>
@@ -148,7 +148,7 @@ export default function SignupForm({
       <div className="flex justify-center mb-4">
         <img
           src={logoSrc}
-          alt="Logo"
+          alt={t`Logo`}
           className={logoClassName}
         />
       </div>

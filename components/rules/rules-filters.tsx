@@ -7,6 +7,7 @@ import {
   SelectValue,
 } from "@core/components/ui/select";
 import { wildcardEventType } from "./rule-constants";
+import { useTranslation } from "@core/hooks/use-translation";
 import type { EventTypeDto } from "./types";
 
 type RulesFiltersProps = {
@@ -34,22 +35,24 @@ export function RulesFilters({
   onActionTypeFilterChange,
   onStatusFilterChange,
 }: RulesFiltersProps) {
+  const { t } = useTranslation();
+
   return (
     <div className="grid gap-3 md:grid-cols-4">
       <Input
         value={globalFilter}
         onChange={(event) => onGlobalFilterChange(event.target.value)}
-        placeholder="Search rules"
+        placeholder={t`Search rules`}
       />
       <Select value={eventTypeFilter} onValueChange={onEventTypeFilterChange}>
         <SelectTrigger className="w-full">
-          <SelectValue placeholder="Event type" />
+          <SelectValue placeholder={t`Event type`} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All event types</SelectItem>
+          <SelectItem value="all">{t`All event types`}</SelectItem>
           {wildcardAvailable && (
             <SelectItem value={wildcardEventType}>
-              All supported webhook events
+              {t`All supported webhook events`}
             </SelectItem>
           )}
           {eventTypes.map((eventType) => (
@@ -61,22 +64,22 @@ export function RulesFilters({
       </Select>
       <Select value={actionTypeFilter} onValueChange={onActionTypeFilterChange}>
         <SelectTrigger className="w-full">
-          <SelectValue placeholder="Action type" />
+          <SelectValue placeholder={t`Action type`} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All action types</SelectItem>
-          <SelectItem value="webhook">Webhook</SelectItem>
-          <SelectItem value="email">Email</SelectItem>
+          <SelectItem value="all">{t`All action types`}</SelectItem>
+          <SelectItem value="webhook">{t`Webhook`}</SelectItem>
+          <SelectItem value="email">{t`Email`}</SelectItem>
         </SelectContent>
       </Select>
       <Select value={statusFilter} onValueChange={onStatusFilterChange}>
         <SelectTrigger className="w-full">
-          <SelectValue placeholder="Status" />
+          <SelectValue placeholder={t`Status`} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">Enabled and disabled</SelectItem>
-          <SelectItem value="enabled">Enabled</SelectItem>
-          <SelectItem value="disabled">Disabled</SelectItem>
+          <SelectItem value="all">{t`Enabled and disabled`}</SelectItem>
+          <SelectItem value="enabled">{t`Enabled`}</SelectItem>
+          <SelectItem value="disabled">{t`Disabled`}</SelectItem>
         </SelectContent>
       </Select>
     </div>

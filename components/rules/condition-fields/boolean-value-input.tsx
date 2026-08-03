@@ -6,6 +6,7 @@ import {
   SelectValue,
 } from "@core/components/ui/select";
 import type { ConditionValueInputProps } from "./types";
+import { useTranslation } from "@core/hooks/use-translation";
 
 function encodeBoolean(value: boolean) {
   return value ? "true" : "false";
@@ -19,6 +20,8 @@ export function BooleanValueInput({
   onChange,
   onOpenSelectChange,
 }: ConditionValueInputProps) {
+  const { t } = useTranslation();
+
   if (operator === "in" || operator === "notIn") {
     const currentValues = Array.isArray(value)
       ? value.filter((entry): entry is boolean => typeof entry === "boolean")
@@ -35,12 +38,12 @@ export function BooleanValueInput({
         onOpenChange={(open) => onOpenSelectChange?.(selectId ?? "boolean-array", open)}
       >
         <SelectTrigger className="w-full">
-          <SelectValue placeholder="Select values" />
+          <SelectValue placeholder={t`Select values`} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="true">True</SelectItem>
-          <SelectItem value="false">False</SelectItem>
-          <SelectItem value="true,false">True or false</SelectItem>
+          <SelectItem value="true">{t`True`}</SelectItem>
+          <SelectItem value="false">{t`False`}</SelectItem>
+          <SelectItem value="true,false">{t`True or false`}</SelectItem>
         </SelectContent>
       </Select>
     );
@@ -54,11 +57,11 @@ export function BooleanValueInput({
       onOpenChange={(open) => onOpenSelectChange?.(selectId ?? "boolean", open)}
     >
       <SelectTrigger className="w-full">
-        <SelectValue placeholder="Select value" />
+        <SelectValue placeholder={t`Select value`} />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="true">True</SelectItem>
-        <SelectItem value="false">False</SelectItem>
+        <SelectItem value="true">{t`True`}</SelectItem>
+        <SelectItem value="false">{t`False`}</SelectItem>
       </SelectContent>
     </Select>
   );

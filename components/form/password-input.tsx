@@ -4,6 +4,7 @@ import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { cn } from "../../lib/utils";
+import { useTranslation } from "@core/hooks/use-translation";
 
 interface PasswordInputProps
   extends Omit<InputHTMLAttributes<HTMLInputElement>, "type"> {
@@ -19,6 +20,7 @@ export function PasswordInput({
   ...props
 }: PasswordInputProps) {
   const [showPassword, setShowPassword] = useState(false);
+  const { t } = useTranslation();
 
   return (
     <div className="relative">
@@ -31,7 +33,7 @@ export function PasswordInput({
         required={required}
         onChange={onChange}
         className={cn("pr-10", className)}
-        aria-label={placeholder ?? "Password input"}
+        aria-label={placeholder ?? t`Password input`}
       />
       <Button
         type="button"
@@ -39,7 +41,7 @@ export function PasswordInput({
         size="sm"
         className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
         onClick={() => setShowPassword(!showPassword)}
-        aria-label={showPassword ? "Hide password" : "Show password"}
+        aria-label={showPassword ? t`Hide password` : t`Show password`}
       >
         {showPassword ? (
           <EyeOffIcon className="h-4 w-4" />

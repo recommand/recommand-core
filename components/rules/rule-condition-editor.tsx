@@ -8,8 +8,8 @@ import {
 } from "@core/components/ui/select";
 import { Plus, Trash2 } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
+import { useTranslation } from "@core/hooks/use-translation";
 import type { EventFieldOperator } from "../../lib/rules/types";
-import { operatorLabels } from "./condition-fields/operator-labels";
 import type { ConditionPickerOptions } from "./condition-fields/types";
 import { ConditionValueRenderer } from "./condition-fields/value-input";
 import { normalizeConditionValueForOperator } from "./rule-helpers";
@@ -34,24 +34,43 @@ export function RuleConditionEditor({
   onOpenSelectChange,
   setDraft,
 }: RuleConditionEditorProps) {
+  const { t } = useTranslation();
+
+  const getOperatorLabel = (operator: EventFieldOperator) => {
+    switch (operator) {
+      case "eq":
+        return t`Equals`;
+      case "neq":
+        return t`Doesn't equal`;
+      case "in":
+        return t`Is one of`;
+      case "notIn":
+        return t`Is not one of`;
+      case "contains":
+        return t`Contains`;
+      case "exists":
+        return t`Exists`;
+    }
+  };
+
   return (
     <div className="space-y-3 rounded-md border p-4">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-medium">Conditions</h3>
+          <h3 className="font-medium">{t`Conditions`}</h3>
           <p className="text-sm text-muted-foreground">
-            Narrow this rule to only the events you care about.
+            {t`Narrow this rule to only the events you care about.`}
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={onAddConditionRow}>
           <Plus className="size-4" />
-          Add condition
+          {t`Add condition`}
         </Button>
       </div>
 
       {draft.conditionRows.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No conditions yet. This rule will run for every event of the selected type.
+          {t`No conditions yet. This rule will run for every event of the selected type.`}
         </p>
       ) : (
         <div className="space-y-3">
@@ -139,7 +158,7 @@ export function RuleConditionEditor({
                   <SelectContent>
                     {field.operators.map((operator) => (
                       <SelectItem key={operator} value={operator}>
-                        {operatorLabels[operator]}
+                        {getOperatorLabel(operator)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -166,6 +185,8 @@ export function RuleConditionEditor({
                 <Button
                   variant="ghost-destructive"
                   size="icon"
+                  aria-label={t`Remove condition`}
+                  title={t`Remove condition`}
                   onClick={() =>
                     setDraft((current) => ({
                       ...current,
