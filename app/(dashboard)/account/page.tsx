@@ -21,7 +21,7 @@ const accountClient = rc<Account>("core");
 type Language = { code: string; name: string };
 
 export default function AccountPage() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const user = useUser();
   const fetchUser = useUserStore((state) => state.fetchUser);
 
@@ -130,11 +130,14 @@ export default function AccountPage() {
                   <SelectValue placeholder={t`Select a language`} />
                 </SelectTrigger>
                 <SelectContent>
-                  {languages.map((lang) => (
-                    <SelectItem key={lang.code} value={lang.code}>
-                      {lang.name}
-                    </SelectItem>
-                  ))}
+                  {languages
+                    .map((lang) => ({ code: lang.code, name: t(lang.name) }))
+                    .sort((a, b) => a.name.localeCompare(b.name, language))
+                    .map((lang) => (
+                      <SelectItem key={lang.code} value={lang.code}>
+                        {lang.name}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>

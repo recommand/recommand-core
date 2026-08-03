@@ -8,6 +8,7 @@ import {
   SelectValue,
 } from "@core/components/ui/select";
 import { useId } from "react";
+import { useTranslation } from "@core/hooks/use-translation";
 import type { ConditionValueInputProps } from "./types";
 
 export function EnumValueInput({
@@ -19,8 +20,12 @@ export function EnumValueInput({
   onChange,
   onOpenSelectChange,
 }: ConditionValueInputProps) {
+  const { t } = useTranslation();
   const inputIdPrefix = useId();
-  const enumValues = field.enumValues ?? [];
+  const options = field.enumOptions ?? (field.enumValues ?? []).map((option) => ({
+    value: option,
+    label: option,
+  }));
   const selectedValues = Array.isArray(value)
     ? value.filter((entry): entry is string => typeof entry === "string")
     : [];
@@ -28,22 +33,22 @@ export function EnumValueInput({
   if (operator === "in" || operator === "notIn") {
     return (
       <div className="grid gap-2 rounded-md border p-3">
-        {enumValues.map((option) => {
-          const checked = selectedValues.includes(option);
-          const checkboxId = `${inputIdPrefix}-${option}`;
+        {options.map((option) => {
+          const checked = selectedValues.includes(option.value);
+          const checkboxId = `${inputIdPrefix}-${option.value}`;
           return (
-            <div key={option} className="flex items-center gap-2 text-sm">
+            <div key={option.value} className="flex items-center gap-2 text-sm">
               <Checkbox
                 id={checkboxId}
                 checked={checked}
                 onCheckedChange={(nextChecked) => {
                   const nextValues = nextChecked
-                    ? [...selectedValues, option]
-                    : selectedValues.filter((entry) => entry !== option);
+                    ? [...selectedValues, option.value]
+                    : selectedValues.filter((entry) => entry !== option.value);
                   onChange(nextValues);
                 }}
               />
-              <Label htmlFor={checkboxId}>{option}</Label>
+              <Label htmlFor={checkboxId}>{option.label}</Label>
             </div>
           );
         })}
@@ -59,12 +64,12 @@ export function EnumValueInput({
       onOpenChange={(open) => onOpenSelectChange?.(selectId ?? field.path, open)}
     >
       <SelectTrigger className="w-full">
-        <SelectValue placeholder="Select value" />
+        <SelectValue placeholder={t`Select value`} />
       </SelectTrigger>
       <SelectContent>
-        {enumValues.map((option) => (
-          <SelectItem key={option} value={option}>
-            {option}
+        {options.map((option) => (
+          <SelectItem key={option.value} value={option.value}>
+            {option.label}
           </SelectItem>
         ))}
       </SelectContent>

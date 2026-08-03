@@ -1,6 +1,7 @@
 import { Input } from "@core/components/ui/input";
 import { Textarea } from "@core/components/ui/textarea";
 import type { ConditionValueInputProps } from "./types";
+import { useTranslation } from "@core/hooks/use-translation";
 
 function normalizeListValue(value: unknown) {
   return Array.isArray(value) ? value.join(", ") : "";
@@ -11,6 +12,8 @@ export function StringValueInput({
   value,
   onChange,
 }: ConditionValueInputProps) {
+  const { t } = useTranslation();
+
   if (operator === "in" || operator === "notIn") {
     return (
       <Textarea
@@ -23,7 +26,7 @@ export function StringValueInput({
               .filter(Boolean)
           )
         }
-        placeholder="Comma-separated values"
+        placeholder={t`Comma-separated values`}
       />
     );
   }
@@ -32,7 +35,7 @@ export function StringValueInput({
     <Input
       value={typeof value === "string" ? value : ""}
       onChange={(event) => onChange(event.target.value)}
-      placeholder="Value"
+      placeholder={t`Value`}
     />
   );
 }

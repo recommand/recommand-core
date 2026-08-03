@@ -6,6 +6,7 @@ import { DataTableViewOptions } from "./view-options";
 import { DataTableFacetedFilter } from "./faceted-filter";
 import React from "react";
 import { useThrottledInput } from "./use-throttled-input";
+import { useTranslation } from "@core/hooks/use-translation";
 
 // Define the structure for filter configurations
 export interface FilterConfig<TData> {
@@ -33,9 +34,11 @@ export function DataTableToolbar<TData>({
   searchColumn,
   enableGlobalSearch,
   throttleGlobalSearch = false,
-  searchPlaceholder = "Search...",
+  searchPlaceholder,
   filterColumns,
 }: DataTableToolbarProps<TData>) {
+  const { t } = useTranslation();
+  const resolvedSearchPlaceholder = searchPlaceholder ?? t`Search...`;
   const globalFilter = (table.getState().globalFilter as string) ?? "";
   const throttledGlobalSearch = useThrottledInput({
     enabled: Boolean(enableGlobalSearch && throttleGlobalSearch),
@@ -52,7 +55,7 @@ export function DataTableToolbar<TData>({
       <div className="flex flex-1 items-center space-x-2">
         {searchColumn && !enableGlobalSearch && (
           <Input
-            placeholder={searchPlaceholder}
+            placeholder={resolvedSearchPlaceholder}
             value={
               (table
                 .getColumn(searchColumn as string)
@@ -68,7 +71,7 @@ export function DataTableToolbar<TData>({
         )}
         {enableGlobalSearch && (
           <Input
-            placeholder={searchPlaceholder}
+            placeholder={resolvedSearchPlaceholder}
             value={throttleGlobalSearch ? throttledGlobalSearch.inputValue : globalFilter}
             onChange={(event) => {
               const value = event.target.value;
@@ -120,7 +123,7 @@ export function DataTableToolbar<TData>({
             }}
             className="h-8 px-2 lg:px-3"
           >
-            Reset
+            {t`Reset`}
             <X className="ml-2 h-4 w-4" />
           </Button>
         )}

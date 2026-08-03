@@ -2,6 +2,7 @@ import { DatePicker } from "@core/components/ui/date-picker";
 import { Input } from "@core/components/ui/input";
 import { Textarea } from "@core/components/ui/textarea";
 import type { ConditionValueInputProps } from "./types";
+import { useTranslation } from "@core/hooks/use-translation";
 
 function dateFromValue(value: unknown) {
   if (typeof value !== "string" || value.length === 0) {
@@ -21,6 +22,8 @@ export function DateValueInput({
   value,
   onChange,
 }: ConditionValueInputProps) {
+  const { t } = useTranslation();
+
   if (operator === "in" || operator === "notIn") {
     return (
       <Textarea
@@ -33,7 +36,7 @@ export function DateValueInput({
               .filter(Boolean)
           )
         }
-        placeholder="Comma-separated ISO dates"
+        placeholder={t`Comma-separated ISO dates`}
       />
     );
   }
@@ -43,7 +46,7 @@ export function DateValueInput({
       <Input
         value={typeof value === "string" ? value : ""}
         onChange={(event) => onChange(event.target.value)}
-        placeholder="ISO date"
+        placeholder={t`ISO date`}
       />
     );
   }
@@ -54,7 +57,7 @@ export function DateValueInput({
       onDateChange={(date) =>
         onChange(date ? date.toISOString() : null)
       }
-      placeholder="Pick a date"
+      placeholder={t`Pick a date`}
     />
   );
 }

@@ -17,18 +17,11 @@ Close,Fermer
 API Keys,Clés API
 Team,Équipe
 Change password,Changer le mot de passe
-Password reset email sent,E-mail de réinitialisation envoyé
-Check your email for instructions to reset your password,Vérifiez votre e-mail pour les instructions de réinitialisation
 Failed to send reset link,Échec de l'envoi du lien
-Unable to change password,Impossible de changer le mot de passe
-User email not available,Adresse e-mail non disponible
-Create account,Créer un compte
-Enter your details below to create an account,Entrez vos coordonnées ci-dessous pour créer un compte
 Confirm your email address,Confirmez votre adresse e-mail
 Reset your password,Réinitialisez votre mot de passe
 New password,Nouveau mot de passe
 Reset password,Réinitialiser le mot de passe
-Enter your email to receive a password reset link,Entrez votre e-mail pour recevoir un lien de réinitialisation
 Send reset link,Envoyer le lien
 Confirm your email,Confirmez votre e-mail
 Hello {0}\,,Bonjour {0}\,
@@ -110,6 +103,7 @@ Please enter a valid expiration duration,Veuillez entrer une durée d'expiration
 API key created successfully,Clé API créée avec succès
 Name,Nom
 Type,Type
+Basic,Basic
 API Key,Clé API
 API Key copied to clipboard,Clé API copiée dans le presse-papiers
 Expires At,Expire le
@@ -130,7 +124,7 @@ Create API Key,Créer une clé API
 API Key Expiration in,Expiration de la clé API dans
 Hours,Heures
 Days,Jours
-Team ID,ID d'équipe
+Team ID,ID équipe
 This is your unique team identifier,Ceci est votre identifiant d'équipe unique
 Team ID copied to clipboard,ID d'équipe copié dans le presse-papiers
 New API Key Created,Nouvelle clé API créée
@@ -163,7 +157,6 @@ Email address to invite,Adresse e-mail à inviter
 Inviting...,Invitation...
 Invite Member,Inviter un membre
 Team Name,Nom de l'équipe
-Team name copied to clipboard,Nom de l'équipe copié dans le presse-papiers
 Failed to load permissions data,Échec du chargement des données de permissions
 Permission revoked,Permission révoquée
 Permission granted,Permission accordée
@@ -171,18 +164,14 @@ Failed to update permission,Échec de la mise à jour de la permission
 Member Permissions,Permissions du membre
 Permissions for {0},Permissions pour {0}
 Manage what this team member is allowed to do. Toggle permissions on or off instantly.,Gérez ce que ce membre de l'équipe est autorisé à faire. Activez ou désactivez les permissions instantanément.
-Permissions,Permissions
-Select which permissions this team member should have,Sélectionnez les permissions que ce membre de l'équipe doit avoir
 No permissions are available to manage.,Aucune permission disponible à gérer.
-You don't have permission to grant or revoke this permission.,Vous n'avez pas la permission d'accorder ou de révoquer cette permission.
-You must be in a team to complete this step,Vous devez être dans une équipe pour compléter cette étape
+You must be in a team to complete this step,Vous devez appartenir à une équipe pour terminer cette étape
 Failed to complete step,Échec de l'étape
 Continue,Continuer
 Please enter a team name,Veuillez entrer un nom d'équipe
 Team created successfully,Équipe créée avec succès
 Failed to create team,Échec de la création de l'équipe
 Team name updated successfully,Nom de l'équipe mis à jour avec succès
-Failed to update team name,Échec de la mise à jour du nom de l'équipe
 Search teams...,Rechercher des équipes...
 My Teams,Mes équipes
 Other Teams,Autres équipes
@@ -235,3 +224,168 @@ Terms of Use,Conditions d'utilisation
 Privacy Policy,Politique de confidentialité
 and,et
 You must accept the terms to continue,Vous devez accepter les conditions pour continuer
+Action,Action
+Action type,Type d'action
+Actions,Actions
+Add condition,Ajouter une condition
+Add email,Ajouter un e-mail
+Add webhook,Ajouter un webhook
+All action types,Tous les types d'action
+All event types,Tous les types d'événement
+All supported webhook events,Tous les événements webhook pris en charge
+Are you sure you want to delete this rule? This action cannot be undone.,Êtes-vous sûr de vouloir supprimer cette règle ? Cette action est irréversible.
+Array member,Élément du tableau
+Ascending,Croissant
+Attachments,Pièces jointes
+Attempts,Tentatives
+Breadcrumb,Fil d'Ariane
+Carousel,Carrousel
+Choose what should happen when this rule matches.,Choisissez ce qui doit se produire lorsque cette règle correspond.
+Choose when this rule should run and what it should do.,Choisissez quand cette règle doit s'exécuter et ce qu'elle doit faire.
+Clear filters,Effacer les filtres
+Comma or newline separated email addresses,Adresses e-mail séparées par des virgules ou des sauts de ligne
+Comma-separated ISO dates,Dates ISO séparées par des virgules
+Comma-separated numbers,Nombres séparés par des virgules
+Comma-separated values,Valeurs séparées par des virgules
+Command Palette,Palette de commandes
+Conditions,Conditions
+Contains,Contient
+Copy rule ID,Copier l'ID de la règle
+Could not create API key: {0},Impossible de créer la clé API : {0}
+Create a rule to send webhooks or trigger email automations when supported events happen.,Créez une règle pour envoyer des webhooks ou déclencher des automatisations par e-mail lorsque des événements pris en charge se produisent.
+Create rule,Créer une règle
+Dark mode,Mode sombre
+Delete rule,Supprimer la règle
+Delivery failed,Échec de la livraison
+Delivery health,État des livraisons
+Delivery in progress,Livraison en cours
+Delivery queued,Livraison mise en file d'attente
+Descending,Décroissant
+Disabled,Désactivé
+Displays the mobile sidebar.,Affiche la barre latérale sur mobile.
+Does not exist,N'existe pas
+Doesn't equal,N'est pas égal à
+Edit rule,Modifier la règle
+Email action,Action d'e-mail
+Enabled,Activé
+Enabled and disabled,Activées et désactivées
+Equals,Est égal à
+Event type,Type d'événement
+Exists,Existe
+Failed,Échec
+Failed to delete rule,Échec de la suppression de la règle
+Failed to delete team. {0},Échec de la suppression de l'équipe. {0}
+Failed to load deliveries,Échec du chargement des livraisons
+Failed to load rules and event metadata,Échec du chargement des règles et des métadonnées d'événement
+Failed to requeue delivery,Échec de la remise en file d'attente de la livraison
+Failed to save rule,Échec de l'enregistrement de la règle
+Failed to update team name: {0},Échec de la mise à jour du nom de l'équipe : {0}
+False,Faux
+Giving up,Abandon
+Global permissions,Permissions globales
+Go to first page,Aller à la première page
+Go to last page,Aller à la dernière page
+Go to next page,Aller à la page suivante
+Go to previous page,Aller à la page précédente
+Hide,Masquer
+Hide password,Masquer le mot de passe
+ID,Identifiant
+ISO date,Date ISO
+In flight,En cours
+Invalid token,Jeton invalide
+Is not one of,Ne fait pas partie de
+Is one of,Fait partie de
+Last delivery succeeded,Dernière livraison réussie
+Last error,Dernière erreur
+Light mode,Mode clair
+Loading rules...,Chargement des règles...
+Logo,Logo
+More,Plus
+More pages,Pages supplémentaires
+N/A,S/O
+Narrow this rule to only the events you care about.,Limitez cette règle aux seuls événements qui vous intéressent.
+Next,Suivant
+Next slide,Diapositive suivante
+No actions,Aucune action
+No conditions yet. This rule will run for every event of the selected type.,Aucune condition pour le moment. Cette règle s'exécutera pour chaque événement du type sélectionné.
+No deliveries yet,Aucune livraison pour le moment
+No deliveries yet.,Aucune livraison pour le moment.
+No global permissions are available to manage.,Aucune permission globale n'est disponible à la gestion.
+No options available.,Aucune option disponible.
+No options found.,Aucune option trouvée.
+No results found.,Aucun résultat trouvé.
+No webhooks or rules yet,Aucun webhook ni aucune règle pour le moment
+Number,Nombre
+One matched rule with two actions produces two delivery rows.,Une règle correspondante comportant deux actions génère deux lignes de livraison.
+Optional,Facultatif
+Page {0} of {1},Page {0} sur {1}
+Pagination,Pagination
+Password input,Champ de mot de passe
+Pending,En attente
+Pick a date,Choisir une date
+Previous,Précédent
+Previous slide,Diapositive précédente
+Processed,Traité
+Recipients,Destinataires
+Recommand Logo,Logo de Recommand
+Redeliver,Renvoyer
+Remove action,Supprimer l'action
+Remove condition,Supprimer la condition
+Reset,Réinitialiser
+Retry,Réessayer
+Retry scheduled,Nouvelle tentative planifiée
+Rows per page,Lignes par page
+Rule ID copied to clipboard,Identifiant de la règle copié dans le presse-papiers
+Rule created successfully,Règle créée avec succès
+Rule deleted successfully,Règle supprimée avec succès
+Rule deliveries,Livraisons de la règle
+Rule name,Nom de la règle
+Rule updated successfully,Règle mise à jour avec succès
+Save rule,Enregistrer la règle
+Search for a command to run...,Rechercher une commande à exécuter...
+Search rules,Rechercher des règles
+Search {0}...,Rechercher {0}...
+Search...,Rechercher...
+Select an option...,Sélectionner une option...
+Select event type,Sélectionner un type d'événement
+Select value,Sélectionner une valeur
+Select values,Sélectionner des valeurs
+Select which permissions this team member should have within {0}.,Sélectionnez les permissions que ce membre de l'équipe doit posséder au sein de {0}.
+Select {0},Sélectionner {0}
+Show password,Afficher le mot de passe
+Showing {0} - {1} of {2},Affichage de {0} à {1} sur {2}
+Sidebar,Barre latérale
+Signing secret,Secret de signature
+Slide,Diapositive
+Status,Statut
+Succeeded,Réussi
+Target URL,URL cible
+Team permissions,Permissions de l'équipe
+These permissions apply to this user across all teams. Only administrators can manage them.,Ces permissions s'appliquent à cet utilisateur dans toutes les équipes. Seuls les administrateurs peuvent les gérer.
+Toggle Sidebar,Afficher ou masquer la barre latérale
+Toggle columns,Afficher ou masquer les colonnes
+Trigger,Déclencheur
+Triggered by,Déclenché par
+True,Vrai
+True or false,Vrai ou faux
+Unknown error,Erreur inconnue
+Updated,Mis à jour
+Value,Valeur
+Columns,Colonnes
+View deliveries,Afficher les livraisons
+Webhook,Webhook
+Webhook action,Action webhook
+Webhooks and rules,Webhooks et règles
+this team,cette équipe
+{0} #{1},{0} nº {1}
+{0} actions,{0} actions
+{0} of {1} rows selected.,{0} lignes sélectionnées sur {1}.
+{0} selected,{0} sélectionné(s)
+Manage Team,Gérer l'équipe
+Manage the team and its members,Gérer l'équipe et ses membres
+English,Anglais
+Nederlands,Néerlandais
+Français,Français
+Deutsch,Allemand
+Hello\,,Bonjour\,
+Unsupported language,Langue non prise en charge

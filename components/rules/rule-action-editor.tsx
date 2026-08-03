@@ -6,6 +6,7 @@ import { Label } from "@core/components/ui/label";
 import { Textarea } from "@core/components/ui/textarea";
 import { Trash2 } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
+import { useTranslation } from "@core/hooks/use-translation";
 import {
   emptyEmailAction,
   emptyWebhookAction,
@@ -29,13 +30,15 @@ export function RuleActionEditor({
   setDraft,
   setRecipientInputs,
 }: RuleActionEditorProps) {
+  const { t } = useTranslation();
+
   return (
     <div className="space-y-3 rounded-md border p-4">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-medium">Actions</h3>
+          <h3 className="font-medium">{t`Actions`}</h3>
           <p className="text-sm text-muted-foreground">
-            Choose what should happen when this rule matches.
+            {t`Choose what should happen when this rule matches.`}
           </p>
         </div>
         {draft.eventType !== wildcardEventType && (
@@ -54,7 +57,7 @@ export function RuleActionEditor({
                 })
               }
             >
-              Add webhook
+              {t`Add webhook`}
             </Button>
             {selectedEventType?.email && (
               <Button
@@ -71,7 +74,7 @@ export function RuleActionEditor({
                   })
                 }
               >
-                Add email
+                {t`Add email`}
               </Button>
             )}
           </div>
@@ -83,14 +86,14 @@ export function RuleActionEditor({
           <div key={`${action.type}-${index}`} className="space-y-3 rounded-md border p-4">
             <div className="flex items-center justify-between">
               <Badge variant="outline">
-                {action.type === "webhook" ? "Webhook action" : "Email action"}
+                {action.type === "webhook" ? t`Webhook action` : t`Email action`}
               </Badge>
               {(draft.actions.length > 1 || draft.eventType !== wildcardEventType) && (
                 <Button
                   variant="ghost-destructive"
                   size="icon"
-                  aria-label="Remove action"
-                  title="Remove action"
+                  aria-label={t`Remove action`}
+                  title={t`Remove action`}
                   onClick={() =>
                     setDraft((current) => {
                       const actions = current.actions.filter((_, actionIndex) => actionIndex !== index);
@@ -110,7 +113,7 @@ export function RuleActionEditor({
             {action.type === "webhook" ? (
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2 md:col-span-2">
-                  <Label>Target URL</Label>
+                  <Label>{t`Target URL`}</Label>
                   <Input
                     value={action.config.url}
                     onChange={(event) =>
@@ -133,7 +136,7 @@ export function RuleActionEditor({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Signing secret</Label>
+                  <Label>{t`Signing secret`}</Label>
                   <Input
                     value={action.config.secret ?? ""}
                     onChange={(event) =>
@@ -152,14 +155,14 @@ export function RuleActionEditor({
                         ),
                       }))
                     }
-                    placeholder="Optional"
+                    placeholder={t`Optional`}
                   />
                 </div>
               </div>
             ) : (
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Recipients</Label>
+                  <Label>{t`Recipients`}</Label>
                   <Textarea
                     value={recipientInputs[index] ?? action.config.to.join(", ")}
                     onChange={(event) => {
@@ -183,12 +186,12 @@ export function RuleActionEditor({
                         ),
                       }));
                     }}
-                    placeholder="Comma or newline separated email addresses"
+                    placeholder={t`Comma or newline separated email addresses`}
                   />
                 </div>
                 {selectedEventType?.email?.attachments && selectedEventType.email.attachments.length > 0 && (
                   <div className="space-y-2">
-                    <Label>Attachments</Label>
+                    <Label>{t`Attachments`}</Label>
                     <div className="grid gap-3 md:grid-cols-2">
                       {selectedEventType.email.attachments.map((attachment) => (
                         <div key={attachment.key} className="space-y-1">

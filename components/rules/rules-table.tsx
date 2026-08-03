@@ -12,6 +12,7 @@ import {
 } from "@core/components/ui/table";
 import { toast } from "@core/components/ui/sonner";
 import { Copy, Logs, Pencil, Plus, Trash2 } from "lucide-react";
+import { useTranslation } from "@core/hooks/use-translation";
 import {
   formatTimestamp,
   summarizeHealth,
@@ -47,25 +48,27 @@ export function RulesTable({
   onViewDeliveries,
   onDeleteRule,
 }: RulesTableProps) {
+  const { t, language } = useTranslation();
+
   return (
     <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>ID</TableHead>
-            <TableHead>Name</TableHead>
-            <TableHead>Trigger</TableHead>
-            <TableHead>Actions</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Delivery health</TableHead>
-            <TableHead>Updated</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+            <TableHead>{t`ID`}</TableHead>
+            <TableHead>{t`Name`}</TableHead>
+            <TableHead>{t`Trigger`}</TableHead>
+            <TableHead>{t`Actions`}</TableHead>
+            <TableHead>{t`Status`}</TableHead>
+            <TableHead>{t`Delivery health`}</TableHead>
+            <TableHead>{t`Updated`}</TableHead>
+            <TableHead className="text-right">{t`Actions`}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {loading ? (
             <TableRow>
-              <TableCell colSpan={8}>Loading rules...</TableCell>
+              <TableCell colSpan={8}>{t`Loading rules...`}</TableCell>
             </TableRow>
           ) : rules.length === 0 ? (
             <TableRow>
@@ -73,14 +76,14 @@ export function RulesTable({
                 <div className="flex min-h-56 items-center justify-center px-6 py-10">
                   <div className="mx-auto max-w-xl text-center">
                     <h3 className="text-base font-semibold">
-                      No webhooks or rules yet
+                      {t`No webhooks or rules yet`}
                     </h3>
                     <p className="mt-2 text-sm text-muted-foreground">
-                      Create a rule to send webhooks or trigger email automations when supported events happen.
+                      {t`Create a rule to send webhooks or trigger email automations when supported events happen.`}
                     </p>
                     <Button className="mt-5" onClick={onCreateRule}>
                       <Plus className="size-4" />
-                      Create rule
+                      {t`Create rule`}
                     </Button>
                   </div>
                 </div>
@@ -88,7 +91,7 @@ export function RulesTable({
             </TableRow>
           ) : (
             rules.map((rule) => {
-              const health = summarizeHealth(deliveryHealth[rule.id]);
+              const health = summarizeHealth(deliveryHealth[rule.id], t);
               return (
                 <TableRow key={rule.id}>
                   <TableCell>
@@ -103,11 +106,11 @@ export function RulesTable({
                       <Button
                         variant="ghost"
                         size="icon"
-                        aria-label="Copy rule ID"
-                        title="Copy rule ID"
+                        aria-label={t`Copy rule ID`}
+                        title={t`Copy rule ID`}
                         onClick={() => {
                           navigator.clipboard.writeText(rule.id);
-                          toast.success("Rule ID copied to clipboard");
+                          toast.success(t`Rule ID copied to clipboard`);
                         }}
                       >
                         <Copy className="size-4" />
@@ -123,24 +126,24 @@ export function RulesTable({
                       {rule.name}
                     </button>
                   </TableCell>
-                  <TableCell>{toTriggerLabel(rule, eventTypes)}</TableCell>
-                  <TableCell>{toActionSummary(rule.actions)}</TableCell>
+                  <TableCell>{toTriggerLabel(rule, eventTypes, t)}</TableCell>
+                  <TableCell>{toActionSummary(rule.actions, t)}</TableCell>
                   <TableCell>
                     <Badge variant={rule.enabled ? "success" : "outline"}>
-                      {rule.enabled ? "Enabled" : "Disabled"}
+                      {rule.enabled ? t`Enabled` : t`Disabled`}
                     </Badge>
                   </TableCell>
                   <TableCell>
                     <Badge variant={health.variant}>{health.label}</Badge>
                   </TableCell>
-                  <TableCell>{formatTimestamp(rule.updatedAt ?? rule.createdAt)}</TableCell>
+                  <TableCell>{formatTimestamp(rule.updatedAt ?? rule.createdAt, t, language)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
                       <AsyncButton
                         variant="ghost"
                         size="icon"
-                        aria-label="View deliveries"
-                        title="View deliveries"
+                        aria-label={t`View deliveries`}
+                        title={t`View deliveries`}
                         onClick={async () => await onViewDeliveries(rule)}
                       >
                         <Logs className="size-4" />
@@ -148,16 +151,16 @@ export function RulesTable({
                       <Button
                         variant="ghost"
                         size="icon"
-                        aria-label="Edit rule"
-                        title="Edit rule"
+                        aria-label={t`Edit rule`}
+                        title={t`Edit rule`}
                         onClick={() => onEditRule(rule)}
                       >
                         <Pencil className="size-4" />
                       </Button>
                       <ConfirmDialog
-                        title="Delete rule"
-                        description="Are you sure you want to delete this rule? This action cannot be undone."
-                        confirmButtonText="Delete"
+                        title={t`Delete rule`}
+                        description={t`Are you sure you want to delete this rule? This action cannot be undone.`}
+                        confirmButtonText={t`Delete`}
                         onConfirm={async () => await onDeleteRule(rule.id)}
                         isLoading={deletingRuleId === rule.id}
                         variant="destructive"
@@ -165,8 +168,8 @@ export function RulesTable({
                           <Button
                             variant="ghost-destructive"
                             size="icon"
-                            aria-label="Delete rule"
-                            title="Delete rule"
+                            aria-label={t`Delete rule`}
+                            title={t`Delete rule`}
                           >
                             <Trash2 className="size-4" />
                           </Button>

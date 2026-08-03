@@ -39,7 +39,7 @@ export function LoginForm({
       toast.error(t`Login failed`, {
         description:
           error instanceof Error
-            ? error.message
+            ? t(error.message)
             : t`An unexpected error occurred`,
       });
     }
@@ -50,7 +50,7 @@ export function LoginForm({
       <div className="flex justify-center mb-4">
         <img
           src={logoSrc}
-          alt="Logo"
+          alt={t`Logo`}
           className={logoClassName}
         />
       </div>

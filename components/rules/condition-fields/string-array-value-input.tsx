@@ -1,6 +1,7 @@
 import { Input } from "@core/components/ui/input";
 import { Textarea } from "@core/components/ui/textarea";
 import type { ConditionValueInputProps } from "./types";
+import { useTranslation } from "@core/hooks/use-translation";
 
 function listValueToString(value: unknown) {
   return Array.isArray(value) ? value.join(", ") : "";
@@ -11,12 +12,14 @@ export function StringArrayValueInput({
   value,
   onChange,
 }: ConditionValueInputProps) {
+  const { t } = useTranslation();
+
   if (operator === "contains") {
     return (
       <Input
         value={typeof value === "string" ? value : ""}
         onChange={(event) => onChange(event.target.value)}
-        placeholder="Array member"
+        placeholder={t`Array member`}
       />
     );
   }
@@ -32,7 +35,7 @@ export function StringArrayValueInput({
             .filter(Boolean)
         )
       }
-      placeholder="Comma-separated values"
+      placeholder={t`Comma-separated values`}
     />
   );
 }

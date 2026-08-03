@@ -17,6 +17,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@core/components/ui/popover";
+import { useTranslation } from "@core/hooks/use-translation";
 
 interface ComboboxProps {
   value?: string;
@@ -37,13 +38,17 @@ export function Combobox({
   value,
   onValueChange,
   options,
-  placeholder = "Select an option...",
-  searchPlaceholder = "Search...",
-  emptyText = "No results found.",
+  placeholder,
+  searchPlaceholder,
+  emptyText,
   className,
   disabled = false,
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false);
+  const { t } = useTranslation();
+  const resolvedPlaceholder = placeholder ?? t`Select an option...`;
+  const resolvedSearchPlaceholder = searchPlaceholder ?? t`Search...`;
+  const resolvedEmptyText = emptyText ?? t`No results found.`;
 
   const selectedOption = options.find((option) => option.value === value);
 
@@ -81,7 +86,7 @@ export function Combobox({
                 )}
               </span>
             ) : (
-              placeholder
+              resolvedPlaceholder
             )}
           </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -89,9 +94,9 @@ export function Combobox({
       </PopoverTrigger>
       <PopoverContent className="w-full p-0" align="start">
         <Command>
-          <CommandInput placeholder={searchPlaceholder} className="h-9" />
+          <CommandInput placeholder={resolvedSearchPlaceholder} className="h-9" />
           <CommandList>
-            <CommandEmpty>{emptyText}</CommandEmpty>
+            <CommandEmpty>{resolvedEmptyText}</CommandEmpty>
             <CommandGroup>
               {options.map((option) => (
                 <CommandItem

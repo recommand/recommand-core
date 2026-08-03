@@ -10,10 +10,15 @@ import type {
   RuleDto,
   EventTypeDto,
 } from "./types";
+import type { TranslationFunction } from "@core/lib/translations";
 
-export function formatTimestamp(value: string | null) {
+export function formatTimestamp(
+  value: string | null,
+  t: TranslationFunction,
+  language: string
+) {
   if (!value) {
-    return "Never";
+    return t`Never`;
   }
 
   const date = new Date(value);
@@ -21,31 +26,32 @@ export function formatTimestamp(value: string | null) {
     return value;
   }
 
-  return date.toLocaleString();
+  return date.toLocaleString(language);
 }
 
-export function toActionSummary(actions: VersionedAction[]) {
+export function toActionSummary(actions: VersionedAction[], t: TranslationFunction) {
   if (actions.length === 0) {
-    return "No actions";
+    return t`No actions`;
   }
 
   const labels = Array.from(
     new Set(
       actions.map((action) =>
-        action.type === "webhook" ? "Webhook" : "Email"
+        action.type === "webhook" ? t`Webhook` : t`Email`
       )
     )
   );
 
-  return labels.length <= 2 ? labels.join(" + ") : `${labels.length} actions`;
+  return labels.length <= 2 ? labels.join(" + ") : t`${labels.length} actions`;
 }
 
 export function toTriggerLabel(
   rule: RuleDto,
-  eventTypes: EventTypeDto[]
+  eventTypes: EventTypeDto[],
+  t: TranslationFunction
 ) {
   if (rule.eventType === wildcardEventType) {
-    return "All supported webhook events";
+    return t`All supported webhook events`;
   }
 
   const eventType = eventTypes.find((entry) => entry.type === rule.eventType);
@@ -62,24 +68,24 @@ export function badgeVariantForDeliveryStatus(status: RuleDeliveryDto["status"])
   return "secondary";
 }
 
-export function summarizeHealth(delivery: RuleDeliveryDto | undefined) {
+export function summarizeHealth(delivery: RuleDeliveryDto | undefined, t: TranslationFunction) {
   if (!delivery) {
-    return { label: "No deliveries yet", variant: "outline" as const };
+    return { label: t`No deliveries yet`, variant: "outline" as const };
   }
 
   if (delivery.status === "succeeded") {
-    return { label: "Last delivery succeeded", variant: "success" as const };
+    return { label: t`Last delivery succeeded`, variant: "success" as const };
   }
 
   if (delivery.status === "failed") {
-    return { label: "Retry scheduled", variant: "secondary" as const };
+    return { label: t`Retry scheduled`, variant: "secondary" as const };
   }
 
   if (delivery.status === "giving_up") {
-    return { label: "Delivery failed", variant: "destructive" as const };
+    return { label: t`Delivery failed`, variant: "destructive" as const };
   }
 
-  return { label: "Delivery in progress", variant: "secondary" as const };
+  return { label: t`Delivery in progress`, variant: "secondary" as const };
 }
 
 export function flattenCondition(condition: VersionedCondition | null) {

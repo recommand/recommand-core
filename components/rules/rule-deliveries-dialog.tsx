@@ -21,13 +21,10 @@ import {
   formatTimestamp,
 } from "./rule-helpers";
 import type { RuleDeliveryDto, RuleDto } from "./types";
+import { useTranslation } from "@core/hooks/use-translation";
 
 function canRedeliver(delivery: RuleDeliveryDto) {
   return delivery.status === "succeeded" || delivery.status === "failed" || delivery.status === "giving_up";
-}
-
-function getDeliveryActionLabel(delivery: RuleDeliveryDto) {
-  return delivery.status === "succeeded" ? "Redeliver" : "Retry";
 }
 
 type RuleDeliveriesDialogProps = {
@@ -53,24 +50,45 @@ export function RuleDeliveriesDialog({
   onFetchDeliveries,
   onRetryDelivery,
 }: RuleDeliveriesDialogProps) {
+  const { t, language } = useTranslation();
+
+  const getDeliveryActionLabel = (delivery: RuleDeliveryDto) =>
+    delivery.status === "succeeded" ? t`Redeliver` : t`Retry`;
+
+  const getDeliveryStatusLabel = (status: RuleDeliveryDto["status"]) => {
+    switch (status) {
+      case "pending":
+        return t`Pending`;
+      case "in_flight":
+        return t`In flight`;
+      case "succeeded":
+        return t`Succeeded`;
+      case "failed":
+        return t`Failed`;
+      case "giving_up":
+        return t`Giving up`;
+    }
+  };
+
+  const getActionTypeLabel = (actionType: RuleDeliveryDto["actionType"]) =>
+    actionType === "webhook" ? t`Webhook` : t`Email`;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-[1000px]">
         <DialogHeader>
-          <DialogTitle>Rule deliveries</DialogTitle>
+          <DialogTitle>{t`Rule deliveries`}</DialogTitle>
           <DialogDescription>
-            One matched rule with two actions produces two delivery rows.
+            {t`One matched rule with two actions produces two delivery rows.`}
           </DialogDescription>
         </DialogHeader>
 
         {deliveriesRule && (
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <span>
-              Showing {deliveries.length === 0 ? 0 : (deliveriesPage - 1) * 25 + 1}
-              {" - "}
-              {Math.min(deliveriesPage * 25, deliveriesTotal)} of {deliveriesTotal}
+              {t`Showing ${deliveries.length === 0 ? 0 : (deliveriesPage - 1) * 25 + 1} - ${Math.min(deliveriesPage * 25, deliveriesTotal)} of ${deliveriesTotal}`}
             </span>
-            <span>Page {deliveriesPage} of {deliveriesPageCount}</span>
+            <span>{t`Page ${deliveriesPage} of ${deliveriesPageCount}`}</span>
           </div>
         )}
 
@@ -78,36 +96,36 @@ export function RuleDeliveriesDialog({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Status</TableHead>
-                <TableHead>Triggered by</TableHead>
-                <TableHead>Action</TableHead>
-                <TableHead>Attempts</TableHead>
-                <TableHead>Processed</TableHead>
-                <TableHead>Last error</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>{t`Status`}</TableHead>
+                <TableHead>{t`Triggered by`}</TableHead>
+                <TableHead>{t`Action`}</TableHead>
+                <TableHead>{t`Attempts`}</TableHead>
+                <TableHead>{t`Processed`}</TableHead>
+                <TableHead>{t`Last error`}</TableHead>
+                <TableHead className="text-right">{t`Actions`}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {deliveries.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7}>No deliveries yet.</TableCell>
+                  <TableCell colSpan={7}>{t`No deliveries yet.`}</TableCell>
                 </TableRow>
               ) : (
                 deliveries.map((delivery) => (
                   <TableRow key={delivery.id}>
                     <TableCell>
                       <Badge variant={badgeVariantForDeliveryStatus(delivery.status)}>
-                        {delivery.status}
+                        {getDeliveryStatusLabel(delivery.status)}
                       </Badge>
                     </TableCell>
                     <TableCell className="whitespace-normal">
                       {delivery.eventType}
                     </TableCell>
                     <TableCell>
-                      {delivery.actionType} #{delivery.actionIndex + 1}
+                      {t`${getActionTypeLabel(delivery.actionType)} #${delivery.actionIndex + 1}`}
                     </TableCell>
                     <TableCell>{delivery.attempts}</TableCell>
-                    <TableCell>{formatTimestamp(delivery.processedAt ?? delivery.retryAt)}</TableCell>
+                    <TableCell>{formatTimestamp(delivery.processedAt ?? delivery.retryAt, t, language)}</TableCell>
                     <TableCell className="max-w-md whitespace-normal">
                       {delivery.lastError ?? "-"}
                     </TableCell>
@@ -139,7 +157,7 @@ export function RuleDeliveriesDialog({
               disabled={deliveriesPage <= 1}
               onClick={async () => await onFetchDeliveries(deliveriesRule, deliveriesPage - 1)}
             >
-              Previous
+              {t`Previous`}
             </Button>
             <Button
               variant="outline"
@@ -147,7 +165,7 @@ export function RuleDeliveriesDialog({
               disabled={deliveriesPage >= deliveriesPageCount}
               onClick={async () => await onFetchDeliveries(deliveriesRule, deliveriesPage + 1)}
             >
-              Next
+              {t`Next`}
             </Button>
           </div>
         )}

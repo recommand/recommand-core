@@ -70,7 +70,7 @@ export default function EmailConfirmationForm({
       }
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : t`An unexpected error occurred`
+        err instanceof Error ? t(err.message) : t`An unexpected error occurred`
       );
     } finally {
       setIsConfirming(false);
@@ -83,7 +83,7 @@ export default function EmailConfirmationForm({
         <div className="flex justify-center mb-4">
           <img
             src="/logo.svg"
-            alt="Logo"
+            alt={t`Logo`}
             className="h-12 w-auto"
           />
         </div>
@@ -105,7 +105,7 @@ export default function EmailConfirmationForm({
         <div className="flex justify-center mb-4">
           <img
             src="/logo.svg"
-            alt="Logo"
+            alt={t`Logo`}
             className="h-12 w-auto"
           />
         </div>
@@ -132,7 +132,7 @@ export default function EmailConfirmationForm({
         <div className="flex justify-center mb-4">
           <img
             src="/logo.svg"
-            alt="Logo"
+            alt={t`Logo`}
             className="h-12 w-auto"
           />
         </div>
@@ -170,7 +170,7 @@ export default function EmailConfirmationForm({
       <div className="flex justify-center mb-4">
         <img
           src={logoSrc}
-          alt="Logo"
+          alt={t`Logo`}
           className={logoClassName}
         />
       </div>

@@ -5,7 +5,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@core/components/ui/select";
-import type { EventFieldOperator } from "../../../lib/rules/types";
 import { BooleanValueInput } from "./boolean-value-input";
 import { DateValueInput } from "./date-value-input";
 import { EnumValueInput } from "./enum-value-input";
@@ -14,8 +13,11 @@ import { PickerValueInput } from "./picker-value-input";
 import { StringArrayValueInput } from "./string-array-value-input";
 import { StringValueInput } from "./string-value-input";
 import type { ConditionValueInputProps } from "./types";
+import { useTranslation } from "@core/hooks/use-translation";
 
 export function ConditionValueRenderer(props: ConditionValueInputProps) {
+  const { t } = useTranslation();
+
   if (props.operator === "exists") {
     return (
       <Select
@@ -28,8 +30,8 @@ export function ConditionValueRenderer(props: ConditionValueInputProps) {
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="true">Exists</SelectItem>
-          <SelectItem value="false">Does not exist</SelectItem>
+          <SelectItem value="true">{t`Exists`}</SelectItem>
+          <SelectItem value="false">{t`Does not exist`}</SelectItem>
         </SelectContent>
       </Select>
     );

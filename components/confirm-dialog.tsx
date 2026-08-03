@@ -12,6 +12,7 @@ import {
   AlertDialogTrigger,
 } from "@core/components/ui/alert-dialog";
 import type { ReactNode } from "react";
+import { useTranslation } from "@core/hooks/use-translation";
 
 interface ConfirmDialogProps {
   title: string;
@@ -32,9 +33,10 @@ export function ConfirmDialog({
   isLoading = false,
   trigger,
   variant = "destructive",
-  cancelButtonText = "Cancel",
+  cancelButtonText,
 }: ConfirmDialogProps) {
   const [open, setOpen] = useState(false);
+  const { t } = useTranslation();
 
   const handleConfirm = async () => {
     await onConfirm();
@@ -57,7 +59,7 @@ export function ConfirmDialog({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isLoading}>
-            {cancelButtonText}
+            {cancelButtonText ?? t`Cancel`}
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={handleConfirm}
@@ -82,4 +84,3 @@ export function ConfirmDialog({
     </AlertDialog>
   );
 }
-

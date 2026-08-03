@@ -45,7 +45,7 @@ export default function Page() {
   const navigate = useNavigate();
   const canManageTeam = useHasPermission("core.team.manage");
   const fetchTeams = useUserStore((x) => x.fetchTeams);
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { teamLogoEnabled } = useFeatures();
   const { paginationState, onPaginationChange, sortingState, onSortingChange } = useDataTableState({ tableId: "core-team" });
 
@@ -114,7 +114,7 @@ export default function Page() {
       toast.success(t`Team name updated`);
     } catch (error) {
       console.error("Error updating team name:", error);
-      toast.error(t`Failed to update team name: ${error instanceof Error ? error.message : t`Unknown error`}`);
+      toast.error(t`Failed to update team name: ${error instanceof Error ? t(error.message) : t`Unknown error`}`);
     }
   };
 
@@ -138,7 +138,7 @@ export default function Page() {
       }
 
       setNewMemberEmail("");
-      toast.success(json.message || t`Team member added successfully`);
+      toast.success(json.message ? t(json.message) : t`Team member added successfully`);
       fetchTeamMembers();
     } catch (error) {
       console.error("Error adding team member:", error);
@@ -226,7 +226,9 @@ export default function Page() {
       navigate("/");
     } catch (error) {
       console.error("Error deleting team:", error);
-      toast.error(t`Failed to delete team` + (error instanceof Error ? `. ${error.message}` : ""));
+      toast.error(error instanceof Error
+        ? t`Failed to delete team. ${t(error.message)}`
+        : t`Failed to delete team`);
     } finally {
       setIsDeletingTeam(false);
     }
@@ -239,7 +241,7 @@ export default function Page() {
       size: 200,
       cell: ({ row }) => {
         const userId = row.original.user.id;
-        if (!userId) return <div className="text-muted-foreground">N/A</div>;
+        if (!userId) return <div className="text-muted-foreground">{t`N/A`}</div>;
 
         return (
           <div className="flex items-center gap-2">
@@ -265,7 +267,7 @@ export default function Page() {
     {
       accessorKey: "user.email",
       header: ({ column }) => <ColumnHeader column={column} title={t`Email`} />,
-      cell: ({ row }) => row.original.user.email ?? "N/A",
+      cell: ({ row }) => row.original.user.email ?? t`N/A`,
     },
     {
       accessorKey: "user.emailVerified",
@@ -287,7 +289,7 @@ export default function Page() {
       ),
       cell: ({ row }) => {
         const date = row.getValue("createdAt") as Date;
-        return date ? date.toLocaleDateString() : "N/A";
+        return date ? date.toLocaleDateString(language) : t`N/A`;
       },
       sortingFn: "datetime",
     },
@@ -481,7 +483,7 @@ export default function Page() {
             </div>
             )}
             <div>
-              <label className="text-sm font-medium">{t`Team Name`}</label>
+              <label className="font-medium">{t`Team Name`}</label>
               <div className="flex items-center gap-2">
                 <Input
                   value={teamName}
