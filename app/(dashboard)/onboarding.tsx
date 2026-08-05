@@ -4,7 +4,7 @@ import type { OnboardingStep } from "@core/lib/onboarding-store";
 import { useUserStore } from "@core/lib/user-store";
 import { rc } from "@recommand/lib/client";
 import { stringifyActionFailure } from "@recommand/lib/utils";
-import type { Onboarding } from "api/onboarding";
+import type { Onboarding } from "@core/api/onboarding";
 import { Button } from "@core/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { useCallback } from "react";
