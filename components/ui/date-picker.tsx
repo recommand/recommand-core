@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Calendar as CalendarIcon } from "lucide-react";
 
 import { cn } from "@core/lib/utils";
@@ -26,13 +27,21 @@ export function DatePicker({
   placeholder,
 }: DatePickerProps) {
   const { t, language } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const [month, setMonth] = useState<Date | undefined>(date);
   const resolvedPlaceholder = placeholder ?? t`Pick a date`;
   const dateFormatter = new Intl.DateTimeFormat(language, {
     dateStyle: "long",
   });
 
   return (
-    <Popover>
+    <Popover
+      open={open}
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen);
+        if (nextOpen) setMonth(date);
+      }}
+    >
       <PopoverTrigger asChild>
         <Button
           variant={"outline"}
@@ -51,6 +60,9 @@ export function DatePicker({
           mode="single"
           selected={date}
           onSelect={onDateChange}
+          month={month}
+          onMonthChange={setMonth}
+          defaultMonth={date}
           autoFocus
           disabled={disabled}
         />
