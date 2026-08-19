@@ -7,6 +7,9 @@ import { ruleActionDeliveries } from "../../db/schema";
 import { getEventTypeDefinition } from "./events";
 import { getReadyDeliveries, getRulesByIds, parseRuleAction } from "./rules";
 import { eventEnvelopeSchema, type EventEnvelope } from "../../lib/rules/types";
+import { getTeamLanguage } from "../teams";
+import { createServerT } from "../../lib/translations-server";
+import { fallbackT } from "../../lib/translations";
 
 const retryScheduleMs = [30_000, 60_000, 5 * 60_000, 30 * 60_000, 2 * 60 * 60_000, 8 * 60 * 60_000];
 
@@ -134,10 +137,19 @@ async function handleEmailV1(
   }
 
   const template = await getEmailTemplate(definition.email.template);
+  // Rule emails go to addresses configured on the rule, not to a user, so the
+  // team's language stands in for the recipient's.
+  let t = fallbackT;
+  try {
+    t = await createServerT(await getTeamLanguage(event.teamId));
+  } catch (error) {
+    console.error(`Failed to resolve language for team ${event.teamId}:`, error);
+  }
   const props = {
     event,
     teamId: event.teamId,
     type: event.type,
+    t,
   };
   const enrichedProps = definition.email.buildProps
     ? {

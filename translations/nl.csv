@@ -407,3 +407,7 @@ Webhooks and rules,Webhooks en regels
 日本語,Japans
 Hello\,,Hallo\,
 Unsupported language,Niet-ondersteunde taal
+Notification language,Taal voor meldingen
+Team language updated,Teamtaal bijgewerkt
+Failed to update team language,Kan teamtaal niet bijwerken
+Used for emails to addresses configured on this team\, such as billing and document notifications. Emails addressed to a team member use their own language instead.,Wordt gebruikt voor e-mails naar adressen die op dit team zijn ingesteld\, zoals meldingen over facturatie en documenten. E-mails die aan een teamlid gericht zijn\, gebruiken diens eigen taal.

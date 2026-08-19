@@ -16,6 +16,7 @@ export type ConditionFieldDefinition = {
   valueType: EventFieldValueType;
   operators: EventFieldOperator[];
   enumValues?: string[];
+  enumLabels?: Record<string, string>;
   enumOptions?: ConditionPickerOption[];
   picker?: string;
 };

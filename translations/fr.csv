@@ -389,3 +389,7 @@ Français,Français
 Deutsch,Allemand
 Hello\,,Bonjour\,
 Unsupported language,Langue non prise en charge
+Notification language,Langue des notifications
+Team language updated,Langue de l'équipe mise à jour
+Failed to update team language,Échec de la mise à jour de la langue de l'équipe
+Used for emails to addresses configured on this team\, such as billing and document notifications. Emails addressed to a team member use their own language instead.,Utilisée pour les e-mails envoyés aux adresses configurées sur cette équipe\, comme les notifications de facturation et de documents. Les e-mails adressés à un membre de l'équipe utilisent sa propre langue.

@@ -14,6 +14,7 @@ import {
 } from "@tanstack/react-table";
 import { Button } from "@core/components/ui/button";
 import { Input } from "@core/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@core/components/ui/select";
 import { toast } from "@core/components/ui/sonner";
 import { stringifyActionFailure } from "@recommand/lib/utils";
 import type { MinimalTeamMember } from "@core/data/team-members";
@@ -26,11 +27,16 @@ import { useNavigate, Link } from "react-router";
 import { useUserStore } from "@core/lib/user-store";
 import { useTranslation } from "@core/hooks/use-translation";
 import { useDataTableState } from "@core/hooks/use-data-table-state";
+import { languageOptionLabel, sortByLanguageOptionLabel } from "@core/lib/languages";
+import type { Languages } from "@core/api/languages";
 import { DataTablePagination } from "@core/components/data-table/pagination";
 
 const client = rc<TeamMembers>("core");
 const authClient = rc<Auth>("core");
 const teamLogoClient = rc<TeamLogo>("core");
+const languagesClient = rc<Languages>("core");
+
+type Language = { code: string; name: string };
 
 export default function Page() {
   const [teamMembers, setTeamMembers] = useState<MinimalTeamMember[]>([]);
@@ -41,7 +47,9 @@ export default function Page() {
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isRemovingLogo, setIsRemovingLogo] = useState(false);
   const [teamName, setTeamName] = useState("");
+  const [languages, setLanguages] = useState<Language[]>([]);
   const activeTeam = useActiveTeam();
+  const [teamLanguage, setTeamLanguage] = useState(activeTeam?.language ?? "en");
   const navigate = useNavigate();
   const canManageTeam = useHasPermission("core.team.manage");
   const fetchTeams = useUserStore((x) => x.fetchTeams);
@@ -98,6 +106,55 @@ export default function Page() {
       setTeamName(activeTeam.name);
     }
   }, [activeTeam?.name]);
+
+  useEffect(() => {
+    if (activeTeam?.language) {
+      setTeamLanguage(activeTeam.language);
+    }
+  }, [activeTeam?.language]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await languagesClient.languages.$get();
+        const data = await res.json();
+        if (!cancelled && data.success) {
+          setLanguages(data.languages);
+        }
+      } catch {
+        console.error("Failed to load languages");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const teamLanguageLabel = languageOptionLabel(
+    teamLanguage,
+    language,
+    languages.find((lang) => lang.code === teamLanguage)?.name
+  );
+
+  const handleSaveTeamLanguage = async () => {
+    if (!activeTeam?.id) return;
+    try {
+      const response = await authClient["auth"]["teams"][":teamId"].$put({
+        param: { teamId: activeTeam.id },
+        json: { language: teamLanguage },
+      });
+      const json = await response.json();
+      if (!json.success) {
+        throw new Error(stringifyActionFailure(json.errors));
+      }
+      await fetchTeams();
+      toast.success(t`Team language updated`);
+    } catch (error) {
+      console.error("Error updating team language:", error);
+      toast.error(t`Failed to update team language`);
+    }
+  };
 
   const handleSaveTeamName = async () => {
     if (!activeTeam?.id || !teamName.trim()) return;
@@ -526,6 +583,46 @@ export default function Page() {
                 >
                   <Copy className="h-4 w-4" />
                 </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-lg border p-4 space-y-4 max-w-xl bg-muted">
+          <div className="space-y-3">
+            <div>
+              <div className="space-y-2">
+                <h3 className="font-medium">{t`Notification language`}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {t`Used for emails to addresses configured on this team, such as billing and document notifications. Emails addressed to a team member use their own language instead.`}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                {canManageTeam ? (
+                  <>
+                    <Select value={teamLanguage} onValueChange={setTeamLanguage}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder={t`Select a language`} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {sortByLanguageOptionLabel(languages, language).map((lang) => (
+                          <SelectItem key={lang.code} value={lang.code}>
+                            {languageOptionLabel(lang.code, language, lang.name)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <AsyncButton
+                      variant="outline"
+                      onClick={handleSaveTeamLanguage}
+                      disabled={teamLanguage === activeTeam?.language}
+                    >
+                      {t`Save`}
+                    </AsyncButton>
+                  </>
+                ) : (
+                  <Input value={teamLanguageLabel} readOnly />
+                )}
               </div>
             </div>
           </div>

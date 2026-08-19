@@ -1,0 +1,1 @@
+ALTER TABLE "teams" ADD COLUMN "language" text DEFAULT 'en' NOT NULL;

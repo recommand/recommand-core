@@ -124,6 +124,13 @@ export type EventTypeDefinition = {
     valueType: EventFieldValueType;
     operators: EventFieldOperator[];
     enumValues?: string[];
+    /**
+     * English display labels for `enumValues`, keyed by value. The values
+     * themselves are code identifiers ("creditNote"), so they are not usable as
+     * translation keys — the editor translates these labels instead and falls
+     * back to the raw value when a label is missing.
+     */
+    enumLabels?: Record<string, string>;
     picker?: string;
   }>;
   webhook?: {

@@ -8,7 +8,7 @@ import { eq } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import { requireAuth } from "@core/lib/auth-middleware";
 import { withTranslation } from "@core/lib/translation-middleware";
-import { getSupportedLanguages } from "@core/lib/translations-server";
+import { toSupportedLanguage } from "@core/lib/translations-server";
 import { createSession } from "@core/lib/session";
 import { audit } from "@core/lib/audit";
 
@@ -32,10 +32,9 @@ const _updateProfile = server.put(
         return c.json(actionFailure(t`Unauthorized`), 401);
       }
 
-      const { language } = c.req.valid("json");
-
-      const supported = await getSupportedLanguages();
-      if (!supported.includes(language)) {
+      // Normalizes as well as validates, so "nl-BE" is stored as "nl".
+      const language = await toSupportedLanguage(c.req.valid("json").language);
+      if (!language) {
         return c.json(actionFailure(t`Unsupported language`), 400);
       }
 
