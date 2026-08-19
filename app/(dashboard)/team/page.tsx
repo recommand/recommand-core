@@ -560,38 +560,6 @@ export default function Page() {
             </div>
             <div>
               <div className="space-y-2">
-                <h3 className="font-medium">{t`Team ID`}</h3>
-                <p className="text-sm text-muted-foreground">
-                  {t`This is your unique team identifier`} (
-                  <code className="font-mono">teamId</code>).
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Input
-                  value={activeTeam?.id ?? ""}
-                  readOnly
-                  className="font-mono"
-                />
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    if (activeTeam?.id) {
-                      navigator.clipboard.writeText(activeTeam.id);
-                      toast.success(t`Team ID copied to clipboard`);
-                    }
-                  }}
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-lg border p-4 space-y-4 max-w-xl bg-muted">
-          <div className="space-y-3">
-            <div>
-              <div className="space-y-2">
                 <h3 className="font-medium">{t`Notification language`}</h3>
                 <p className="text-sm text-muted-foreground">
                   {t`Used for emails to addresses configured on this team, such as billing and document notifications. Emails addressed to a team member use their own language instead.`}
@@ -623,6 +591,33 @@ export default function Page() {
                 ) : (
                   <Input value={teamLanguageLabel} readOnly />
                 )}
+              </div>
+            </div>
+            <div>
+              <div className="space-y-2">
+                <h3 className="font-medium">{t`Team ID`}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {t`This is your unique team identifier`} (
+                  <code className="font-mono">teamId</code>).
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Input
+                  value={activeTeam?.id ?? ""}
+                  readOnly
+                  className="font-mono"
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (activeTeam?.id) {
+                      navigator.clipboard.writeText(activeTeam.id);
+                      toast.success(t`Team ID copied to clipboard`);
+                    }
+                  }}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
               </div>
             </div>
           </div>
