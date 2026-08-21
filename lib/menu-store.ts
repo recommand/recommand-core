@@ -1,109 +1,122 @@
-import { create } from 'zustand';
-import { useMemo } from 'react';
-import type { LucideIcon } from 'lucide-react';
 import { usePermissionChecker } from '@core/hooks/user';
+import type { LucideIcon } from 'lucide-react';
+import { useMemo } from 'react';
+import { create } from 'zustand';
 
 export interface MenuGroup {
-    id: string; // E.g. "main.general" or "main.admin", where "main" indicates the main menu
-    title: string;
+  id: string; // E.g. "main.general" or "main.admin", where "main" indicates the main menu
+  title: string;
 }
 
 export interface MenuItem {
-    id: string; // E.g. "main.parent" or "main.invoice", where "main" indicates the main menu
-    title: string;
-    icon?: LucideIcon;
-    onClick?: () => void;
-    href?: string;
-    isActive?: boolean;
-    groupId?: string;
-    requiredPermission?: string; // If set, the menu item is only visible to users with this permission
-    // Sort weight within its menu (lower = higher up, default 0). Items with
-    // equal order keep registration order — which across packages is effect
-    // timing (reverse-alphabetical by package), so anything that cares about
-    // its position should pin itself explicitly.
-    order?: number;
+  id: string; // E.g. "main.parent" or "main.invoice", where "main" indicates the main menu
+  title: string;
+  icon?: LucideIcon;
+  onClick?: () => void;
+  href?: string;
+  // Small trailing count/label ("6", "new"). Re-register the item with a new
+  // value to update it live; omit (or pass undefined) to clear it.
+  badge?: string | number;
+  isActive?: boolean;
+  groupId?: string;
+  requiredPermission?: string; // If set, the menu item is only visible to users with this permission
+  // Sort weight within its menu (lower = higher up, default 0). Items with
+  // equal order keep registration order — which across packages is effect
+  // timing (reverse-alphabetical by package), so anything that cares about
+  // its position should pin itself explicitly.
+  order?: number;
 }
 
 interface MenuStore {
-    items: MenuItem[];
-    groups: MenuGroup[];
-    registerMenuItem: (item: MenuItem) => void;
-    registerMenuGroup: (group: MenuGroup) => void;
+  items: MenuItem[];
+  groups: MenuGroup[];
+  registerMenuItem: (item: MenuItem) => void;
+  registerMenuGroup: (group: MenuGroup) => void;
 }
 
-const useMenuStore = create<MenuStore>((set, get) => ({
-    items: [],
-    groups: [],
-    registerMenuItem: (item: MenuItem) => {
-        set((state) => {
-            const existingIndex = state.items.findIndex(existingItem => existingItem.id === item.id);
-            if (existingIndex >= 0) {
-                const newItems = [...state.items];
-                newItems[existingIndex] = item;
-                return { items: newItems };
-            }
-            return { items: [...state.items, item] };
-        });
-    },
-    registerMenuGroup: (group: MenuGroup) => {
-        set((state) => {
-            const existingIndex = state.groups.findIndex(existingGroup => existingGroup.id === group.id);
-            if (existingIndex >= 0) {
-                const newGroups = [...state.groups];
-                newGroups[existingIndex] = group;
-                return { groups: newGroups };
-            }
-            return { groups: [...state.groups, group] };
-        });
-    },
+const useMenuStore = create<MenuStore>((set) => ({
+  items: [],
+  groups: [],
+  registerMenuItem: (item: MenuItem) => {
+    set((state) => {
+      const existingIndex = state.items.findIndex((existingItem) => existingItem.id === item.id);
+      if (existingIndex >= 0) {
+        const newItems = [...state.items];
+        newItems[existingIndex] = item;
+        return { items: newItems };
+      }
+      return { items: [...state.items, item] };
+    });
+  },
+  registerMenuGroup: (group: MenuGroup) => {
+    set((state) => {
+      const existingIndex = state.groups.findIndex(
+        (existingGroup) => existingGroup.id === group.id,
+      );
+      if (existingIndex >= 0) {
+        const newGroups = [...state.groups];
+        newGroups[existingIndex] = group;
+        return { groups: newGroups };
+      }
+      return { groups: [...state.groups, group] };
+    });
+  },
 }));
 
 function useFilteredMenuItems(): MenuItem[] {
-    const items = useMenuStore((state) => state.items);
-    const hasPermission = usePermissionChecker();
+  const items = useMenuStore((state) => state.items);
+  const hasPermission = usePermissionChecker();
 
-    return useMemo(() => {
-        return items
-            .filter(item => {
-                if (!item.requiredPermission) {
-                    return true;
-                }
-                return hasPermission(item.requiredPermission);
-            })
-            // Stable sort: equal (or absent) order preserves registration order.
-            .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-    }, [items, hasPermission]);
+  return useMemo(() => {
+    return (
+      items
+        .filter((item) => {
+          if (!item.requiredPermission) {
+            return true;
+          }
+          return hasPermission(item.requiredPermission);
+        })
+        // Stable sort: equal (or absent) order preserves registration order.
+        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    );
+  }, [items, hasPermission]);
 }
 
 export const useMenuItems = (): MenuItem[] => {
-    return useFilteredMenuItems();
-}
+  return useFilteredMenuItems();
+};
 
 export const useGroupedMenuItems = (): Record<string, MenuItem[]> => {
-    const items = useFilteredMenuItems();
-    
-    return useMemo(() => {
-        const groupedItems: Record<string, MenuItem[]> = {};
-        items.forEach(item => {
-            const groupId = item.groupId ?? "_default";
-            if (!groupedItems[groupId]) {
-                groupedItems[groupId] = [];
-            }
-            groupedItems[groupId].push(item);
-        });
-        return groupedItems;
-    }, [items]);
-}
+  const items = useFilteredMenuItems();
 
-export const useMenuItemActions = (): { registerMenuItem: (item: MenuItem) => void, registerMenuGroup: (group: MenuGroup) => void } => {
-    const registerMenuItem = useMenuStore((state) => state.registerMenuItem);
-    const registerMenuGroup = useMenuStore((state) => state.registerMenuGroup);
-    return useMemo(() => ({
-        registerMenuItem,
-        registerMenuGroup,
-    }), [registerMenuItem, registerMenuGroup]);
-}
+  return useMemo(() => {
+    const groupedItems: Record<string, MenuItem[]> = {};
+    items.forEach((item) => {
+      const groupId = item.groupId ?? '_default';
+      if (!groupedItems[groupId]) {
+        groupedItems[groupId] = [];
+      }
+      groupedItems[groupId].push(item);
+    });
+    return groupedItems;
+  }, [items]);
+};
+
+export const useMenuItemActions = (): {
+  registerMenuItem: (item: MenuItem) => void;
+  registerMenuGroup: (group: MenuGroup) => void;
+} => {
+  const registerMenuItem = useMenuStore((state) => state.registerMenuItem);
+  const registerMenuGroup = useMenuStore((state) => state.registerMenuGroup);
+  return useMemo(
+    () => ({
+      registerMenuItem,
+      registerMenuGroup,
+    }),
+    [registerMenuItem, registerMenuGroup],
+  );
+};
 
 export const useMenuGroups = (): MenuGroup[] => {
-    return useMenuStore((state) => state.groups);
-}
+  return useMenuStore((state) => state.groups);
+};
