@@ -189,10 +189,10 @@ export function TeamSwitcher({
                 size="lg"
                 className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
               >
-                <div className="flex aspect-square size-10 items-center justify-center rounded-lg border bg-sheet-light p-1 overflow-hidden">
-                  <img src={activeTeam.logoUrl || "/icon.svg"} alt={activeTeam.name} className="size-full object-contain" />
+                <div className="flex aspect-square size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-sheet-light p-1 group-data-[collapsible=icon]:size-8">
+                <img src={activeTeam.logoUrl || "/icon.svg"} alt={activeTeam.name} className="size-full object-contain" />
                 </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
+                <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
                   <span className="truncate font-medium">
                     {activeTeam.name}
                   </span>
@@ -200,7 +200,7 @@ export function TeamSwitcher({
                     {activeTeam.teamDescription}
                   </span>
                 </div>
-                <ChevronsUpDown className="ml-auto" />
+                <ChevronsUpDown className="ml-auto group-data-[collapsible=icon]:hidden" />
               </SidebarMenuButton>
             </DropdownMenuTrigger>
             <DropdownMenuContent
@@ -248,8 +248,8 @@ export function TeamSwitcher({
                             setSearchQuery("");
                           }}
                         >
-                          <div className="flex size-8 items-center justify-center rounded-lg border bg-sheet-light p-0.5 overflow-hidden">
-                            <img src={team.logoUrl || "/icon.svg"} alt={team.name} className="size-full object-contain" />
+                          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border bg-sheet-light">
+                          <img src={team.logoUrl || "/icon.svg"} alt={team.name} className="size-full object-contain" />
                           </div>
                           {team.name}
                         </div>
@@ -293,7 +293,7 @@ export function TeamSwitcher({
                               setSearchQuery("");
                             }}
                           >
-                            <div className="flex size-8 items-center justify-center rounded-lg border bg-sheet-light p-0.5 overflow-hidden">
+                            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border bg-sheet-light">
                               <img src={team.logoUrl || "/icon.svg"} alt={team.name} className="size-full object-contain" />
                             </div>
                             {team.name}
