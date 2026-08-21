@@ -23,6 +23,11 @@ interface DataTableProps<TData, TValue> {
   renderSubComponent?: (props: { row: any }) => React.ReactNode;
   enableGlobalFilter?: boolean;
   globalFilterPlaceholder?: string;
+  /**
+   * Focus the search field on mount. Turn this off on screens that bind the
+   * arrow keys themselves (a focused text input swallows them).
+   */
+  autoFocusGlobalFilter?: boolean;
   rowClassName?: (row: any) => string | undefined;
   rowProps?: (row: any) => React.HTMLAttributes<HTMLTableRowElement>;
 }
@@ -35,6 +40,7 @@ export function DataTable<TData, TValue>({
   renderSubComponent,
   enableGlobalFilter = false,
   globalFilterPlaceholder = "Zoeken...",
+  autoFocusGlobalFilter = true,
   rowClassName,
   rowProps,
 }: DataTableProps<TData, TValue>) {
@@ -75,7 +81,7 @@ export function DataTable<TData, TValue>({
     <div className="space-y-4">
       {isGlobalFilterEnabled && (
         <Input
-          autoFocus={true}
+          autoFocus={autoFocusGlobalFilter}
           placeholder={globalFilterPlaceholder}
           value={globalFilter}
           onChange={(e) => {
