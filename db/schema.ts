@@ -55,6 +55,7 @@ export const teams = pgTable("teams", {
   teamDescription: text("team_description").notNull().default("-"),
   logoUrl: text("logo_url"),
   clientAssertionJwks: text("client_assertion_jwks"),
+  language: text("language").default("en").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: autoUpdateTimestamp(),
 });

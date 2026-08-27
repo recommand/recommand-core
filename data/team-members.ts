@@ -9,6 +9,7 @@ export type MinimalTeamMember = typeof teamMembers.$inferSelect & {
     email: string;
     emailVerified: boolean;
     isAdmin: boolean;
+    language: string;
     createdAt: Date;
     updatedAt: Date;
   }
@@ -26,6 +27,7 @@ export async function getMinimalTeamMembers(teamId: string): Promise<MinimalTeam
         email: users.email,
         emailVerified: users.emailVerified,
         isAdmin: users.isAdmin,
+        language: users.language,
         createdAt: users.createdAt,
         updatedAt: users.updatedAt,
       },

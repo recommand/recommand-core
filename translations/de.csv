@@ -389,3 +389,7 @@ Your email has been successfully confirmed. You are now logged in and will be re
 Your personal information,Ihre persönlichen Daten
 Hello\,,Hallo\,
 Unsupported language,Nicht unterstützte Sprache
+Notification language,Benachrichtigungssprache
+Team language updated,Teamsprache aktualisiert
+Failed to update team language,Teamsprache konnte nicht aktualisiert werden
+Used for emails to addresses configured on this team\, such as billing and document notifications. Emails addressed to a team member use their own language instead.,Wird für E-Mails an Adressen verwendet\, die für dieses Team konfiguriert sind\, etwa Benachrichtigungen zu Abrechnung und Dokumenten. E-Mails an ein Teammitglied verwenden dessen eigene Sprache.

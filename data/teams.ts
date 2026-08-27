@@ -1,11 +1,30 @@
-import { teamMembers, teams, userPermissions } from "@core/db/schema";
+import { teamMembers, teams, userPermissions, users } from "@core/db/schema";
 import { emitBackendEvent, CORE_BACKEND_EVENTS } from "@core/lib/backend-events";
 import { getTeamCreationPermissions } from "@core/lib/permissions";
 import { presignUrl, isTeamLogoEnabled } from "@core/lib/s3";
+import { resolveSupportedLanguage, toSupportedLanguage } from "@core/lib/translations-server";
 import { db } from "@recommand/db";
 import { and, count, eq } from "drizzle-orm";
 
 export type Team = typeof teams.$inferSelect;
+
+/**
+ * The language to write a team's notifications in.
+ *
+ * Notifications go to addresses configured on the team (support mailboxes,
+ * company notification addresses, rule actions) rather than to a specific user,
+ * so there is no recipient language to read. Teams set this on their settings
+ * page; it starts out as the language of whoever created the team.
+ */
+export async function getTeamLanguage(teamId: string): Promise<string> {
+  const [team] = await db
+    .select({ language: teams.language })
+    .from(teams)
+    .where(eq(teams.id, teamId))
+    .limit(1);
+
+  return team?.language ?? "en";
+}
 
 export async function getUserTeams(userId: string) {
   const matchingTeams = await db
@@ -25,8 +44,21 @@ export async function createTeam(
   userId: string,
   team: typeof teams.$inferInsert
 ) {
+  // A new team has no members yet and so no language of its own; the creator's
+  // is the only signal available. They can change it in the team settings.
+  let language = team.language;
+  if (!language) {
+    const [creator] = await db
+      .select({ language: users.language })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    language = creator?.language;
+  }
+  language = await resolveSupportedLanguage(language);
+
   return await db.transaction(async (tx) => {
-    const [newTeam] = await tx.insert(teams).values(team).returning();
+    const [newTeam] = await tx.insert(teams).values({ ...team, language }).returning();
     await tx.insert(teamMembers).values({
       userId,
       teamId: newTeam.id,
@@ -61,8 +93,16 @@ export async function isMember(userId: string, teamId: string) {
 
 export async function updateTeam(
   teamId: string,
-  updates: Partial<Pick<typeof teams.$inferInsert, 'name' | 'teamDescription' | 'logoUrl'>>
+  updates: Partial<Pick<typeof teams.$inferInsert, 'name' | 'teamDescription' | 'logoUrl' | 'language'>>
 ) {
+  if (updates.language !== undefined) {
+    const language = await toSupportedLanguage(updates.language);
+    if (!language) {
+      throw new Error(`Unsupported language: ${updates.language}`);
+    }
+    updates = { ...updates, language };
+  }
+
   const [updatedTeam] = await db
     .update(teams)
     .set(updates)

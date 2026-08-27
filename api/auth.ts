@@ -18,7 +18,7 @@ import { sendEmail } from "@core/lib/email";
 import { getEmailTemplate } from "@core/emails";
 import { randomBytes } from "crypto";
 import { describeRoute } from "hono-openapi";
-import { createServerT, getSupportedLanguages } from "@core/lib/translations-server";
+import { createServerT, resolveSupportedLanguage, toSupportedLanguage } from "@core/lib/translations-server";
 import { audit, hashAuditIdentifier } from "@core/lib/audit";
 
 const server = new Server();
@@ -119,11 +119,7 @@ const signup = server.post(
       // Create user with email verification token, using the detected language.
       // Accept-Language can name a language we ship no translations for; storing
       // it would leave the account stuck on an option the picker cannot show.
-      const detectedLanguage = c.get("language");
-      const supported = await getSupportedLanguages();
-      const language = supported.includes(detectedLanguage)
-        ? detectedLanguage
-        : "en";
+      const language = await resolveSupportedLanguage(c.get("language"));
       const user = await createUser({ ...data, language });
       await audit(c, {
         action: "create",
@@ -633,6 +629,7 @@ const updateTeamEndpoint = server.put(
     z.object({
       name: z.string().min(1, { message: "Team name is required" }).optional(),
       teamDescription: z.string().optional(),
+      language: z.string().min(1).max(10).optional(),
     })
   ),
   async (c) => {
@@ -640,6 +637,16 @@ const updateTeamEndpoint = server.put(
     try {
       const data = c.req.valid("json");
       const team = c.get("team");
+
+      // updateTeam() re-checks this, but throws; catching it here keeps the
+      // response a clean 400 with a translated message.
+      if (data.language !== undefined) {
+        const language = await toSupportedLanguage(data.language);
+        if (!language) {
+          return c.json(actionFailure(t`Unsupported language`), 400);
+        }
+        data.language = language;
+      }
 
       const updatedTeam = await updateTeam(team.id, data);
       await audit(c, {
@@ -650,10 +657,12 @@ const updateTeamEndpoint = server.put(
         before: {
           name: team.name,
           teamDescription: team.teamDescription,
+          language: team.language,
         },
         after: {
           name: updatedTeam.name,
           teamDescription: updatedTeam.teamDescription,
+          language: updatedTeam.language,
         },
       });
 

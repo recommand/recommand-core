@@ -134,6 +134,7 @@ export const conditionFieldResponseSchema = z.object({
   valueType: z.enum(["string", "number", "boolean", "date", "string[]", "enum"]),
   operators: z.array(z.enum(["eq", "neq", "in", "notIn", "contains", "exists"])),
   enumValues: z.array(z.string()).optional(),
+  enumLabels: z.record(z.string()).optional(),
   picker: z.string().optional(),
 });
 

@@ -74,7 +74,7 @@ export function RulesManagementPage({
         label: t(field.label),
         enumOptions: field.enumValues?.map((value) => ({
           value,
-          label: t(value),
+          label: t(field.enumLabels?.[value] ?? value),
         })),
       })),
       email: eventType.email
