@@ -1,9 +1,10 @@
+import { appendEvent, toEventEnvelope } from "@core/data/events";
 import { emitBackendEvent } from "@core/lib/backend-events";
 import { db } from "@recommand/db";
 import { ulid } from "ulid";
 import { dispatchRulesForEvent } from "./rules";
 import type { Tx } from "./db";
-import type { EventEnvelope, EventTypeDefinition } from "../../lib/rules/types";
+import type { EventTypeDefinition } from "../../lib/rules/types";
 
 const eventTypeRegistry = new Map<string, EventTypeDefinition>();
 
@@ -30,6 +31,7 @@ export async function publishEvent(
   type: string,
   args: {
     teamId: string;
+    streamId?: string | null;
     aggregateType: string;
     aggregateId: string;
     correlationId?: string;
@@ -44,19 +46,39 @@ export async function publishEvent(
   }
 
   const parsedPayload = definition.payload.parse(args.payload);
-  const event: EventEnvelope = {
-    id: "ev_" + ulid(),
-    type,
-    teamId: args.teamId,
-    aggregateType: args.aggregateType,
-    aggregateId: args.aggregateId,
-    correlationId: args.correlationId ?? null,
-    idempotencyKey: args.idempotencyKey,
-    payload: parsedPayload,
-    createdAt: new Date().toISOString(),
+  const eventId = "ev_" + ulid();
+  const createdAt = new Date();
+
+  const publish = async (tx: Tx) => {
+    const { event: stored, inserted } = await appendEvent(
+      {
+        id: eventId,
+        teamId: args.teamId,
+        streamId: args.streamId,
+        type,
+        aggregateType: args.aggregateType,
+        aggregateId: args.aggregateId,
+        correlationId: args.correlationId ?? null,
+        idempotencyKey: args.idempotencyKey,
+        payload: parsedPayload,
+        createdAt,
+      },
+      tx
+    );
+
+    const event = toEventEnvelope(stored);
+    if (!inserted) {
+      return event;
+    }
+
+    await emitBackendEvent(type, event);
+    await dispatchRulesForEvent(event, tx);
+    return event;
   };
 
-  const executor = args.tx ?? db;
-  await emitBackendEvent(type, event);
-  await dispatchRulesForEvent(event, executor);
+  if (args.tx) {
+    return await publish(args.tx);
+  }
+
+  return await db.transaction(async (tx) => publish(tx as Tx));
 }

@@ -1,6 +1,7 @@
 import { PageTemplate } from "@core/components/page-template";
 import { rc } from "@recommand/lib/client";
 import type { ApiKeys } from "api/api-keys";
+import type { Permissions } from "@core/api/permissions";
 import { useEffect, useState, useCallback } from "react";
 import { DataTable } from "@core/components/data-table";
 import {
@@ -15,9 +16,17 @@ import { Input } from "@core/components/ui/input";
 import { Label } from "@core/components/ui/label";
 import { toast } from "@core/components/ui/sonner";
 import { stringifyActionFailure } from "@recommand/lib/utils";
-import type { ApiKey } from "@core/data/api-keys";
+import type { ApiKeyWithPermissions } from "@core/data/api-keys";
 import { useActiveTeam } from "@core/hooks/user";
-import { Trash2, Loader2, Copy, ChevronDown, AlertCircle } from "lucide-react";
+import { Trash2, Loader2, Copy, ChevronDown, AlertCircle, Shield } from "lucide-react";
+import { Checkbox } from "@core/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@core/components/ui/dialog";
 import { ColumnHeader } from "@core/components/data-table/column-header";
 import {
   Collapsible,
@@ -41,6 +50,7 @@ import { useDataTableState } from "@core/hooks/use-data-table-state";
 import { DataTablePagination } from "@core/components/data-table/pagination";
 
 const client = rc<ApiKeys>("core");
+const permissionsClient = rc<Permissions>("core");
 
 type CreationPermissionState =
   | { status: "loading" }
@@ -49,7 +59,12 @@ type CreationPermissionState =
   | { status: "check_failed" };
 
 export default function Page() {
-  const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
+  const [apiKeys, setApiKeys] = useState<ApiKeyWithPermissions[]>([]);
+  const [grantablePermissions, setGrantablePermissions] = useState<
+    { id: string; name: string; description?: string }[]
+  >([]);
+  const [editingKey, setEditingKey] = useState<ApiKeyWithPermissions | null>(null);
+  const [pendingPermissionId, setPendingPermissionId] = useState<string | null>(null);
   const [newKeyName, setNewKeyName] = useState("");
   const [keyType, setKeyType] = useState<"basic" | "jwt">("basic");
   const [expirationDuration, setExpirationDuration] = useState<string>("24");
@@ -86,6 +101,7 @@ export default function Page() {
         setApiKeys(
           json.apiKeys.map((key) => ({
             ...key,
+            permissionIds: key.permissionIds ?? [],
             createdAt: new Date(key.createdAt),
             updatedAt: new Date(key.updatedAt),
             expiresAt: key.expiresAt ? new Date(key.expiresAt) : null,
@@ -131,10 +147,65 @@ export default function Page() {
     }
   }, [activeTeam?.id]);
 
+  const fetchGrantablePermissions = useCallback(async () => {
+    if (!activeTeam?.id) {
+      setGrantablePermissions([]);
+      return;
+    }
+    try {
+      const response = await permissionsClient.auth.teams[":teamId"].permissions.$get({
+        param: { teamId: activeTeam.id },
+      });
+      const json = await response.json();
+      if (json.success && json.permissions) {
+        setGrantablePermissions(json.permissions);
+      }
+    } catch (error) {
+      console.error("Error fetching grantable permissions:", error);
+    }
+  }, [activeTeam?.id]);
+
   useEffect(() => {
     fetchApiKeys();
     checkCreationPermission();
-  }, [fetchApiKeys, checkCreationPermission]);
+    fetchGrantablePermissions();
+  }, [fetchApiKeys, checkCreationPermission, fetchGrantablePermissions]);
+
+  const handleKeyPermissionToggle = async (
+    key: ApiKeyWithPermissions,
+    permissionId: string,
+    currentlyHas: boolean
+  ) => {
+    if (!activeTeam?.id) return;
+    setPendingPermissionId(permissionId);
+    const permissionIds = currentlyHas
+      ? key.permissionIds.filter((id) => id !== permissionId)
+      : [...key.permissionIds, permissionId];
+    try {
+      const response = await client[":teamId"]["api-keys"][":apiKeyId"]["permissions"].$put({
+        param: { teamId: activeTeam.id, apiKeyId: key.id },
+        json: { permissionIds },
+      });
+      const json = await response.json();
+      if (!json.success) {
+        throw new Error(stringifyActionFailure(json.errors));
+      }
+      const nextIds = json.apiKey.permissionIds ?? permissionIds;
+      setApiKeys((prev) =>
+        prev.map((item) =>
+          item.id === key.id ? { ...item, permissionIds: nextIds } : item
+        )
+      );
+      setEditingKey((current) =>
+        current?.id === key.id ? { ...current, permissionIds: nextIds } : current
+      );
+      toast.success(currentlyHas ? t`Permission revoked` : t`Permission granted`);
+    } catch (error) {
+      toast.error(error instanceof Error ? t(error.message) : t`Failed to update permission`);
+    } finally {
+      setPendingPermissionId(null);
+    }
+  };
 
   const isValidExpirationDuration = () => {
     if (keyType === "basic") return true;
@@ -188,6 +259,7 @@ export default function Page() {
         userId: json.apiKey.userId,
         secretHash: json.apiKey.secretHash,
         type: json.apiKey.type,
+        permissionIds: json.apiKey.permissionIds ?? [],
         expiresAt: json.apiKey.expiresAt
           ? new Date(json.apiKey.expiresAt)
           : null,
@@ -215,7 +287,7 @@ export default function Page() {
     }
   };
 
-  const columns: ColumnDef<ApiKey>[] = [
+  const columns: ColumnDef<ApiKeyWithPermissions>[] = [
     {
       accessorKey: "name",
       header: ({ column }) => <ColumnHeader column={column} title={t`Name`} />,
@@ -293,6 +365,13 @@ export default function Page() {
             <Button
               variant="ghost"
               size="icon"
+              onClick={() => setEditingKey(row.original)}
+            >
+              <Shield className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => {
                 if (!activeTeam?.id) return;
 
@@ -345,6 +424,61 @@ export default function Page() {
     <PageTemplate
       breadcrumbs={[{ label: t`User Settings` }, { label: t`API Keys` }]}
     >
+      <Dialog open={Boolean(editingKey)} onOpenChange={(open) => !open && setEditingKey(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{t`API key permissions`}</DialogTitle>
+            <DialogDescription>
+              {t`This key can only receive permissions its creator has.`}
+            </DialogDescription>
+          </DialogHeader>
+          {editingKey && (
+            <div className="space-y-4">
+              {grantablePermissions.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  {t`No permissions are available to manage.`}
+                </p>
+              ) : (
+                grantablePermissions.map((permission) => {
+                  const has = editingKey.permissionIds.includes(permission.id);
+                  const isPending = pendingPermissionId === permission.id;
+                  return (
+                    <div key={permission.id} className="flex items-start gap-3">
+                      <div className="pt-0.5">
+                        {isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        ) : (
+                          <Checkbox
+                            id={`key-${editingKey.id}-${permission.id}`}
+                            checked={has}
+                            disabled={isPending}
+                            onCheckedChange={() =>
+                              handleKeyPermissionToggle(editingKey, permission.id, has)
+                            }
+                          />
+                        )}
+                      </div>
+                      <div className="flex-1 space-y-0.5">
+                        <Label
+                          htmlFor={`key-${editingKey.id}-${permission.id}`}
+                          className="text-sm font-medium cursor-pointer"
+                        >
+                          {t(permission.name)}
+                        </Label>
+                        {permission.description && (
+                          <p className="text-sm text-muted-foreground">
+                            {t(permission.description)}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
       <div className="space-y-6">
         {creationPermission.status === "restricted" && creationPermission.reason === "client_assertion_enabled" ? (
           <Alert variant="default" className="max-w-2xl">

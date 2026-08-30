@@ -2,7 +2,12 @@ import { zodValidator } from "@recommand/lib/zod-validator";
 import { z } from "zod";
 import { actionFailure, actionSuccess } from "@recommand/lib/utils";
 import { Server } from "@recommand/lib/api";
-import { createApiKey, deleteApiKey, getApiKeys, getApiKeyCreationStatus } from "@core/data/api-keys";
+import { createApiKey, deleteApiKey, getApiKeys, getApiKeyCreationStatus, setApiKeyPermissions } from "@core/data/api-keys";
+import {
+  InvalidPermissionScopeError,
+  NotAuthorizedError,
+  PermissionNotRegisteredError,
+} from "@core/data/permissions";
 import { requireTeamAccess } from "@core/lib/auth-middleware";
 import { audit } from "@core/lib/audit";
 
@@ -46,6 +51,7 @@ const _createApiKey = server.post(
       name: z.string(),
       type: z.enum(["basic", "jwt"]).default("basic"),
       expiresInSeconds: z.number().min(1).optional().default(24 * 60 * 60), // 24 hours in seconds
+      permissionIds: z.array(z.string()).optional(),
     })
   ),
   async (c) => {
@@ -56,6 +62,7 @@ const _createApiKey = server.post(
         name: c.req.valid("json").name,
         type: c.req.valid("json").type,
         expiresInSeconds: c.req.valid("json").expiresInSeconds,
+        permissionIds: c.req.valid("json").permissionIds,
       });
       await audit(c, {
         action: "create",
@@ -70,6 +77,15 @@ const _createApiKey = server.post(
       });
       return c.json(actionSuccess({ apiKey }));
     } catch (error) {
+      if (
+        error instanceof PermissionNotRegisteredError ||
+        error instanceof InvalidPermissionScopeError
+      ) {
+        return c.json(actionFailure(error.message), 400);
+      }
+      if (error instanceof NotAuthorizedError) {
+        return c.json(actionFailure(error.message), 403);
+      }
       return c.json(actionFailure(error as Error), 500);
     }
   }
@@ -90,6 +106,58 @@ const _isApiKeyCreationEnabled = server.get(
       isPermitted: status.permitted,
       reason: status.permitted ? null : status.reason,
     }))
+  }
+);
+
+const _setApiKeyPermissions = server.put(
+  "/:teamId/api-keys/:apiKeyId/permissions",
+  requireTeamAccess(),
+  zodValidator(
+    "param",
+    z.object({
+      teamId: z.string(),
+      apiKeyId: z.string(),
+    })
+  ),
+  zodValidator(
+    "json",
+    z.object({
+      permissionIds: z.array(z.string()),
+    })
+  ),
+  async (c) => {
+    try {
+      const updated = await setApiKeyPermissions({
+        apiKeyId: c.req.valid("param").apiKeyId,
+        teamId: c.var.team.id,
+        actorUserId: c.var.user.id,
+        permissionIds: c.req.valid("json").permissionIds,
+      });
+      if (!updated) {
+        return c.json(actionFailure("API key not found"), 404);
+      }
+      await audit(c, {
+        action: "update",
+        subsystem: "core.api_keys",
+        objectType: "core.api_key",
+        objectId: updated.id,
+        after: {
+          permissionIds: updated.permissionIds,
+        },
+      });
+      return c.json(actionSuccess({ apiKey: updated }));
+    } catch (error) {
+      if (
+        error instanceof PermissionNotRegisteredError ||
+        error instanceof InvalidPermissionScopeError
+      ) {
+        return c.json(actionFailure(error.message), 400);
+      }
+      if (error instanceof NotAuthorizedError) {
+        return c.json(actionFailure(error.message), 403);
+      }
+      return c.json(actionFailure(error as Error), 500);
+    }
   }
 );
 
@@ -123,6 +191,7 @@ const _deleteApiKey = server.delete(
 export type ApiKeys =
   | typeof _getApiKeys
   | typeof _createApiKey
+  | typeof _setApiKeyPermissions
   | typeof _deleteApiKey
   | typeof _isApiKeyCreationEnabled;
 
