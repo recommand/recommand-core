@@ -1,5 +1,8 @@
 import { eventCursors, events } from "@core/db/schema";
-import type { EventEnvelope } from "@core/lib/rules/types";
+import {
+  EVENT_ENVELOPE_VERSION,
+  type EventEnvelope,
+} from "@core/lib/rules/types";
 import { db } from "@recommand/db";
 import { and, asc, eq, gt, max, sql } from "drizzle-orm";
 import type { Tx } from "./rules/db";
@@ -12,6 +15,7 @@ export function normalizeStreamId(streamId?: string | null) {
 
 export function toEventEnvelope(row: EventRow): EventEnvelope {
   return {
+    envelopeVersion: EVENT_ENVELOPE_VERSION,
     id: row.id,
     type: row.type,
     teamId: row.teamId,

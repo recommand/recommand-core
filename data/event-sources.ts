@@ -8,7 +8,11 @@ import {
 } from "@core/data/event-cursors";
 import { listEvents, listTeamsWithPendingEvents } from "@core/data/events";
 import { registerServicePrincipal } from "@core/data/service-principals";
-import { eventEnvelopeSchema } from "@core/lib/rules/types";
+import {
+  EVENT_ENVELOPE_VERSION,
+  eventEnvelopeSchema,
+  isSupportedEventEnvelopeVersion,
+} from "@core/lib/rules/types";
 import type { Logger } from "@recommand/lib/logger";
 import { Cron } from "croner";
 import { decodeJwt } from "jose";
@@ -233,6 +237,13 @@ async function pullTeam(
       for (const event of page.events) {
         if (event.seq === undefined) {
           throw new Error(`Event ${event.id} is missing seq`);
+        }
+
+        if (!isSupportedEventEnvelopeVersion(event.envelopeVersion)) {
+          options.logger.error(
+            `Event ${event.id} uses envelope version ${event.envelopeVersion}, but this consumer reads up to version ${EVENT_ENVELOPE_VERSION}. Holding the cursor at seq ${after}; upgrade the consumer.`
+          );
+          return;
         }
 
         try {
