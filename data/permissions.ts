@@ -428,6 +428,18 @@ export async function hasPermission(
   return result.length > 0;
 }
 
+export async function listOwnerTeamPermissionIds(
+  userId: string,
+  teamId: string
+): Promise<string[]> {
+  if (await isUserAdmin(userId)) {
+    return getRegisteredPermissionsByScope("team").map((permission) => permission.id);
+  }
+
+  const permissions = await getUserPermissionsForTeam(userId, teamId);
+  return permissions.map((permission) => permission.permissionId);
+}
+
 export async function getUserPermissionsForTeam(
   userId: string,
   teamId: string,

@@ -162,6 +162,34 @@
       "when": 1787155806900,
       "tag": "20260819161006_wild_gorgon",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1788038632225,
+      "tag": "20260829212352_public_warstar",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1788041508137,
+      "tag": "20260829221148_amazing_salo",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1788082417824,
+      "tag": "20260830093337_bright_the_fury",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1788082819071,
+      "tag": "20260830094019_clear_epoch",
+      "breakpoints": true
     }
   ]
 }

@@ -13,6 +13,8 @@ import account from "./api/account";
 import teamLogo from "./api/team-logo";
 import manifest from "./api/manifest";
 import rules from "./api/rules";
+import installations from "./api/installations";
+import events from "./api/events";
 import { initializeRuleCronJobs } from "./data/rules/cron";
 
 let logger: Logger;
@@ -37,5 +39,7 @@ server.route("/", account);
 server.route("/", teamLogo);
 server.route("/", manifest);
 server.route("/", rules);
+server.route("/", installations);
+server.route("/", events);
 
 export default server;

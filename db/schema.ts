@@ -166,6 +166,142 @@ export const rules = pgTable("rules", {
   index("rules_team_event_idx").on(table.teamId, table.eventType, table.enabled),
 ]);
 
+export const installations = pgTable(
+  "installations",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => "ins_" + ulid()),
+    teamId: text("team_id")
+      .references(() => teams.id, { onDelete: "cascade" })
+      .notNull(),
+    name: text("name").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: autoUpdateTimestamp(),
+  },
+  (table) => [index("installations_team_idx").on(table.teamId)]
+);
+
+export const principalTypes = pgEnum("principal_types", ["api_key", "installation"]);
+
+export const principalPermissions = pgTable(
+  "principal_permissions",
+  {
+    principalType: principalTypes("principal_type").notNull(),
+    principalId: text("principal_id").notNull(),
+    teamId: text("team_id")
+      .references(() => teams.id, { onDelete: "cascade" })
+      .notNull(),
+    permissionId: text("permission_id").notNull(),
+    grantedByUserId: text("granted_by_user_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: autoUpdateTimestamp(),
+  },
+  (table) => [
+    primaryKey({
+      columns: [
+        table.principalType,
+        table.principalId,
+        table.teamId,
+        table.permissionId,
+      ],
+    }),
+    index("principal_permissions_principal_idx").on(
+      table.principalType,
+      table.principalId,
+      table.teamId
+    ),
+  ]
+);
+
+export const installationTokens = pgTable(
+  "installation_tokens",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => "it_" + ulid()),
+    installationId: text("installation_id")
+      .references(() => installations.id, { onDelete: "cascade" })
+      .notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index("installation_tokens_installation_idx").on(table.installationId)]
+);
+
+export const events = pgTable(
+  "events",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => "ev_" + ulid()),
+    seq: integer("seq").notNull(),
+    teamId: text("team_id")
+      .references(() => teams.id, { onDelete: "cascade" })
+      .notNull(),
+    streamId: text("stream_id").notNull().default(""),
+    type: text("type").notNull(),
+    aggregateType: text("aggregate_type").notNull(),
+    aggregateId: text("aggregate_id").notNull(),
+    correlationId: text("correlation_id"),
+    idempotencyKey: text("idempotency_key").notNull(),
+    payload: jsonb("payload").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("events_team_seq_idx").on(table.teamId, table.seq),
+    uniqueIndex("events_team_idempotency_idx").on(table.teamId, table.idempotencyKey),
+    index("events_team_stream_seq_idx").on(table.teamId, table.streamId, table.seq),
+  ]
+);
+
+export const eventCursors = pgTable(
+  "event_cursors",
+  {
+    teamId: text("team_id")
+      .references(() => teams.id, { onDelete: "cascade" })
+      .notNull(),
+    consumerId: text("consumer_id").notNull(),
+    lastSeq: integer("last_seq").notNull().default(0),
+    retryCount: integer("retry_count").notNull().default(0),
+    lockedBy: text("locked_by"),
+    lockedUntil: timestamp("locked_until", { withTimezone: true }),
+    updatedAt: autoUpdateTimestamp(),
+  },
+  (table) => [primaryKey({ columns: [table.teamId, table.consumerId] })]
+);
+
+export const eventDeadLetters = pgTable(
+  "event_dead_letters",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => "edl_" + ulid()),
+    teamId: text("team_id")
+      .references(() => teams.id, { onDelete: "cascade" })
+      .notNull(),
+    consumerId: text("consumer_id").notNull(),
+    streamId: text("stream_id").notNull().default(""),
+    eventId: text("event_id").notNull(),
+    seq: integer("seq").notNull(),
+    type: text("type").notNull(),
+    eventOccurredAt: timestamp("event_occurred_at", { withTimezone: true }).notNull(),
+    event: jsonb("event").notNull(),
+    error: text("error").notNull(),
+    attempts: integer("attempts").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("event_dead_letters_consumer_event_idx").on(
+      table.teamId,
+      table.consumerId,
+      table.streamId,
+      table.eventId
+    ),
+    index("event_dead_letters_team_idx").on(table.teamId, table.createdAt),
+  ]
+);
+
 export const ruleActionDeliveries = pgTable("rule_action_deliveries", {
   id: text("id")
     .primaryKey()

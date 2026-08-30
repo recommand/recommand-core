@@ -312,8 +312,14 @@ Light mode,Lichtmodus
 Loading rules...,Regels laden...
 Logo,Logo
 Magyar,Hongaars
+Manage Installations,Installaties beheren
+Read Events,Events lezen
+Read the team's event log and manage event cursors,Het eventlog van het team lezen en eventcursors beheren
+API key permissions,API-sleutelrechten
+This key can only receive permissions its creator has.,Deze sleutel kan alleen rechten krijgen die de maker heeft.
 Manage Team,Team beheren
 Manage the team and its members,Het team en de teamleden beheren
+List\, create\, and delete installations and installation tokens,Installaties en installation tokens weergeven\, aanmaken en verwijderen
 More,Meer
 More pages,Meer pagina’s
 N/A,N.v.t.

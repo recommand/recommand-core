@@ -83,6 +83,8 @@ export const eventEnvelopeSchema = z.object({
   id: z.string(),
   type: z.string(),
   teamId: z.string(),
+  streamId: z.string().optional().default(""),
+  seq: z.number().int().nonnegative().optional(),
   aggregateType: z.string(),
   aggregateId: z.string(),
   correlationId: z.string().nullable(),

@@ -77,6 +77,7 @@ Create New Account,Neues Konto erstellen
 Create rule,Regel erstellen
 Create team,Team erstellen
 Create Team,Team erstellen
+List\, create\, and delete installations and installation tokens,Installationen und Installation-Tokens auflisten\, erstellen und löschen
 Created At,Erstellt am
 Creating...,Wird erstellt...
 Current password,Aktuelles Passwort
@@ -200,6 +201,11 @@ Logo,Logo
 Logo removed successfully,Logo erfolgreich entfernt
 Logo uploaded successfully,Logo erfolgreich hochgeladen
 Logout,Abmelden
+Manage Installations,Installationen verwalten
+Read Events,Ereignisse lesen
+Read the team's event log and manage event cursors,Das Ereignisprotokoll des Teams lesen und Ereignis-Cursor verwalten
+API key permissions,API-Schlüssel-Berechtigungen
+This key can only receive permissions its creator has.,Dieser Schlüssel kann nur Berechtigungen erhalten\, die sein Ersteller hat.
 Manage permissions,Berechtigungen verwalten
 Manage Team,Team verwalten
 Manage the team and its members,Team und seine Mitglieder verwalten

@@ -20,6 +20,28 @@ const CORE_PERMISSIONS: Permission[] = [
     hasAdminPrerequisite: false,
     isAddedOnTeamCreation: true,
   },
+  {
+    id: "core.installations.manage",
+    name: "Manage Installations",
+    description: "List, create, and delete installations and installation tokens",
+    scope: "team",
+    prerequisiteActorPermissionIds: ["core.team.manage"],
+    hasAdminPrerequisite: false,
+    isAddedOnTeamCreation: true,
+  },
+  {
+    id: "core.events.read",
+    name: "Read Events",
+    description: "Read the team's event log and manage event cursors",
+    scope: "team",
+    prerequisiteActorPermissionIds: ["core.installations.manage"],
+    hasAdminPrerequisite: false,
+    isAddedOnTeamCreation: false,
+  },
+];
+
+export const DEFAULT_INSTALLATION_PERMISSION_IDS = [
+  "core.events.read",
 ];
 
 const registeredPermissions: Record<string, Permission> = {};

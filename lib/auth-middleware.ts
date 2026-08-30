@@ -13,6 +13,13 @@ export type AuthenticatedUserContext = {
     };
     team: Team | null;
     teamId: string | null;
+    installation: {
+      id: string;
+      teamId: string;
+    } | null;
+    service: {
+      id: string;
+    } | null;
   };
 };
 
@@ -87,6 +94,7 @@ export type TeamAccessOptions = {
   param?: string;
   getTeamId?: (c: Context) => string;
   extensions?: SessionVerificationExtension[];
+  installationOnly?: boolean;
 };
 
 export function requireTeamAccess(options: TeamAccessOptions = {}) {
@@ -108,41 +116,46 @@ export function requireTeamAccess(options: TeamAccessOptions = {}) {
 
       const teamIdFromRequest: string | undefined = options.getTeamId ? options.getTeamId(c) : c.req.param(options.param ?? "teamId");
       let teamId: string | null = c.get("teamId");
+      const service = c.get("service");
       if (!teamId) {
         if (!teamIdFromRequest) {
           return c.json(actionFailure("Team ID is required"), 400);
         }
 
-        // Get user from context
-        const user: { id: string; isAdmin: boolean } | null = c.get("user");
-        if (!user?.id) {
-          await audit(c, {
-            action: "authorize",
-            subsystem: "core.team_access",
-            outcome: "denied",
-            objectType: "core.team",
-            objectId: teamIdFromRequest,
-            reasonCode: "unauthenticated",
-          });
-          return c.json(actionFailure("Unauthorized"), 401);
-        }
+        if (service) {
+          teamId = teamIdFromRequest;
+        } else {
+          // Get user from context
+          const user: { id: string; isAdmin: boolean } | null = c.get("user");
+          if (!user?.id) {
+            await audit(c, {
+              action: "authorize",
+              subsystem: "core.team_access",
+              outcome: "denied",
+              objectType: "core.team",
+              objectId: teamIdFromRequest,
+              reasonCode: "unauthenticated",
+            });
+            return c.json(actionFailure("Unauthorized"), 401);
+          }
 
-        // If the user is not authenticated via an API key, ensure they are a member of the team
-        // Admins bypass this check and can access any team
-        if (!user.isAdmin && !(await isMember(user.id, teamIdFromRequest))) {
-          await audit(c, {
-            action: "authorize",
-            subsystem: "core.team_access",
-            outcome: "denied",
-            objectType: "core.team",
-            objectId: teamIdFromRequest,
-            teamId: teamIdFromRequest,
-            reasonCode: "not_team_member",
-          });
-          return c.json(actionFailure("Unauthorized"), 401);
-        }
+          // If the user is not authenticated via an API key, ensure they are a member of the team
+          // Admins bypass this check and can access any team
+          if (!user.isAdmin && !(await isMember(user.id, teamIdFromRequest))) {
+            await audit(c, {
+              action: "authorize",
+              subsystem: "core.team_access",
+              outcome: "denied",
+              objectType: "core.team",
+              objectId: teamIdFromRequest,
+              teamId: teamIdFromRequest,
+              reasonCode: "not_team_member",
+            });
+            return c.json(actionFailure("Unauthorized"), 401);
+          }
 
-        teamId = teamIdFromRequest;
+          teamId = teamIdFromRequest;
+        }
       }
 
       if (!teamId) {
@@ -165,6 +178,19 @@ export function requireTeamAccess(options: TeamAccessOptions = {}) {
       if(c.var.user?.isAdmin === true && teamIdFromRequest && teamIdFromRequest !== teamId) {
         // If the user is an admin, allow them to access the team even if the provided teamId does not match the API key's teamId
         teamId = teamIdFromRequest;
+      }
+
+      if (options.installationOnly && !c.get("installation")) {
+        await audit(c, {
+          action: "authorize",
+          subsystem: "core.team_access",
+          outcome: "denied",
+          objectType: "core.team",
+          objectId: teamId,
+          teamId,
+          reasonCode: "installation_required",
+        });
+        return c.json(actionFailure("Unauthorized"), 401);
       }
 
       const team = await getTeam(teamId);

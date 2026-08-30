@@ -5,6 +5,14 @@ import {
   deleteCookie,
 } from "@recommand/lib/api/cookie";
 import { checkApiKey, getApiKey, type ApiKey } from "@core/data/api-keys";
+import {
+  getValidInstallation,
+  INSTALLATION_TOKEN_TYPE,
+} from "@core/data/installations";
+import {
+  isValidServiceToken,
+  SERVICE_TOKEN_TYPE,
+} from "@core/data/service-principals";
 import { verify, sign } from "./jwt";
 import { addMilliseconds } from "date-fns";
 import { db } from "@recommand/db";
@@ -41,12 +49,23 @@ export async function createSession(
   });
 }
 
+export type InstallationSession = {
+  id: string;
+  teamId: string;
+};
+
+export type ServiceSession = {
+  id: string;
+};
+
 export type Session = {
   userId: string | null;
   isAdmin: boolean;
   language: string;
   apiKey: ApiKey | null;
   teamId: string | null;
+  installation: InstallationSession | null;
+  service: ServiceSession | null;
 }
 export type SessionVerificationExtension = (c: Context) => Promise<Session | null>;
 
@@ -60,7 +79,7 @@ export async function verifySession(c: Context, extensions: SessionVerificationE
     throw new Error("JWT_SECRET is not set");
   }
 
-  let result: { userId: string | null; isAdmin: boolean; language: string; apiKey: ApiKey | null; teamId: string | null } | null = null;
+  let result: Session | null = null;
 
   const verificationMethods = [
     verifySessionCookie,
@@ -100,6 +119,18 @@ export async function verifySession(c: Context, extensions: SessionVerificationE
     });
   }
 
+  if (result.installation) {
+    c.set("installation", result.installation);
+  } else {
+    c.set("installation", null);
+  }
+
+  if (result.service) {
+    c.set("service", result.service);
+  } else {
+    c.set("service", null);
+  }
+
   // Add teamId to context
   if (result.teamId) {
     c.set("teamId", result.teamId);
@@ -134,6 +165,8 @@ async function verifySessionCookie(c: Context): Promise<Session | null> {
     language: (session.language as string) ?? "en",
     apiKey: null,
     teamId: null,
+    installation: null,
+    service: null,
   };
 }
 
@@ -156,8 +189,54 @@ async function verifyJwtAuth(c: Context): Promise<Session | null> {
   }
 
   const jwtPayload = await verify(encodedCredentials);
-  if (!jwtPayload?.sub || !jwtPayload.jti || !jwtPayload.teamId) {
+  if (!jwtPayload?.sub) {
     return null;
+  }
+
+  if (jwtPayload.tokenType === SERVICE_TOKEN_TYPE) {
+    if (
+      !jwtPayload.jti ||
+      !isValidServiceToken(jwtPayload.sub as string, jwtPayload.jti)
+    ) {
+      return null;
+    }
+    return {
+      userId: null,
+      isAdmin: false,
+      language: "en",
+      apiKey: null,
+      teamId: null,
+      installation: null,
+      service: { id: jwtPayload.sub as string },
+    };
+  }
+
+  if (!jwtPayload.jti || !jwtPayload.teamId) {
+    return null;
+  }
+
+  if (jwtPayload.tokenType === INSTALLATION_TOKEN_TYPE) {
+    const installation = await getValidInstallation(
+      jwtPayload.sub as string,
+      jwtPayload.jti as string,
+      jwtPayload.teamId as string
+    );
+    if (!installation) {
+      return null;
+    }
+
+    return {
+      userId: null,
+      isAdmin: false,
+      language: "en",
+      apiKey: null,
+      teamId: installation.teamId,
+      installation: {
+        id: installation.id,
+        teamId: installation.teamId,
+      },
+      service: null,
+    };
   }
 
   // Cross-check the JWT with the database to ensure it has not been revoked and is fully valid
@@ -182,6 +261,8 @@ async function verifyJwtAuth(c: Context): Promise<Session | null> {
     language: "en",
     apiKey,
     teamId: apiKey.teamId,
+    installation: null,
+    service: null,
   }
 
 }
@@ -216,6 +297,8 @@ async function verifyBasicAuth(c: Context): Promise<Session | null> {
     isAdmin: apiKey.user.isAdmin,
     language: "en",
     apiKey: apiKey.apiKey,
-    teamId: apiKey.apiKey.teamId
+    teamId: apiKey.apiKey.teamId,
+    installation: null,
+    service: null,
   };
 }
