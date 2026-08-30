@@ -79,7 +79,19 @@ export const updateRuleSchema = createRuleSchema.partial().extend({
   enabled: z.boolean().optional(),
 });
 
+/**
+ * Envelope shape this build emits. Bump only when a field is renamed, removed,
+ * or changes meaning; adding an optional field keeps the version. Payload
+ * contracts are versioned separately, in the event type string.
+ */
+export const EVENT_ENVELOPE_VERSION = 1;
+
 export const eventEnvelopeSchema = z.object({
+  envelopeVersion: z
+    .number()
+    .int()
+    .positive()
+    .default(EVENT_ENVELOPE_VERSION),
   id: z.string(),
   type: z.string(),
   teamId: z.string(),
@@ -99,6 +111,11 @@ export type Rule = z.infer<typeof ruleSchema>;
 export type CreateRuleInput = z.infer<typeof createRuleSchema>;
 export type UpdateRuleInput = z.infer<typeof updateRuleSchema>;
 export type EventEnvelope = z.infer<typeof eventEnvelopeSchema>;
+
+/** Older envelopes are readable; a newer one is not. */
+export function isSupportedEventEnvelopeVersion(version: number) {
+  return version <= EVENT_ENVELOPE_VERSION;
+}
 
 export type EventFieldOperator =
   | "eq"
