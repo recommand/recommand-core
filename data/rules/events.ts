@@ -37,6 +37,7 @@ export async function publishEvent(
     correlationId?: string;
     idempotencyKey: string;
     payload: unknown;
+    data?: unknown;
     tx?: Tx;
   }
 ) {
@@ -46,6 +47,15 @@ export async function publishEvent(
   }
 
   const parsedPayload = definition.payload.parse(args.payload);
+  if (definition.dataSchema && args.data === undefined) {
+    throw new Error(`Event type ${type} requires a data snapshot`);
+  }
+  if (!definition.dataSchema && args.data !== undefined) {
+    throw new Error(`Event type ${type} does not declare a data schema`);
+  }
+  const parsedData = definition.dataSchema
+    ? definition.dataSchema.parse(args.data)
+    : undefined;
   const eventId = "ev_" + ulid();
   const createdAt = new Date();
 
@@ -61,6 +71,7 @@ export async function publishEvent(
         correlationId: args.correlationId ?? null,
         idempotencyKey: args.idempotencyKey,
         payload: parsedPayload,
+        data: parsedData,
         createdAt,
       },
       tx

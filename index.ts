@@ -15,6 +15,7 @@ import manifest from "./api/manifest";
 import rules from "./api/rules";
 import installations from "./api/installations";
 import events from "./api/events";
+import { initializeEventDataOffloadCronJobs } from "./data/event-data-offload";
 import { initializeRuleCronJobs } from "./data/rules/cron";
 
 let logger: Logger;
@@ -25,6 +26,7 @@ export async function init(app: RecommandApp, server: Server) {
   logger = new Logger(app);
   logger.info("Initializing core app");
   await initializeRuleCronJobs(logger);
+  await initializeEventDataOffloadCronJobs(logger);
 }
 
 server.route("/", auth);

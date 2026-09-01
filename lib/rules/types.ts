@@ -102,6 +102,18 @@ export const eventEnvelopeSchema = z.object({
   correlationId: z.string().nullable(),
   idempotencyKey: z.string(),
   payload: z.unknown(),
+  /**
+   * Point-in-time snapshot captured at publish time, embedded when it is small
+   * enough for the wire. Exactly one of `data` and `dataRef` is set for events
+   * that carry a snapshot; neither is set for events without one.
+   */
+  data: z.unknown().optional(),
+  /**
+   * API path that serves the snapshot when it is too large to embed. Fetch it
+   * through the consumer's EventSourceClient; the object is immutable, so the
+   * fetch is safely retryable and never returns mutated state.
+   */
+  dataRef: z.string().optional(),
   createdAt: z.string(),
 });
 
@@ -137,6 +149,12 @@ export type EventTypeDefinition = {
   type: string;
   aggregateType: string;
   payload: z.ZodTypeAny;
+  /**
+   * Schema for the point-in-time snapshot stored alongside the event. Event
+   * types that declare it must pass `data` to publishEvent; types without it
+   * publish metadata-only events (the payload is then the whole fact).
+   */
+  dataSchema?: z.ZodTypeAny;
   conditionFields: Array<{
     path: string;
     label: string;
