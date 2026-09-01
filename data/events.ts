@@ -1,3 +1,4 @@
+import { eventEnvelopeDataFields, serializedEventDataSize } from "@core/data/event-data";
 import { eventCursors, events } from "@core/db/schema";
 import {
   EVENT_ENVELOPE_VERSION,
@@ -26,6 +27,7 @@ export function toEventEnvelope(row: EventRow): EventEnvelope {
     correlationId: row.correlationId,
     idempotencyKey: row.idempotencyKey,
     payload: row.payload,
+    ...eventEnvelopeDataFields(row),
     createdAt: row.createdAt.toISOString(),
   };
 }
@@ -41,6 +43,7 @@ export async function appendEvent(
     correlationId?: string | null;
     idempotencyKey: string;
     payload: unknown;
+    data?: unknown;
     createdAt: Date;
   },
   tx: Tx
@@ -70,6 +73,7 @@ export async function appendEvent(
     .where(eq(events.teamId, event.teamId));
 
   const seq = (maxRow?.maxSeq ?? 0) + 1;
+  const hasData = event.data !== undefined;
 
   const [inserted] = await tx
     .insert(events)
@@ -84,6 +88,12 @@ export async function appendEvent(
       correlationId: event.correlationId ?? null,
       idempotencyKey: event.idempotencyKey,
       payload: event.payload,
+      // The snapshot is written inline in the same transaction as the event, so
+      // the append stays atomic with the state change; a background worker
+      // moves large snapshots to S3 afterwards (see ./event-data-offload).
+      data: hasData ? event.data : null,
+      dataLocation: hasData ? "db" : "none",
+      dataSizeBytes: hasData ? serializedEventDataSize(event.data) : null,
       createdAt: event.createdAt,
     })
     .returning();

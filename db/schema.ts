@@ -229,6 +229,12 @@ export const installationTokens = pgTable(
   (table) => [index("installation_tokens_installation_idx").on(table.installationId)]
 );
 
+export const eventDataLocations = pgEnum("event_data_locations", [
+  "none",
+  "db",
+  "s3",
+]);
+
 export const events = pgTable(
   "events",
   {
@@ -246,12 +252,29 @@ export const events = pgTable(
     correlationId: text("correlation_id"),
     idempotencyKey: text("idempotency_key").notNull(),
     payload: jsonb("payload").notNull(),
+    // Point-in-time snapshot captured when the event was published. Written
+    // inline in the same transaction as the event row; large snapshots are
+    // moved to S3 by a background worker (see data/event-data-offload.ts).
+    // Null when dataLocation is "none" (no snapshot) or "s3" (offloaded).
+    data: jsonb("data"),
+    dataLocation: eventDataLocations("data_location").notNull().default("none"),
+    dataS3Key: text("data_s3_key"),
+    dataSizeBytes: integer("data_size_bytes"),
+    dataOffloadClaimedAt: timestamp("data_offload_claimed_at", {
+      withTimezone: true,
+    }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     uniqueIndex("events_team_seq_idx").on(table.teamId, table.seq),
     uniqueIndex("events_team_idempotency_idx").on(table.teamId, table.idempotencyKey),
     index("events_team_stream_seq_idx").on(table.teamId, table.streamId, table.seq),
+    index("events_data_offload_idx").on(
+      table.dataLocation,
+      table.dataSizeBytes,
+      table.createdAt,
+      table.dataOffloadClaimedAt
+    ),
   ]
 );
 
