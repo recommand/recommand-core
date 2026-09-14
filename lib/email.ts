@@ -11,9 +11,30 @@ interface EmailOptions {
   email: ReactElement | string;
   replyTo?: string;
   attachments?: Attachment[];
+  /**
+   * Key-value pairs the mail service stores with the message and returns in every
+   * webhook and API answer about it, which is how a later delivery or bounce report
+   * is correlated with what was sent. Postmark allows short string values only.
+   */
+  metadata?: Record<string, string>;
 }
 
-export async function sendEmail({ to, cc, subject, email, replyTo, from, attachments }: EmailOptions) {
+export interface SentEmail {
+  success: true;
+  /** The mail service's id for the message, which its later reports carry. */
+  messageId: string;
+}
+
+export async function sendEmail({
+  to,
+  cc,
+  subject,
+  email,
+  replyTo,
+  from,
+  attachments,
+  metadata,
+}: EmailOptions): Promise<SentEmail> {
   if (!process.env.POSTMARK_API_KEY) {
     throw new Error("POSTMARK_API_KEY is not set");
   }
@@ -29,6 +50,7 @@ export async function sendEmail({ to, cc, subject, email, replyTo, from, attachm
     HtmlBody: emailHtml,
     ReplyTo: replyTo,
     Attachments: attachments,
+    Metadata: metadata,
   };
 
   try {
@@ -37,7 +59,7 @@ export async function sendEmail({ to, cc, subject, email, replyTo, from, attachm
       console.error("Error sending email:", res);
       throw new Error("Failed to send email");
     }
-    return { success: true };
+    return { success: true, messageId: res.MessageID };
   } catch (error) {
     console.error("Error sending email:", error);
     throw error;
