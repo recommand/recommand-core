@@ -63,9 +63,16 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 );
 Button.displayName = "Button";
 
-function ButtonLink({ className, variant, size, ...props }: ButtonLinkProps) {
+function ButtonLink({
+  className,
+  variant,
+  size,
+  asChild = false,
+  ...props
+}: ButtonLinkProps) {
+  const Comp = asChild ? Slot : "a";
   return (
-    <a
+    <Comp
       data-slot="button"
       className={cn(
         buttonVariants({ variant, size, className }),
