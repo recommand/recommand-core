@@ -15,8 +15,10 @@ export default function ResetPasswordPage() {
     return <div>{t`Invalid token`}</div>;
   }
   return (
-    <main className="flex min-h-svh w-full items-center justify-center">
-      <ResetPasswordForm token={token} />
+    <main className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
+      <div className="w-full max-w-sm">
+        <ResetPasswordForm token={token} />
+      </div>
     </main>
   );
 }

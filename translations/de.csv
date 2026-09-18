@@ -393,3 +393,24 @@ Notification language,Benachrichtigungssprache
 Team language updated,Teamsprache aktualisiert
 Failed to update team language,Teamsprache konnte nicht aktualisiert werden
 Used for emails to addresses configured on this team\, such as billing and document notifications. Emails addressed to a team member use their own language instead.,Wird für E-Mails an Adressen verwendet\, die für dieses Team konfiguriert sind\, etwa Benachrichtigungen zu Abrechnung und Dokumenten. E-Mails an ein Teammitglied verwenden dessen eigene Sprache.
+Signup by invitation only,Registrierung nur auf Einladung
+Public signup is disabled. Ask an existing user to invite you to their team.,Die öffentliche Registrierung ist deaktiviert. Bitten Sie einen bestehenden Benutzer\, Sie in sein Team einzuladen.
+Public signup is disabled. Ask an existing user to invite you.,Die öffentliche Registrierung ist deaktiviert. Bitten Sie einen bestehenden Benutzer\, Sie einzuladen.
+Čeština,Tschechisch
+Dansk,Dänisch
+Español,Spanisch
+Italiano,Italienisch
+Magyar,Ungarisch
+Norsk bokmål,Norwegisch (Bokmål)
+Polski,Polnisch
+Português,Portugiesisch
+Română,Rumänisch
+Suomi,Finnisch
+Svenska,Schwedisch
+Türkçe,Türkisch
+Русский,Russisch
+Українська,Ukrainisch
+العربية,Arabisch
+한국어,Koreanisch
+中文,Chinesisch
+日本語,Japanisch

@@ -16,6 +16,7 @@ import { useUserStore } from "../../../lib/user-store";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "@core/hooks/use-translation";
 import { useUIConfig } from "../../../lib/ui-config-store";
+import { usePublicSignupEnabled } from "@core/hooks/use-manifest";
 
 export function LoginForm({
   className,
@@ -26,6 +27,7 @@ export function LoginForm({
   const { login } = useUserStore();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { publicSignupEnabled } = usePublicSignupEnabled();
   const logoSrc = useUIConfig("auth.logo-src", "/logo.svg");
   const logoClassName = useUIConfig("auth.logo-class", "h-12 w-auto");
   const containerClassName = useUIConfig("auth.container-class", "flex flex-col gap-6");
@@ -104,16 +106,18 @@ export function LoginForm({
                 {t`Login`}
               </Button>
             </div>
-            <div className="mt-4 text-center text-sm">
-              {t`Don't have an account?`}{" "}
-              <a
-                href="/signup"
-                className="underline underline-offset-4"
-                tabIndex={4}
-              >
-                {t`Sign up`}
-              </a>
-            </div>
+            {publicSignupEnabled && (
+              <div className="mt-4 text-center text-sm">
+                {t`Don't have an account?`}{" "}
+                <a
+                  href="/signup"
+                  className="underline underline-offset-4"
+                  tabIndex={4}
+                >
+                  {t`Sign up`}
+                </a>
+              </div>
+            )}
           </form>
         </CardContent>
       </Card>

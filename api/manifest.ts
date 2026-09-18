@@ -1,6 +1,7 @@
 import { Server } from "@recommand/lib/api";
 import { actionSuccess } from "@recommand/lib/utils";
 import { getApps } from "@recommand/lib/app";
+import { isPublicSignupEnabled } from "@core/lib/signup";
 
 const server = new Server();
 
@@ -8,6 +9,12 @@ export type LegalDocument = {
   packageName: string;
   termsOfUse?: string;
   privacyPolicy?: string;
+};
+
+export type ManifestData = {
+  legal: LegalDocument[];
+  /** False when DISABLE_PUBLIC_SIGNUP is set; users can then only join via invitation. */
+  publicSignupEnabled: boolean;
 };
 
 const _getManifest = server.get("/manifest", async (c) => {
@@ -24,7 +31,8 @@ const _getManifest = server.get("/manifest", async (c) => {
     }
   }
 
-  return c.json(actionSuccess({ legal }));
+  const manifest: ManifestData = { legal, publicSignupEnabled: isPublicSignupEnabled() };
+  return c.json(actionSuccess(manifest));
 });
 
 export type Manifest = typeof _getManifest;

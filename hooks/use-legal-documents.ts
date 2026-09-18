@@ -1,47 +1,11 @@
-import { useState, useEffect } from "react";
-import { rc } from "@recommand/lib/client";
-import type { Manifest } from "@core/api/manifest";
-
-const client = rc<Manifest>("core");
+import { useManifest } from "@core/hooks/use-manifest";
 
 export function useLegalDocuments() {
-  const [termsOfUseUrls, setTermsOfUseUrls] = useState<string[]>([]);
-  const [privacyPolicyUrls, setPrivacyPolicyUrls] = useState<string[]>([]);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const { manifest, isLoaded } = useManifest();
+  const legal = manifest?.legal ?? [];
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function fetch() {
-      try {
-        const res = await client.manifest.$get();
-        const data = await res.json();
-        if (!cancelled && data.success) {
-          setTermsOfUseUrls(
-            data.legal
-              .filter((d) => !!d.termsOfUse)
-              .map((d) => d.termsOfUse!)
-          );
-          setPrivacyPolicyUrls(
-            data.legal
-              .filter((d) => !!d.privacyPolicy)
-              .map((d) => d.privacyPolicy!)
-          );
-        }
-      } catch {
-        // Silently fail — checkbox won't appear
-      } finally {
-        if (!cancelled) {
-          setIsLoaded(true);
-        }
-      }
-    }
-
-    fetch();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const termsOfUseUrls = legal.filter((d) => !!d.termsOfUse).map((d) => d.termsOfUse!);
+  const privacyPolicyUrls = legal.filter((d) => !!d.privacyPolicy).map((d) => d.privacyPolicy!);
 
   const hasTermsOfUse = termsOfUseUrls.length > 0;
   const hasPrivacyPolicy = privacyPolicyUrls.length > 0;
