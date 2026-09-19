@@ -75,7 +75,6 @@ function SheetContent({
         {...props}
       >
         {children}
-        {/* A 44px touch target; the icon itself sits where it always did. */}
         <SheetPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-0.5 right-0.5 flex size-11 items-center justify-center rounded-md opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">
           <XIcon className="size-4" />
           <span className="sr-only">{t`Close`}</span>
