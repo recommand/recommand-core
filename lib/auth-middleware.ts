@@ -13,6 +13,7 @@ export type AuthenticatedUserContext = {
     };
     team: Team | null;
     teamId: string | null;
+    authenticationMethod: "cookie" | "apiKey" | "extension";
   };
 };
 

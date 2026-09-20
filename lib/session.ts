@@ -8,8 +8,8 @@ import { checkApiKey, getApiKey, type ApiKey } from "@core/data/api-keys";
 import { verify, sign } from "./jwt";
 import { addMilliseconds } from "date-fns";
 import { db } from "@recommand/db";
-import { users } from "@core/db/schema";
-import { eq } from "drizzle-orm";
+import { teamMembers, users } from "@core/db/schema";
+import { and, eq } from "drizzle-orm";
 
 const cookie = {
   name: "session",
@@ -61,6 +61,7 @@ export async function verifySession(c: Context, extensions: SessionVerificationE
   }
 
   let result: { userId: string | null; isAdmin: boolean; language: string; apiKey: ApiKey | null; teamId: string | null } | null = null;
+  let authenticationMethod: "cookie" | "apiKey" | "extension" = "extension";
 
   const verificationMethods = [
     verifySessionCookie,
@@ -74,6 +75,11 @@ export async function verifySession(c: Context, extensions: SessionVerificationE
       const methodResult = await method(c);
       if (methodResult) {
         result = methodResult;
+        authenticationMethod = method === verifySessionCookie
+          ? "cookie"
+          : method === verifyJwtAuth || method === verifyBasicAuth
+            ? "apiKey"
+            : "extension";
         break; // Stop checking other extensions if one is successful
       }
     } catch (error) {
@@ -82,6 +88,20 @@ export async function verifySession(c: Context, extensions: SessionVerificationE
   }
 
   if (!result) return null;
+
+  // A surviving key must not preserve access after its owner leaves the team.
+  if (result.apiKey && !result.isAdmin) {
+    const [membership] = await db.select({ userId: teamMembers.userId })
+      .from(teamMembers)
+      .where(and(
+        eq(teamMembers.userId, result.apiKey.userId),
+        eq(teamMembers.teamId, result.apiKey.teamId),
+      ))
+      .limit(1);
+    if (!membership) return null;
+  }
+
+  c.set("authenticationMethod", authenticationMethod);
 
   // Add user to context
   c.set("user", {
@@ -128,10 +148,17 @@ async function verifySessionCookie(c: Context): Promise<Session | null> {
     return null;
   }
 
+  const [user] = await db
+    .select({ id: users.id, isAdmin: users.isAdmin, language: users.language })
+    .from(users)
+    .where(eq(users.id, session.userId as string))
+    .limit(1);
+  if (!user) return null;
+
   return {
-    userId: session.userId as string,
-    isAdmin: session.isAdmin as boolean,
-    language: (session.language as string) ?? "en",
+    userId: user.id,
+    isAdmin: user.isAdmin,
+    language: user.language ?? "en",
     apiKey: null,
     teamId: null,
   };
@@ -162,7 +189,7 @@ async function verifyJwtAuth(c: Context): Promise<Session | null> {
 
   // Cross-check the JWT with the database to ensure it has not been revoked and is fully valid
   const apiKey = await getApiKey(jwtPayload.jti as string);
-  if (!apiKey || !apiKey.expiresAt || apiKey.expiresAt <= new Date() || apiKey.type !== "jwt" || apiKey.teamId !== jwtPayload.teamId) {
+  if (!apiKey || !apiKey.expiresAt || apiKey.expiresAt <= new Date() || apiKey.type !== "jwt" || apiKey.teamId !== jwtPayload.teamId || apiKey.userId !== jwtPayload.sub) {
     return null;
   }
 
