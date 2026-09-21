@@ -56,12 +56,12 @@ export default function ForgotPasswordForm() {
 
   if (isSubmitted) {
     return (
-      <div className="flex flex-col gap-6">
+      <div className={containerClassName}>
         <div className="flex justify-center mb-4">
           <img
-            src="/logo.svg"
+            src={logoSrc}
             alt={t`Logo`}
-            className="h-12 w-auto"
+            className={logoClassName}
           />
         </div>
         <Card className="mx-auto max-w-md">

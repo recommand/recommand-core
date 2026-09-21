@@ -19,6 +19,7 @@ import { stringifyActionFailure } from "@recommand/lib/utils";
 import { useTranslation } from "@core/hooks/use-translation";
 import { Checkbox } from "../../../components/ui/checkbox";
 import { useLegalDocuments } from "@core/hooks/use-legal-documents";
+import { usePublicSignupEnabled } from "@core/hooks/use-manifest";
 import { useUIConfig } from "../../../lib/ui-config-store";
 
 const client = rc<Auth>("core");
@@ -44,6 +45,7 @@ export default function SignupForm({
     termsOfUseUrls,
     privacyPolicyUrls,
   } = useLegalDocuments();
+  const { publicSignupEnabled, isLoaded: isManifestLoaded } = usePublicSignupEnabled();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -99,6 +101,36 @@ export default function SignupForm({
       setIsResending(false);
     }
   };
+
+  if (isManifestLoaded && !publicSignupEnabled) {
+    return (
+      <div className={cn(containerClassName, className)} {...props}>
+        <div className="flex justify-center mb-4">
+          <img
+            src={logoSrc}
+            alt={t`Logo`}
+            className={logoClassName}
+          />
+        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl">{t`Signup by invitation only`}</CardTitle>
+            <CardDescription>
+              {t`Public signup is disabled. Ask an existing user to invite you to their team.`}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center text-sm">
+              {t`Already have an account?`}{" "}
+              <a href="/login" className="underline underline-offset-4">
+                {t`Login`}
+              </a>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (isSignupComplete) {
     return (
