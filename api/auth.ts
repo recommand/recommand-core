@@ -20,6 +20,7 @@ import { randomBytes } from "crypto";
 import { describeRoute } from "hono-openapi";
 import { createServerT, resolveSupportedLanguage, toSupportedLanguage } from "@core/lib/translations-server";
 import { audit, hashAuditIdentifier } from "@core/lib/audit";
+import { isPublicSignupEnabled } from "@core/lib/signup";
 
 const server = new Server();
 
@@ -113,6 +114,12 @@ const signup = server.post(
   ),
   async (c) => {
     const t = c.get("t");
+    if (!isPublicSignupEnabled()) {
+      return c.json(
+        actionFailure(t`Public signup is disabled. Ask an existing user to invite you.`),
+        403
+      );
+    }
     try {
       const data = c.req.valid("json");
 
