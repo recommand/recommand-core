@@ -37,7 +37,7 @@ mock.module('@core/lib/backend-events', () => ({
   CORE_BACKEND_EVENTS: { TEAM_MEMBER_REMOVED: 'team.member.removed' },
   emitBackendEvent: emitted,
 }));
-const { removeTeamMember } = await import('./team-members');
+const { removeTeamMember } = await import('../data/team-members');
 beforeEach(() => {
   emitted.mockClear();
   failDeletion = false;

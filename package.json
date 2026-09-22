@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "db:generate": "drizzle-kit generate",
+    "test": "bun test ./test/*.test.ts",
     "email:dev": "email dev --port 3002"
   },
   "devDependencies": {

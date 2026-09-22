@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, mock, test } from 'bun:test';
 import { Hono } from 'hono';
 import { users, teamMembers } from '../db/schema';
-import type { AuthenticatedUserContext } from './auth-middleware';
+import type { AuthenticatedUserContext } from '../lib/auth-middleware';
 
 process.env.JWT_SECRET = 'test-only-session-signing-key-not-for-deployment';
 let currentUser: { id: string; isAdmin: boolean; language: string } | null;
@@ -57,9 +57,9 @@ mock.module('@core/lib/translation-middleware', () => ({
 mock.module('@core/lib/translations-server', () => ({
   toSupportedLanguage: async (value: string) => (['en', 'nl'].includes(value) ? value : null),
 }));
-const { createSession, verifySession } = await import('./session');
-const { sign } = await import('./jwt');
-const { requireAdmin, requireTeamAccess } = await import('./auth-middleware');
+const { createSession, verifySession } = await import('../lib/session');
+const { sign } = await import('../lib/jwt');
+const { requireAdmin, requireTeamAccess } = await import('../lib/auth-middleware');
 const { default: account } = await import('../api/account');
 const app = new Hono<AuthenticatedUserContext>();
 app.get('/login', async (c) => {
