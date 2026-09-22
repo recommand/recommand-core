@@ -8,8 +8,8 @@ import { checkApiKey, getApiKey, type ApiKey } from "@core/data/api-keys";
 import { verify, sign } from "./jwt";
 import { addMilliseconds } from "date-fns";
 import { db } from "@recommand/db";
-import { users } from "@core/db/schema";
-import { eq } from "drizzle-orm";
+import { teamMembers, users } from "@core/db/schema";
+import { and, eq } from "drizzle-orm";
 
 const cookie = {
   name: "session",
@@ -49,6 +49,7 @@ export type Session = {
   teamId: string | null;
 }
 export type SessionVerificationExtension = (c: Context) => Promise<Session | null>;
+export type AuthenticationMethod = "cookie" | "apiKey" | "extension";
 
 export async function verifySession(c: Context, extensions: SessionVerificationExtension[] = []): Promise<{
   userId: string | null;
@@ -60,20 +61,20 @@ export async function verifySession(c: Context, extensions: SessionVerificationE
     throw new Error("JWT_SECRET is not set");
   }
 
-  let result: { userId: string | null; isAdmin: boolean; language: string; apiKey: ApiKey | null; teamId: string | null } | null = null;
-
-  const verificationMethods = [
-    verifySessionCookie,
-    verifyJwtAuth,
-    verifyBasicAuth,
-    ...extensions,
+  const verificationMethods: Array<[SessionVerificationExtension, AuthenticationMethod]> = [
+    [verifySessionCookie, "cookie"],
+    [verifyJwtAuth, "apiKey"],
+    [verifyBasicAuth, "apiKey"],
+    ...extensions.map((extension) => [extension, "extension"] as [SessionVerificationExtension, AuthenticationMethod]),
   ]
 
-  for (const method of verificationMethods) {
+  let authenticated: { result: Session; method: AuthenticationMethod } | null = null;
+
+  for (const [method, label] of verificationMethods) {
     try {
       const methodResult = await method(c);
       if (methodResult) {
-        result = methodResult;
+        authenticated = { result: methodResult, method: label };
         break; // Stop checking other extensions if one is successful
       }
     } catch (error) {
@@ -81,7 +82,22 @@ export async function verifySession(c: Context, extensions: SessionVerificationE
     }
   }
 
-  if (!result) return null;
+  if (!authenticated) return null;
+  const { result, method: authenticationMethod } = authenticated;
+
+  // A surviving key must not preserve access after its owner leaves the team.
+  if (result.apiKey && !result.isAdmin) {
+    const [membership] = await db.select({ userId: teamMembers.userId })
+      .from(teamMembers)
+      .where(and(
+        eq(teamMembers.userId, result.apiKey.userId),
+        eq(teamMembers.teamId, result.apiKey.teamId),
+      ))
+      .limit(1);
+    if (!membership) return null;
+  }
+
+  c.set("authenticationMethod", authenticationMethod);
 
   // Add user to context
   c.set("user", {
@@ -128,10 +144,17 @@ async function verifySessionCookie(c: Context): Promise<Session | null> {
     return null;
   }
 
+  const [user] = await db
+    .select({ id: users.id, isAdmin: users.isAdmin, language: users.language })
+    .from(users)
+    .where(eq(users.id, session.userId as string))
+    .limit(1);
+  if (!user) return null;
+
   return {
-    userId: session.userId as string,
-    isAdmin: session.isAdmin as boolean,
-    language: (session.language as string) ?? "en",
+    userId: user.id,
+    isAdmin: user.isAdmin,
+    language: user.language ?? "en",
     apiKey: null,
     teamId: null,
   };
@@ -162,7 +185,7 @@ async function verifyJwtAuth(c: Context): Promise<Session | null> {
 
   // Cross-check the JWT with the database to ensure it has not been revoked and is fully valid
   const apiKey = await getApiKey(jwtPayload.jti as string);
-  if (!apiKey || !apiKey.expiresAt || apiKey.expiresAt <= new Date() || apiKey.type !== "jwt" || apiKey.teamId !== jwtPayload.teamId) {
+  if (!apiKey || !apiKey.expiresAt || apiKey.expiresAt <= new Date() || apiKey.type !== "jwt" || apiKey.teamId !== jwtPayload.teamId || apiKey.userId !== jwtPayload.sub) {
     return null;
   }
 

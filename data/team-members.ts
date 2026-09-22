@@ -1,4 +1,4 @@
-import { teamMembers, users } from "@core/db/schema";
+import { apiKeys, teamMembers, userPermissions, users } from "@core/db/schema";
 import { emitBackendEvent, CORE_BACKEND_EVENTS } from "@core/lib/backend-events";
 import { db } from "@recommand/db";
 import { and, eq } from "drizzle-orm";
@@ -47,9 +47,14 @@ export async function addTeamMember(teamId: string, userId: string) {
 }
 
 export async function removeTeamMember(teamId: string, userId: string) {
-  const res = await db
-    .delete(teamMembers)
-    .where(and(eq(teamMembers.teamId, teamId), eq(teamMembers.userId, userId)));
+  const res = await db.transaction(async (tx) => {
+    await tx.delete(apiKeys)
+      .where(and(eq(apiKeys.teamId, teamId), eq(apiKeys.userId, userId)));
+    await tx.delete(userPermissions)
+      .where(and(eq(userPermissions.teamId, teamId), eq(userPermissions.userId, userId)));
+    return tx.delete(teamMembers)
+      .where(and(eq(teamMembers.teamId, teamId), eq(teamMembers.userId, userId)));
+  });
   await emitBackendEvent(CORE_BACKEND_EVENTS.TEAM_MEMBER_REMOVED, { teamId, userId });
   return res;
 }

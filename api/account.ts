@@ -58,7 +58,8 @@ const _updateProfile = server.put(
         .where(eq(users.id, userId))
         .limit(1);
 
-      if (user[0]) {
+      // Refresh only an existing browser session; API credentials keep their scope.
+      if (user[0] && c.get("authenticationMethod") === "cookie") {
         await createSession(c, user[0]);
       }
 
