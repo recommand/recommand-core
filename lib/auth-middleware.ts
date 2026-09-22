@@ -1,6 +1,6 @@
 import type { Context } from "hono";
 import { createMiddleware } from "hono/factory";
-import { verifySession, type SessionVerificationExtension } from "./session";
+import { verifySession, type AuthenticationMethod, type SessionVerificationExtension } from "./session";
 import { actionFailure } from "@recommand/lib/utils";
 import { getTeam, isMember, type Team } from "@core/data/teams";
 import { audit } from "@core/lib/audit";
@@ -13,7 +13,7 @@ export type AuthenticatedUserContext = {
     };
     team: Team | null;
     teamId: string | null;
-    authenticationMethod: "cookie" | "apiKey" | "extension";
+    authenticationMethod: AuthenticationMethod;
   };
 };
 

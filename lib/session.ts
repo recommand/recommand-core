@@ -49,6 +49,7 @@ export type Session = {
   teamId: string | null;
 }
 export type SessionVerificationExtension = (c: Context) => Promise<Session | null>;
+export type AuthenticationMethod = "cookie" | "apiKey" | "extension";
 
 export async function verifySession(c: Context, extensions: SessionVerificationExtension[] = []): Promise<{
   userId: string | null;
@@ -60,26 +61,20 @@ export async function verifySession(c: Context, extensions: SessionVerificationE
     throw new Error("JWT_SECRET is not set");
   }
 
-  let result: { userId: string | null; isAdmin: boolean; language: string; apiKey: ApiKey | null; teamId: string | null } | null = null;
-  let authenticationMethod: "cookie" | "apiKey" | "extension" = "extension";
-
-  const verificationMethods = [
-    verifySessionCookie,
-    verifyJwtAuth,
-    verifyBasicAuth,
-    ...extensions,
+  const verificationMethods: Array<[SessionVerificationExtension, AuthenticationMethod]> = [
+    [verifySessionCookie, "cookie"],
+    [verifyJwtAuth, "apiKey"],
+    [verifyBasicAuth, "apiKey"],
+    ...extensions.map((extension) => [extension, "extension"] as [SessionVerificationExtension, AuthenticationMethod]),
   ]
 
-  for (const method of verificationMethods) {
+  let authenticated: { result: Session; method: AuthenticationMethod } | null = null;
+
+  for (const [method, label] of verificationMethods) {
     try {
       const methodResult = await method(c);
       if (methodResult) {
-        result = methodResult;
-        authenticationMethod = method === verifySessionCookie
-          ? "cookie"
-          : method === verifyJwtAuth || method === verifyBasicAuth
-            ? "apiKey"
-            : "extension";
+        authenticated = { result: methodResult, method: label };
         break; // Stop checking other extensions if one is successful
       }
     } catch (error) {
@@ -87,7 +82,8 @@ export async function verifySession(c: Context, extensions: SessionVerificationE
     }
   }
 
-  if (!result) return null;
+  if (!authenticated) return null;
+  const { result, method: authenticationMethod } = authenticated;
 
   // A surviving key must not preserve access after its owner leaves the team.
   if (result.apiKey && !result.isAdmin) {
