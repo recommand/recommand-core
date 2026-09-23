@@ -1,4 +1,4 @@
-import { addDeadLetter } from "@core/data/event-dead-letters";
+import { addDeadLetter } from "@core/data/event-consumer/dead-letters";
 import {
   bootstrappedFloor,
   dispatchEventHandlers,
@@ -8,13 +8,13 @@ import {
 import {
   listProjectionBootstrapsForTeam,
   recordProjectionBootstrap,
-} from "@core/data/event-projection-bootstraps";
+} from "@core/data/event-consumer/projection-bootstraps";
 import {
   claimCursor,
   CursorLockLostError,
   releaseCursor,
   setCursor,
-} from "@core/data/event-cursors";
+} from "@core/data/event-consumer/cursors";
 import { getHeadSeq, listEvents, listTeamsWithPendingEvents } from "@core/data/events";
 import { registerServicePrincipal } from "@core/data/service-principals";
 import {

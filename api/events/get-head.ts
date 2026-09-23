@@ -7,8 +7,11 @@ import { describeRoute } from "hono-openapi";
 
 const server = new Server();
 
-// The log position a remote consumer takes a snapshot at before it bootstraps
-// a projection; see ProjectionBootstrap in data/event-handlers.ts.
+// The log position a consumer takes a snapshot at. The in-repo tracker records
+// it per projection (see ProjectionBootstrap in data/event-handlers.ts); an
+// external consumer reads it, takes its snapshot, and puts its cursor here.
+// Read head before the snapshot: anything that changes in between is in the
+// snapshot or has an event above the head.
 const _getHead = server.get(
   "/events/head",
   requireTeamAccess({ installationOnly: true }),

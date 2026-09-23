@@ -166,6 +166,13 @@ export const rules = pgTable("rules", {
   index("rules_team_event_idx").on(table.teamId, table.eventType, table.enabled),
 ]);
 
+// ---------------------------------------------------------------------------
+// Event log: the log itself and who may read it. Installations and their
+// tokens are how a consumer on another deployment authenticates against this
+// log. Written by the deployment that publishes events; a standalone consumer
+// deployment has these tables but leaves them empty.
+// ---------------------------------------------------------------------------
+
 export const installations = pgTable(
   "installations",
   {
@@ -277,6 +284,14 @@ export const events = pgTable(
     ),
   ]
 );
+
+// ---------------------------------------------------------------------------
+// Consumer progress: how far one consumer has come through the log. In-repo
+// consumers write these from their tracker in their own database, whether the
+// log they follow is local or remote. An external consumer keeps only its
+// cursor, at the source, through the event-cursors API. Data access lives in
+// data/event-consumer/.
+// ---------------------------------------------------------------------------
 
 export const eventCursors = pgTable(
   "event_cursors",

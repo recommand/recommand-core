@@ -1,7 +1,7 @@
 import { eventDeadLetters } from "@core/db/schema";
 import type { EventEnvelope } from "@core/lib/rules/types";
 import { db } from "@recommand/db";
-import { normalizeStreamId } from "./events";
+import { normalizeStreamId } from "@core/data/events";
 
 export type EventDeadLetter = typeof eventDeadLetters.$inferSelect;
 

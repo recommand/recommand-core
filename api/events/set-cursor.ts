@@ -1,4 +1,4 @@
-import { setCursor } from "@core/data/event-cursors";
+import { setCursor } from "@core/data/event-consumer/cursors";
 import { requireTeamAccess } from "@core/lib/auth-middleware";
 import { requirePermission } from "@core/lib/permissions/permission-middleware";
 import { Server } from "@recommand/lib/api";
