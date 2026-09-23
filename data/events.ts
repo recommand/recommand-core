@@ -5,7 +5,7 @@ import {
   type EventEnvelope,
 } from "@core/lib/rules/types";
 import { db } from "@recommand/db";
-import { and, asc, eq, gt, max, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, max, sql } from "drizzle-orm";
 import type { Tx } from "./rules/db";
 
 export type EventRow = typeof events.$inferSelect;
@@ -129,6 +129,21 @@ export async function listEvents(
     events: rows.map(toEventEnvelope),
     hasMore: rows.length === limit,
   };
+}
+
+/**
+ * The newest event id across all teams, read from the primary key index. Ids
+ * are ULIDs, so the value changes on almost every append. It is not exact: an
+ * event created before another but committed after it lands below the value
+ * already seen, so an unchanged value does not prove nothing was appended.
+ */
+export async function getLatestEventId(): Promise<string | null> {
+  const [row] = await db
+    .select({ id: events.id })
+    .from(events)
+    .orderBy(desc(events.id))
+    .limit(1);
+  return row?.id ?? null;
 }
 
 /** The highest sequence number a team's log has reached; 0 for an empty log. */

@@ -73,9 +73,15 @@ holds the cursor, bootstrap and dead-letter bookkeeping the tracker writes.
 
 A package in this deployment calls `startEventSourceTracker` from
 `data/event-sources.ts` and registers handlers with `registerEventHandler` from
-`data/event-handlers.ts`. The tracker runs every 5 seconds when `RUN_CRON=true`.
+`data/event-handlers.ts`. The tracker runs when `RUN_CRON=true`.
 Without `EVENT_SOURCE_URL` and `EVENT_SOURCE_TOKEN` it reads the local log; with
 both it pulls one team, the token's team, from the remote source over HTTP.
+
+A local tracker reads the newest event id every 500 ms and pulls when it has
+changed, so new events arrive within about half a second. Because ids are
+assigned before commit, a transaction that commits late can stay below the value
+already seen; a full pull every 5 seconds catches those events and retries
+failed ones. A remote tracker pulls every 5 seconds.
 
 In both modes the tracker keeps its position in `event_cursors` in its own
 database, one cursor per team and consumer, shared by every handler of that

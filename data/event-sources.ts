@@ -15,7 +15,12 @@ import {
   releaseCursor,
   setCursor,
 } from "@core/data/event-consumer/cursors";
-import { getHeadSeq, listEvents, listTeamsWithPendingEvents } from "@core/data/events";
+import {
+  getHeadSeq,
+  getLatestEventId,
+  listEvents,
+  listTeamsWithPendingEvents,
+} from "@core/data/events";
 import { registerServicePrincipal } from "@core/data/service-principals";
 import {
   EVENT_ENVELOPE_VERSION,
@@ -23,11 +28,15 @@ import {
   isSupportedEventEnvelopeVersion,
 } from "@core/lib/rules/types";
 import type { Logger } from "@recommand/lib/logger";
-import { Cron } from "croner";
 import { decodeJwt } from "jose";
 import { z } from "zod";
 
 const MAX_EVENT_ATTEMPTS = 3;
+// A local tracker checks the log watermark this often and pulls when it moved.
+const WATERMARK_INTERVAL_MS = 500;
+// Every tracker pulls at least this often. For a local source this catches
+// events the watermark missed and retries failed events.
+const FULL_PULL_INTERVAL_MS = 5_000;
 
 type LocalEventSource = {
   kind: "local";
@@ -329,11 +338,37 @@ export function startEventSourceTracker(options: EventSourceTrackerOptions) {
     }
   };
 
-  new Cron(
-    "*/5 * * * * *",
-    { name: `core.event-source.${trackerKey}`, protect: true },
-    run
-  );
+  let lastWatermark: string | null | undefined;
+  let lastPullAt = 0;
+  const tick = async () => {
+    if (source.kind === "local") {
+      try {
+        const watermark = await getLatestEventId();
+        const due = Date.now() - lastPullAt >= FULL_PULL_INTERVAL_MS;
+        if (!due && watermark === lastWatermark) {
+          return;
+        }
+        lastWatermark = watermark;
+      } catch (error) {
+        options.logger.error(
+          `Failed to read the "${options.source}" event watermark: ${error instanceof Error ? error.message : String(error)}`
+        );
+        return;
+      }
+    }
+    lastPullAt = Date.now();
+    await run();
+  };
+
+  // A timeout chain, not an interval: a slow pull delays the next tick instead
+  // of overlapping it.
+  const interval =
+    source.kind === "local" ? WATERMARK_INTERVAL_MS : FULL_PULL_INTERVAL_MS;
+  const loop = async () => {
+    await tick();
+    setTimeout(loop, interval);
+  };
+  setTimeout(loop, interval);
   return client;
 }
 
