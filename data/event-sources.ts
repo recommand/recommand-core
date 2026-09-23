@@ -153,6 +153,8 @@ async function readHeadSeq(client: EventSourceClient, teamId: string) {
  * Bring every projection that declares a bootstrap up to date for one team.
  * The head is read before the snapshot, so the snapshot is at least that new;
  * events after the head replay on top, events at or below it are skipped.
+ * Returns whether every bootstrap is recorded, so the caller only pulls
+ * events for a team whose projections have a snapshot to replay onto.
  */
 async function runProjectionBootstraps(
   options: {
@@ -168,9 +170,10 @@ async function runProjectionBootstraps(
       !confirmedBootstraps.has(`${options.consumerId}:${teamId}:${bootstrap.key}`)
   );
   if (pending.length === 0) {
-    return;
+    return true;
   }
 
+  let ready = true;
   const recorded = await listProjectionBootstrapsForTeam(teamId, options.consumerId);
   for (const bootstrap of pending) {
     const confirmedKey = `${options.consumerId}:${teamId}:${bootstrap.key}`;
@@ -193,11 +196,13 @@ async function runProjectionBootstraps(
         `Bootstrapped projection "${bootstrap.key}" for ${teamId} at seq ${headSeq}`
       );
     } catch (error) {
+      ready = false;
       options.logger.error(
         `Failed to bootstrap projection "${bootstrap.key}" for ${teamId}: ${error instanceof Error ? error.message : String(error)}`
       );
     }
   }
+  return ready;
 }
 
 async function pullEventSource(options: {
@@ -209,6 +214,9 @@ async function pullEventSource(options: {
   const source = options.client.source;
 
   const bootstraps = listHandlerProjectionBootstraps();
+  // With bootstraps, only teams whose snapshots are recorded in this tick are
+  // pulled: replaying onto a missing snapshot would apply events to nothing.
+  let bootstrappedTeamIds: Set<string> | undefined;
   if (bootstraps.length > 0) {
     // Followed teams, not only those with pending events: a team whose data
     // predates its events has nothing pending and would never be visited.
@@ -224,8 +232,11 @@ async function pullEventSource(options: {
           .join(", ")}) but passes no listTeams to startEventSourceTracker`
       );
     }
+    bootstrappedTeamIds = new Set();
     for (const teamId of bootstrapTeamIds) {
-      await runProjectionBootstraps(options, teamId, bootstraps);
+      if (await runProjectionBootstraps(options, teamId, bootstraps)) {
+        bootstrappedTeamIds.add(teamId);
+      }
     }
   }
 
@@ -241,6 +252,9 @@ async function pullEventSource(options: {
   }
 
   for (const teamId of teamIds) {
+    if (bootstrappedTeamIds && !bootstrappedTeamIds.has(teamId)) {
+      continue;
+    }
     try {
       await pullTeam(options, teamId);
     } catch (error) {
