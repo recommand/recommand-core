@@ -131,6 +131,15 @@ export async function listEvents(
   };
 }
 
+/** The highest sequence number a team's log has reached; 0 for an empty log. */
+export async function getHeadSeq(teamId: string): Promise<number> {
+  const [row] = await db
+    .select({ maxSeq: max(events.seq) })
+    .from(events)
+    .where(eq(events.teamId, teamId));
+  return row?.maxSeq ?? 0;
+}
+
 export async function listTeamsWithPendingEvents(consumerId: string) {
   const maxSeqByTeam = db
     .select({

@@ -1,12 +1,21 @@
 import { addDeadLetter } from "@core/data/event-dead-letters";
-import { dispatchEventHandlers } from "@core/data/event-handlers";
+import {
+  bootstrappedFloor,
+  dispatchEventHandlers,
+  listHandlerProjectionBootstraps,
+  type ProjectionBootstrap,
+} from "@core/data/event-handlers";
+import {
+  listProjectionBootstrapsForTeam,
+  recordProjectionBootstrap,
+} from "@core/data/event-projection-bootstraps";
 import {
   claimCursor,
   CursorLockLostError,
   releaseCursor,
   setCursor,
 } from "@core/data/event-cursors";
-import { listEvents, listTeamsWithPendingEvents } from "@core/data/events";
+import { getHeadSeq, listEvents, listTeamsWithPendingEvents } from "@core/data/events";
 import { registerServicePrincipal } from "@core/data/service-principals";
 import {
   EVENT_ENVELOPE_VERSION,
@@ -43,6 +52,14 @@ type EventSourceTrackerOptions = {
   consumerId: string;
   remote?: RemoteEventSourceConfig;
   logger: Logger;
+  /**
+   * Which teams to follow on a local source. Read on every tick, so the set
+   * may change at runtime. Absent: every team with pending events. Required
+   * when a registered handler declares a bootstrap, because a snapshot of
+   * every team is never acceptable. A remote source is pinned to the
+   * installation token's team and ignores this.
+   */
+  listTeams?: () => Promise<string[]>;
 };
 
 export type EventSourceClient = {
@@ -56,8 +73,16 @@ const remoteEventsResponseSchema = z.object({
   hasMore: z.boolean(),
 });
 
+const remoteHeadResponseSchema = z.object({
+  success: z.literal(true),
+  seq: z.number().int().min(0),
+});
+
 const startedTrackers = new Set<string>();
 const startedClients = new Map<string, EventSourceClient>();
+// Bootstraps this process has already confirmed, so a tick does not hit the
+// database for every team once everything is caught up.
+const confirmedBootstraps = new Set<string>();
 
 function localSourceBaseUrl() {
   return `http://127.0.0.1:${process.env.PORT || "3000"}`;
@@ -111,16 +136,109 @@ function resolveEventSource(
   throw new Error("Remote event source requires url and token");
 }
 
+async function readHeadSeq(client: EventSourceClient, teamId: string) {
+  if (client.source.kind === "local") {
+    return getHeadSeq(teamId);
+  }
+  const response = await client.fetch("/api/core/events/head");
+  if (!response.ok) {
+    throw new Error(
+      `Remote event source returned ${response.status} ${response.statusText} for head`
+    );
+  }
+  return remoteHeadResponseSchema.parse(await response.json()).seq;
+}
+
+/**
+ * Bring every projection that declares a bootstrap up to date for one team.
+ * The head is read before the snapshot, so the snapshot is at least that new;
+ * events after the head replay on top, events at or below it are skipped.
+ */
+async function runProjectionBootstraps(
+  options: {
+    client: EventSourceClient;
+    consumerId: string;
+    logger: Logger;
+  },
+  teamId: string,
+  bootstraps: ProjectionBootstrap[]
+) {
+  const pending = bootstraps.filter(
+    (bootstrap) =>
+      !confirmedBootstraps.has(`${options.consumerId}:${teamId}:${bootstrap.key}`)
+  );
+  if (pending.length === 0) {
+    return;
+  }
+
+  const recorded = await listProjectionBootstrapsForTeam(teamId, options.consumerId);
+  for (const bootstrap of pending) {
+    const confirmedKey = `${options.consumerId}:${teamId}:${bootstrap.key}`;
+    if (recorded.has(bootstrap.key)) {
+      confirmedBootstraps.add(confirmedKey);
+      continue;
+    }
+
+    try {
+      const headSeq = await readHeadSeq(options.client, teamId);
+      await bootstrap.run({ teamId, source: options.client, headSeq });
+      await recordProjectionBootstrap({
+        teamId,
+        consumerId: options.consumerId,
+        projectionKey: bootstrap.key,
+        asOfSeq: headSeq,
+      });
+      confirmedBootstraps.add(confirmedKey);
+      options.logger.info(
+        `Bootstrapped projection "${bootstrap.key}" for ${teamId} at seq ${headSeq}`
+      );
+    } catch (error) {
+      options.logger.error(
+        `Failed to bootstrap projection "${bootstrap.key}" for ${teamId}: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+}
+
 async function pullEventSource(options: {
   client: EventSourceClient;
   consumerId: string;
   logger: Logger;
+  listTeams?: () => Promise<string[]>;
 }) {
   const source = options.client.source;
-  const teamIds =
-    source.kind === "local"
-      ? await listTeamsWithPendingEvents(options.consumerId)
-      : [source.teamId];
+
+  const bootstraps = listHandlerProjectionBootstraps();
+  if (bootstraps.length > 0) {
+    // Followed teams, not only those with pending events: a team whose data
+    // predates its events has nothing pending and would never be visited.
+    let bootstrapTeamIds: string[];
+    if (source.kind === "remote") {
+      bootstrapTeamIds = [source.teamId];
+    } else if (options.listTeams) {
+      bootstrapTeamIds = await options.listTeams();
+    } else {
+      throw new Error(
+        `Consumer "${options.consumerId}" registers projection bootstraps (${bootstraps
+          .map((bootstrap) => bootstrap.key)
+          .join(", ")}) but passes no listTeams to startEventSourceTracker`
+      );
+    }
+    for (const teamId of bootstrapTeamIds) {
+      await runProjectionBootstraps(options, teamId, bootstraps);
+    }
+  }
+
+  let teamIds: string[];
+  if (source.kind === "remote") {
+    teamIds = [source.teamId];
+  } else {
+    teamIds = await listTeamsWithPendingEvents(options.consumerId);
+    if (options.listTeams) {
+      const followed = new Set(await options.listTeams());
+      teamIds = teamIds.filter((teamId) => followed.has(teamId));
+    }
+  }
 
   for (const teamId of teamIds) {
     try {
@@ -188,6 +306,7 @@ export function startEventSourceTracker(options: EventSourceTrackerOptions) {
         client,
         consumerId: options.consumerId,
         logger: options.logger,
+        listTeams: options.listTeams,
       });
     } catch (error) {
       options.logger.error(
@@ -219,11 +338,24 @@ async function pullTeam(
   }
 
   const lockedBy = cursor.lockedBy;
+  const bootstrappedUpTo = await listProjectionBootstrapsForTeam(
+    teamId,
+    options.consumerId
+  );
   let after = cursor.lastSeq;
   let retryCount = cursor.retryCount;
   let hasMore = true;
 
   try {
+    // When every handler has a snapshot, nothing below the lowest snapshot is
+    // ever dispatched. Start there instead of reading and skipping the history,
+    // which for a newly followed team with a long log is the whole log.
+    const floor = bootstrappedFloor(bootstrappedUpTo);
+    if (floor !== undefined && floor > after) {
+      await setCursor(teamId, options.consumerId, floor, retryCount, lockedBy);
+      after = floor;
+    }
+
     while (hasMore) {
       const page =
         source.kind === "local"
@@ -247,7 +379,7 @@ async function pullTeam(
         }
 
         try {
-          await dispatchEventHandlers(event, options.client);
+          await dispatchEventHandlers(event, options.client, { bootstrappedUpTo });
           after = event.seq;
           retryCount = 0;
           await setCursor(teamId, options.consumerId, after, retryCount, lockedBy);

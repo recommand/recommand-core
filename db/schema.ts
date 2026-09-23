@@ -294,6 +294,25 @@ export const eventCursors = pgTable(
   (table) => [primaryKey({ columns: [table.teamId, table.consumerId] })]
 );
 
+// One row per projection a consumer has bootstrapped from a current-state
+// snapshot. Events at or below as_of_seq are already in the snapshot, so the
+// projection skips them when the log is replayed.
+export const eventProjectionBootstraps = pgTable(
+  "event_projection_bootstraps",
+  {
+    teamId: text("team_id")
+      .references(() => teams.id, { onDelete: "cascade" })
+      .notNull(),
+    consumerId: text("consumer_id").notNull(),
+    projectionKey: text("projection_key").notNull(),
+    asOfSeq: integer("as_of_seq").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.teamId, table.consumerId, table.projectionKey] }),
+  ]
+);
+
 export const eventDeadLetters = pgTable(
   "event_dead_letters",
   {
