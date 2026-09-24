@@ -328,6 +328,29 @@ export const eventProjectionBootstraps = pgTable(
   ]
 );
 
+// Items a bootstrap skipped because they failed, one row per item. The
+// projection is recorded as complete without them; the rows make that visible
+// and are cleared when the projection bootstraps again.
+export const eventProjectionBootstrapFailures = pgTable(
+  "event_projection_bootstrap_failures",
+  {
+    teamId: text("team_id")
+      .references(() => teams.id, { onDelete: "cascade" })
+      .notNull(),
+    consumerId: text("consumer_id").notNull(),
+    projectionKey: text("projection_key").notNull(),
+    itemId: text("item_id").notNull(),
+    error: text("error").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({
+      name: "event_projection_bootstrap_failures_pk",
+      columns: [table.teamId, table.consumerId, table.projectionKey, table.itemId],
+    }),
+  ]
+);
+
 export const eventDeadLetters = pgTable(
   "event_dead_letters",
   {

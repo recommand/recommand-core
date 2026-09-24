@@ -7,12 +7,16 @@ import {
 } from "@core/data/event-handlers";
 import {
   listProjectionBootstrapsForTeam,
+  clearProjectionBootstrapFailures,
+  listRecordedProjectionKeys,
   recordProjectionBootstrap,
+  recordProjectionBootstrapFailure,
 } from "@core/data/event-consumer/projection-bootstraps";
 import {
   claimCursor,
   CursorLockLostError,
   releaseCursor,
+  renewCursor,
   setCursor,
 } from "@core/data/event-consumer/cursors";
 import {
@@ -32,6 +36,13 @@ import { decodeJwt } from "jose";
 import { z } from "zod";
 
 const MAX_EVENT_ATTEMPTS = 3;
+// The bootstrap loop looks for followed teams that miss a snapshot this often.
+const BOOTSTRAP_INTERVAL_MS = 1_000;
+const MAX_CONCURRENT_BOOTSTRAPS = 3;
+// Wait before the next attempt of a failed bootstrap; the last value repeats.
+const BOOTSTRAP_RETRY_DELAYS_MS = [5_000, 30_000, 120_000, 600_000];
+// Renew a held cursor lease this often, well within CURSOR_LOCK_SECONDS.
+const CURSOR_HEARTBEAT_MS = 20_000;
 // A local tracker checks the log watermark this often and pulls when it moved.
 const WATERMARK_INTERVAL_MS = 500;
 // Every tracker pulls at least this often. For a local source this catches
@@ -89,8 +100,8 @@ const remoteHeadResponseSchema = z.object({
 
 const startedTrackers = new Set<string>();
 const startedClients = new Map<string, EventSourceClient>();
-// Bootstraps this process has already confirmed, so a tick does not hit the
-// database for every team once everything is caught up.
+// Bootstraps this process has already confirmed, so the bootstrap loop does
+// not hit the database for every team once everything is caught up.
 const confirmedBootstraps = new Set<string>();
 
 function localSourceBaseUrl() {
@@ -158,120 +169,249 @@ async function readHeadSeq(client: EventSourceClient, teamId: string) {
   return remoteHeadResponseSchema.parse(await response.json()).seq;
 }
 
-/**
- * Bring every projection that declares a bootstrap up to date for one team.
- * The head is read before the snapshot, so the snapshot is at least that new;
- * events after the head replay on top, events at or below it are skipped.
- * Returns whether every bootstrap is recorded, so the caller only pulls
- * events for a team whose projections have a snapshot to replay onto.
- */
-async function runProjectionBootstraps(
-  options: {
-    client: EventSourceClient;
-    consumerId: string;
-    logger: Logger;
-  },
-  teamId: string,
-  bootstraps: ProjectionBootstrap[]
-) {
-  const pending = bootstraps.filter(
-    (bootstrap) =>
-      !confirmedBootstraps.has(`${options.consumerId}:${teamId}:${bootstrap.key}`)
-  );
-  if (pending.length === 0) {
-    return true;
-  }
-
-  let ready = true;
-  const recorded = await listProjectionBootstrapsForTeam(teamId, options.consumerId);
-  for (const bootstrap of pending) {
-    const confirmedKey = `${options.consumerId}:${teamId}:${bootstrap.key}`;
-    if (recorded.has(bootstrap.key)) {
-      confirmedBootstraps.add(confirmedKey);
-      continue;
-    }
-
-    try {
-      const headSeq = await readHeadSeq(options.client, teamId);
-      await bootstrap.run({ teamId, source: options.client, headSeq });
-      await recordProjectionBootstrap({
-        teamId,
-        consumerId: options.consumerId,
-        projectionKey: bootstrap.key,
-        asOfSeq: headSeq,
-      });
-      confirmedBootstraps.add(confirmedKey);
-      options.logger.info(
-        `Bootstrapped projection "${bootstrap.key}" for ${teamId} at seq ${headSeq}`
-      );
-    } catch (error) {
-      ready = false;
-      options.logger.error(
-        `Failed to bootstrap projection "${bootstrap.key}" for ${teamId}: ${error instanceof Error ? error.message : String(error)}`
-      );
-    }
-  }
-  return ready;
-}
-
-async function pullEventSource(options: {
+type TrackerContext = {
   client: EventSourceClient;
   consumerId: string;
   logger: Logger;
   listTeams?: () => Promise<string[]>;
-}) {
-  const source = options.client.source;
+};
 
-  const bootstraps = listHandlerProjectionBootstraps();
-  // With bootstraps, only teams whose snapshots are recorded in this tick are
-  // pulled: replaying onto a missing snapshot would apply events to nothing.
-  let bootstrappedTeamIds: Set<string> | undefined;
-  if (bootstraps.length > 0) {
-    // Followed teams, not only those with pending events: a team whose data
-    // predates its events has nothing pending and would never be visited.
-    let bootstrapTeamIds: string[];
-    if (source.kind === "remote") {
-      bootstrapTeamIds = [source.teamId];
-    } else if (options.listTeams) {
-      bootstrapTeamIds = await options.listTeams();
-    } else {
-      throw new Error(
-        `Consumer "${options.consumerId}" registers projection bootstraps (${bootstraps
-          .map((bootstrap) => bootstrap.key)
-          .join(", ")}) but passes no listTeams to startEventSourceTracker`
+type BootstrapLoopState = {
+  inFlight: Set<string>;
+  failures: Map<string, { attempts: number; retryAt: number }>;
+};
+
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function confirmedBootstrapKey(consumerId: string, teamId: string, key: string) {
+  return `${consumerId}:${teamId}:${key}`;
+}
+
+/**
+ * Keep a claimed cursor's lease alive while work runs under it. A lost lease
+ * is only logged here; the next write under the lock throws on it.
+ */
+function holdCursorLease(context: TrackerContext, teamId: string, lockedBy: string) {
+  const timer = setInterval(() => {
+    renewCursor(teamId, context.consumerId, lockedBy).catch((error) => {
+      context.logger.error(
+        `Failed to renew the cursor lease for ${teamId}: ${errorMessage(error)}`
       );
-    }
-    bootstrappedTeamIds = new Set();
-    for (const teamId of bootstrapTeamIds) {
-      if (await runProjectionBootstraps(options, teamId, bootstraps)) {
-        bootstrappedTeamIds.add(teamId);
+    });
+  }, CURSOR_HEARTBEAT_MS);
+  return () => clearInterval(timer);
+}
+
+async function listBootstrapTeamIds(
+  context: TrackerContext,
+  bootstraps: ProjectionBootstrap[]
+) {
+  const source = context.client.source;
+  if (source.kind === "remote") {
+    return [source.teamId];
+  }
+  if (!context.listTeams) {
+    throw new Error(
+      `Consumer "${context.consumerId}" registers projection bootstraps (${bootstraps
+        .map((bootstrap) => bootstrap.key)
+        .join(", ")}) but passes no listTeams to startEventSourceTracker`
+    );
+  }
+  return context.listTeams();
+}
+
+/**
+ * Take every missing snapshot for one team under the team's cursor lock, so no
+ * other node bootstraps or follows the team at the same time. The head is read
+ * before the snapshot, so the snapshot is at least that new; events after the
+ * head replay on top, events at or below it are skipped. Returns false when
+ * another claim holds the cursor.
+ */
+async function bootstrapTeam(
+  context: TrackerContext,
+  teamId: string,
+  bootstraps: ProjectionBootstrap[]
+) {
+  const cursor = await claimCursor(teamId, context.consumerId);
+  if (!cursor?.lockedBy) {
+    return false;
+  }
+
+  const lockedBy = cursor.lockedBy;
+  const stopLease = holdCursorLease(context, teamId, lockedBy);
+  try {
+    // Read under the lock: another node may have finished this team since the
+    // loop last looked.
+    const recorded = await listProjectionBootstrapsForTeam(teamId, context.consumerId);
+    for (const bootstrap of bootstraps) {
+      const confirmedKey = confirmedBootstrapKey(context.consumerId, teamId, bootstrap.key);
+      if (recorded.has(bootstrap.key)) {
+        confirmedBootstraps.add(confirmedKey);
+        continue;
+      }
+
+      const failureKey = {
+        teamId,
+        consumerId: context.consumerId,
+        projectionKey: bootstrap.key,
+      };
+      await clearProjectionBootstrapFailures(failureKey);
+      const headSeq = await readHeadSeq(context.client, teamId);
+      let skipped = 0;
+      await bootstrap.run({
+        teamId,
+        source: context.client,
+        headSeq,
+        reportItemFailure: async (itemId, error) => {
+          skipped++;
+          await recordProjectionBootstrapFailure({ ...failureKey, itemId, error });
+        },
+      });
+      // Prove the lock is still held right before the record, so a node that
+      // took over after a lost lease never has its snapshot overwritten.
+      await renewCursor(teamId, context.consumerId, lockedBy);
+      await recordProjectionBootstrap({
+        teamId,
+        consumerId: context.consumerId,
+        projectionKey: bootstrap.key,
+        asOfSeq: headSeq,
+      });
+      confirmedBootstraps.add(confirmedKey);
+      context.logger.info(
+        `Bootstrapped projection "${bootstrap.key}" for ${teamId} at seq ${headSeq}`
+      );
+      if (skipped > 0) {
+        context.logger.error(
+          `Projection "${bootstrap.key}" for ${teamId} skipped ${skipped} failed item(s); see event_projection_bootstrap_failures`
+        );
       }
     }
+    return true;
+  } finally {
+    stopLease();
+    await releaseCursor(teamId, context.consumerId, lockedBy);
   }
+}
+
+/**
+ * Start the bootstraps of followed teams that miss one, a few at a time and
+ * without waiting for them, so a long snapshot never holds back the log tail of
+ * other teams. A failed team waits longer before each next attempt.
+ */
+async function startPendingBootstraps(
+  context: TrackerContext,
+  state: BootstrapLoopState
+) {
+  const bootstraps = listHandlerProjectionBootstraps();
+  if (bootstraps.length === 0) {
+    return;
+  }
+
+  const now = Date.now();
+  const candidates = (await listBootstrapTeamIds(context, bootstraps)).filter(
+    (teamId) =>
+      !state.inFlight.has(teamId) &&
+      (state.failures.get(teamId)?.retryAt ?? 0) <= now &&
+      bootstraps.some(
+        (bootstrap) =>
+          !confirmedBootstraps.has(
+            confirmedBootstrapKey(context.consumerId, teamId, bootstrap.key)
+          )
+      )
+  );
+  if (candidates.length === 0) {
+    return;
+  }
+
+  // Confirm teams bootstrapped before this process started without claiming
+  // their cursors.
+  const recorded = await listRecordedProjectionKeys(candidates, context.consumerId);
+  for (const teamId of candidates) {
+    const keys = recorded.get(teamId);
+    const missing = bootstraps.filter((bootstrap) => !keys?.has(bootstrap.key));
+    for (const bootstrap of bootstraps) {
+      if (keys?.has(bootstrap.key)) {
+        confirmedBootstraps.add(
+          confirmedBootstrapKey(context.consumerId, teamId, bootstrap.key)
+        );
+      }
+    }
+    if (missing.length === 0 || state.inFlight.size >= MAX_CONCURRENT_BOOTSTRAPS) {
+      continue;
+    }
+
+    state.inFlight.add(teamId);
+    void (async () => {
+      try {
+        if (!(await bootstrapTeam(context, teamId, bootstraps))) {
+          return;
+        }
+        state.failures.delete(teamId);
+      } catch (error) {
+        const attempts = (state.failures.get(teamId)?.attempts ?? 0) + 1;
+        const delay =
+          BOOTSTRAP_RETRY_DELAYS_MS[
+            Math.min(attempts, BOOTSTRAP_RETRY_DELAYS_MS.length) - 1
+          ];
+        state.failures.set(teamId, { attempts, retryAt: Date.now() + delay });
+        context.logger.error(
+          `Failed to bootstrap projections for ${teamId} (attempt ${attempts}, next in ${Math.round(delay / 1000)}s): ${errorMessage(error)}`
+        );
+        return;
+      } finally {
+        state.inFlight.delete(teamId);
+      }
+
+      // Replay what was published during the snapshot now, instead of on the
+      // next full pull.
+      try {
+        await pullTeam(context, teamId);
+      } catch (error) {
+        context.logger.error(
+          `Failed to pull events for ${teamId}: ${errorMessage(error)}`
+        );
+      }
+    })();
+  }
+}
+
+async function pullEventSource(context: TrackerContext) {
+  const source = context.client.source;
 
   let teamIds: string[];
   if (source.kind === "remote") {
     teamIds = [source.teamId];
   } else {
-    teamIds = await listTeamsWithPendingEvents(options.consumerId);
-    if (options.listTeams) {
-      const followed = new Set(await options.listTeams());
+    teamIds = await listTeamsWithPendingEvents(context.consumerId);
+    if (context.listTeams) {
+      const followed = new Set(await context.listTeams());
       teamIds = teamIds.filter((teamId) => followed.has(teamId));
     }
   }
 
   for (const teamId of teamIds) {
-    if (bootstrappedTeamIds && !bootstrappedTeamIds.has(teamId)) {
-      continue;
-    }
     try {
-      await pullTeam(options, teamId);
+      await pullTeam(context, teamId);
     } catch (error) {
-      options.logger.error(
-        `Failed to pull events for ${teamId}: ${error instanceof Error ? error.message : String(error)}`
+      context.logger.error(
+        `Failed to pull events for ${teamId}: ${errorMessage(error)}`
       );
     }
   }
+}
+
+/**
+ * Run `tick` every `intervalMs` as a timeout chain, not an interval: a slow
+ * tick delays the next one instead of overlapping it.
+ */
+function startLoop(intervalMs: number, tick: () => Promise<void>) {
+  const loop = async () => {
+    await tick();
+    setTimeout(loop, intervalMs);
+  };
+  setTimeout(loop, intervalMs);
 }
 
 export function startEventSourceTracker(options: EventSourceTrackerOptions) {
@@ -323,63 +463,54 @@ export function startEventSourceTracker(options: EventSourceTrackerOptions) {
   }
   startedTrackers.add(trackerKey);
 
-  const run = async () => {
+  const context: TrackerContext = {
+    client,
+    consumerId: options.consumerId,
+    logger: options.logger,
+    listTeams: options.listTeams,
+  };
+
+  const bootstrapState: BootstrapLoopState = {
+    inFlight: new Set(),
+    failures: new Map(),
+  };
+  startLoop(BOOTSTRAP_INTERVAL_MS, async () => {
     try {
-      await pullEventSource({
-        client,
-        consumerId: options.consumerId,
-        logger: options.logger,
-        listTeams: options.listTeams,
-      });
+      await startPendingBootstraps(context, bootstrapState);
     } catch (error) {
       options.logger.error(
-        `Failed to track "${options.source}" events: ${error instanceof Error ? error.message : String(error)}`
+        `Failed to start "${options.source}" projection bootstraps: ${errorMessage(error)}`
       );
     }
-  };
+  });
 
   let lastWatermark: string | null | undefined;
   let lastPullAt = 0;
-  const tick = async () => {
-    if (source.kind === "local") {
+  startLoop(
+    source.kind === "local" ? WATERMARK_INTERVAL_MS : FULL_PULL_INTERVAL_MS,
+    async () => {
       try {
-        const watermark = await getLatestEventId();
-        const due = Date.now() - lastPullAt >= FULL_PULL_INTERVAL_MS;
-        if (!due && watermark === lastWatermark) {
-          return;
+        if (source.kind === "local") {
+          const watermark = await getLatestEventId();
+          const due = Date.now() - lastPullAt >= FULL_PULL_INTERVAL_MS;
+          if (!due && watermark === lastWatermark) {
+            return;
+          }
+          lastWatermark = watermark;
         }
-        lastWatermark = watermark;
+        lastPullAt = Date.now();
+        await pullEventSource(context);
       } catch (error) {
         options.logger.error(
-          `Failed to read the "${options.source}" event watermark: ${error instanceof Error ? error.message : String(error)}`
+          `Failed to track "${options.source}" events: ${errorMessage(error)}`
         );
-        return;
       }
     }
-    lastPullAt = Date.now();
-    await run();
-  };
-
-  // A timeout chain, not an interval: a slow pull delays the next tick instead
-  // of overlapping it.
-  const interval =
-    source.kind === "local" ? WATERMARK_INTERVAL_MS : FULL_PULL_INTERVAL_MS;
-  const loop = async () => {
-    await tick();
-    setTimeout(loop, interval);
-  };
-  setTimeout(loop, interval);
+  );
   return client;
 }
 
-async function pullTeam(
-  options: {
-    client: EventSourceClient;
-    consumerId: string;
-    logger: Logger;
-  },
-  teamId: string
-) {
+async function pullTeam(options: TrackerContext, teamId: string) {
   const source = options.client.source;
   const cursor = await claimCursor(teamId, options.consumerId);
   if (!cursor?.lockedBy) {
@@ -387,15 +518,26 @@ async function pullTeam(
   }
 
   const lockedBy = cursor.lockedBy;
-  const bootstrappedUpTo = await listProjectionBootstrapsForTeam(
-    teamId,
-    options.consumerId
-  );
+  const stopLease = holdCursorLease(options, teamId, lockedBy);
   let after = cursor.lastSeq;
   let retryCount = cursor.retryCount;
   let hasMore = true;
 
   try {
+    // Replaying onto a missing snapshot would apply events to nothing, so a
+    // team is only followed once the bootstrap loop recorded all of them.
+    const bootstrappedUpTo = await listProjectionBootstrapsForTeam(
+      teamId,
+      options.consumerId
+    );
+    if (
+      listHandlerProjectionBootstraps().some(
+        (bootstrap) => !bootstrappedUpTo.has(bootstrap.key)
+      )
+    ) {
+      return;
+    }
+
     // When every handler has a snapshot, nothing below the lowest snapshot is
     // ever dispatched. Start there instead of reading and skipping the history,
     // which for a newly followed team with a long log is the whole log.
@@ -481,6 +623,7 @@ async function pullTeam(
     }
     throw error;
   } finally {
+    stopLease();
     await releaseCursor(teamId, options.consumerId, lockedBy);
   }
 }

@@ -85,26 +85,45 @@ failed ones. A remote tracker pulls every 5 seconds.
 
 In both modes the tracker keeps its position in `event_cursors` in its own
 database, one cursor per team and consumer, shared by every handler of that
-consumer. It never uses the source's cursor routes.
+consumer. It never uses the source's cursor routes. The cursor is also the team's
+lock: a pull or bootstrap claims it for 60 seconds and renews the lease every 20
+seconds while it works, so a slow handler or a long snapshot keeps it and no other
+node works on the same team at the same time.
 
 ### Bootstrap
 
 A projection only sees events published after it exists. A handler registration
 may declare `bootstrap: { key, run }`. Before the tracker follows a team's log it
-runs every missing bootstrap for that team: read the head seq (local: the events
+runs every missing bootstrap for that team, under the team's cursor lock: read the head seq (local: the events
 table; remote: `GET /api/core/events/head`), call `run` to take a current-state
 snapshot through `source.fetch`, then record the head per team, consumer and
 projection key in `event_projection_bootstraps`. Events at or below that head are
 skipped for handlers that share the key; later events replay on top, so handlers
-must be idempotent upserts.
+must be idempotent upserts. `run` must first delete the team's rows of its own
+projection: a row a failed attempt wrote can have its delete event at or below the
+next head, and that event is skipped. The lock keeps event handlers out while it
+runs.
+
+A snapshot item that cannot be applied can be skipped with
+`reportItemFailure(itemId, error)`. The bootstrap still completes; the item is
+stored in `event_projection_bootstrap_failures` and those rows are cleared when the
+projection bootstraps again.
 
 The head is read before the snapshot, so a change in between is in the snapshot or
 has an event above the head, or both. A consumer with bootstraps must pass
 `listTeams` to `startEventSourceTracker`; the tracker never snapshots every team.
 When every handler of a consumer has a recorded snapshot for a team, the cursor
 starts at the lowest recorded head instead of reading history only to skip it. A
-bootstrap never resets the cursor. To rebuild a projection, delete its rows and its
-bootstrap row; the next tick takes a fresh snapshot.
+bootstrap never resets the cursor. To rebuild a projection, delete its bootstrap row;
+the bootstrap loop clears the projection and takes a fresh snapshot.
+
+Bootstraps run in their own loop, a few teams at a time, so a long snapshot never
+holds back the log of other teams. The pull loop skips a team until all its
+bootstraps are recorded, and the bootstrap loop pulls the team at once when it is
+done. A failed bootstrap is tried again after 5 seconds, then 30 seconds, 2 minutes
+and every 10 minutes. `listBootstrappedTeamIds` in
+`data/event-consumer/projection-bootstraps.ts` tells a consumer which teams have
+all their snapshots, for example to hold back a UI until its data is complete.
 
 The record per projection is what lets a consumer add a projection later, or
 rebuild one, without replaying the log for its siblings. One cursor cannot express

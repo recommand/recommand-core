@@ -73,6 +73,34 @@ export async function claimCursor(teamId: string, consumerId: string) {
   return cursor ?? null;
 }
 
+/**
+ * Extend the lease of a claimed cursor without moving it, so long work under
+ * the lock (a bootstrap, a slow handler) keeps it. Throws when another claim
+ * has taken the cursor over.
+ */
+export async function renewCursor(
+  teamId: string,
+  consumerId: string,
+  lockedBy: string
+) {
+  const key = cursorKey(teamId, consumerId);
+  const [cursor] = await db
+    .update(eventCursors)
+    .set({ lockedUntil: addSeconds(new Date(), CURSOR_LOCK_SECONDS) })
+    .where(
+      and(
+        eq(eventCursors.teamId, key.teamId),
+        eq(eventCursors.consumerId, key.consumerId),
+        eq(eventCursors.lockedBy, lockedBy)
+      )
+    )
+    .returning();
+
+  if (!cursor) {
+    throw new CursorLockLostError();
+  }
+}
+
 export async function releaseCursor(
   teamId: string,
   consumerId: string,

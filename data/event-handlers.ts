@@ -11,11 +11,21 @@ export type ProjectionBootstrapContext = {
   source: EventSourceClient;
   /** The log position the snapshot is taken at. Events after it replay on top. */
   headSeq: number;
+  /**
+   * Record one snapshot item that could not be applied, so the bootstrap can
+   * skip it and still complete. The failure stays visible in
+   * `event_projection_bootstrap_failures` until the next bootstrap of the key.
+   */
+  reportItemFailure: (itemId: string, error: string) => Promise<void>;
 };
 
 /**
  * How a projection catches up with state that predates its events: pull a
  * current-state snapshot through the event source, then follow the log tail.
+ * `run` must first remove the team's rows of the projection: a failed attempt
+ * can leave rows behind whose deletion is at or below the next head, and those
+ * events are never replayed. It runs under the team's cursor lock, so no event
+ * handler writes the projection at the same time.
  * The tracker runs it once per team and skips events at or below the recorded
  * head for handlers that share this key.
  */
