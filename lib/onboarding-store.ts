@@ -8,6 +8,10 @@ export interface OnboardingStep {
   title: string;
   description?: string;
   showContinueButton?: boolean;
+  // Position among the steps (lower comes first, default 0). Steps with equal
+  // order keep registration order, which across packages follows effect timing,
+  // so a step that has to come before another package's steps pins itself.
+  order?: number;
   render: ({
     onComplete,
   }: {
@@ -38,7 +42,12 @@ const useOnboardingStore = create<OnboardingStore>((set, get) => ({
 }));
 
 export const useOnboardingSteps = (): OnboardingStep[] => {
-  return useOnboardingStore((state) => state.steps);
+  const steps = useOnboardingStore((state) => state.steps);
+  // Stable sort: equal (or absent) order preserves registration order.
+  return useMemo(
+    () => [...steps].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
+    [steps]
+  );
 };
 
 export const useOnboardingActions = (): {

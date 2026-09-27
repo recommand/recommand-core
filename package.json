@@ -13,10 +13,11 @@
     "@types/pg": "^8.11.11",
     "@types/react": "^19.0.0",
     "drizzle-kit": "^0.30.4",
-    "tsx": "^4.19.3",
-    "react-email": "5.2.1"
+    "react-email": "5.2.1",
+    "tsx": "^4.19.3"
   },
   "peerDependencies": {
+    "react": "^19.0.0",
     "typescript": "^5.0.0"
   },
   "dependencies": {
@@ -51,12 +52,14 @@
     "@types/bcrypt": "^5.0.2",
     "bcrypt": "^5.1.1",
     "class-variance-authority": "^0.7.1",
+    "clsx": "2.1.1",
     "cmdk": "^1.1.1",
     "croner": "^9.1.0",
     "date-fns": "^4.1.0",
     "dotenv": "^16.4.7",
     "drizzle-orm": "0.45.2",
     "embla-carousel-react": "^8.6.0",
+    "hono": "^4.7.2",
     "hono-openapi": "^0.4.6",
     "jose": "^6.0.6",
     "lucide-react": "^0.544.0",
