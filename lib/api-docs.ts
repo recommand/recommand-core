@@ -28,7 +28,7 @@ export function describeSuccessResponse<T>(
 
 export function describeSuccessResponseWithZod(
   description: string,
-  bodySchema: z.ZodObject<any>
+  bodySchema: z.ZodObject<any> = z.object({})
 ) {
   return {
     200: {
