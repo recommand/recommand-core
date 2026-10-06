@@ -18,6 +18,7 @@ import { sendEmail } from "@core/lib/email";
 import { getEmailTemplate } from "@core/emails";
 import { randomBytes } from "crypto";
 import { describeRoute } from "hono-openapi";
+import { describeSuccessResponseWithZod } from "@core/lib/api-docs";
 import { createServerT, resolveSupportedLanguage, toSupportedLanguage } from "@core/lib/translations-server";
 import { audit, hashAuditIdentifier } from "@core/lib/audit";
 import { isPublicSignupEnabled } from "@core/lib/signup";
@@ -729,19 +730,7 @@ const verify = server.get(
     summary: "Verify Authentication",
     tags: ["Authentication"],
     responses: {
-      200: {
-        description: "User is authenticated",
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              properties: {
-                success: { type: "boolean", example: true },
-              },
-            },
-          },
-        },
-      },
+      ...describeSuccessResponseWithZod("User is authenticated", z.object({})),
       401: {
         description: "User is not authenticated",
         content: {
