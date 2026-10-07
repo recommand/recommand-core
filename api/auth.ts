@@ -730,7 +730,7 @@ const verify = server.get(
     summary: "Verify Authentication",
     tags: ["Authentication"],
     responses: {
-      ...describeSuccessResponseWithZod("User is authenticated", z.object({})),
+      ...describeSuccessResponseWithZod("User is authenticated"),
       401: {
         description: "User is not authenticated",
         content: {

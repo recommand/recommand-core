@@ -3,7 +3,6 @@ import { Server } from "@recommand/lib/api";
 import { actionFailure, actionSuccess } from "@recommand/lib/utils";
 import { zodValidator } from "@recommand/lib/zod-validator";
 import { describeRoute } from "hono-openapi";
-import { z } from "zod";
 import "zod-openapi/extend";
 import { deleteRule } from "../../data/rules/rules";
 import { describeErrorResponse, describeSuccessResponseWithZod } from "../../lib/api-docs";
@@ -18,7 +17,7 @@ const deleteRuleRouteDescription = describeRoute({
   description: "Delete an automation rule.",
   tags: ["Rules"],
   responses: {
-    ...describeSuccessResponseWithZod("Successfully deleted rule", z.object({})),
+    ...describeSuccessResponseWithZod("Successfully deleted rule"),
     ...describeErrorResponse(500, "Failed to delete rule"),
   },
 });
