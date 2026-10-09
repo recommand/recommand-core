@@ -45,12 +45,24 @@ export async function downloadFile(key: string) {
 
 export function presignUrl(
   key: string,
-  options?: { expiresIn?: number; method?: "GET" | "PUT"; type?: string },
+  options?: {
+    expiresIn?: number;
+    method?: "GET" | "PUT";
+    type?: string;
+    /**
+     * For GET URLs, the Content-Disposition the storage host answers with
+     * (sent as `response-content-disposition`). Lets a download carry a
+     * readable filename instead of the object key. Needs Bun 1.3 or later;
+     * older versions ignore it and sign the URL without it.
+     */
+    contentDisposition?: string;
+  },
 ) {
   return getS3().presign(key, {
     expiresIn: options?.expiresIn ?? 60 * 60 * 24,
     method: options?.method,
     type: options?.type,
+    contentDisposition: options?.contentDisposition,
   });
 }
 
