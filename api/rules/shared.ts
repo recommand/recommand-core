@@ -2,20 +2,26 @@ import { type AuthenticatedTeamContext, type AuthenticatedUserContext } from "@c
 import { type Context } from "@recommand/lib/api";
 import { z } from "zod";
 import "zod-openapi/extend";
+import { booleanStringSchema } from "../../lib/api-docs";
 import {
   createRuleApiSchema,
   updateRuleSchema,
   type EventTypeDefinition,
 } from "../../lib/rules/types";
 
+export const ruleActionTypeSchema = z.enum(["webhook", "email"]).openapi({
+  description: "What a rule does when it matches: call a webhook or send an email.",
+  ref: "RuleActionType",
+});
+
 export const listRulesQuerySchema = z.object({
   eventType: z.string().nullish().openapi({
     description: "Filter by exact event type.",
   }),
-  actionType: z.enum(["webhook", "email"]).nullish().openapi({
+  actionType: ruleActionTypeSchema.nullish().openapi({
     description: "Filter by action type.",
   }),
-  enabled: z.enum(["true", "false"]).nullish().openapi({
+  enabled: booleanStringSchema.nullish().openapi({
     description: "Filter by enabled state.",
   }),
 });
