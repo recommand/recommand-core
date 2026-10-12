@@ -1,0 +1,45 @@
+name: test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: typecheck and tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      # `core` imports from `framework` through the `@recommand/*` path mapping,
+      # which points at `../framework`. Both repositories are public, so
+      # `framework` is checked out next to `core` with the default token.
+      - uses: actions/checkout@v4
+        with:
+          path: core
+
+      - uses: actions/checkout@v4
+        with:
+          repository: recommand/recommand-framework
+          path: framework
+
+      # One workspace over both packages installs a single copy of each shared
+      # dependency. Separate installs would give `core` and `framework` their own
+      # `drizzle-orm`, whose types TypeScript then treats as unrelated.
+      - run: |
+          echo '{ "name": "ci", "private": true, "workspaces": ["core", "framework"] }' > package.json
+
+      - uses: oven-sh/setup-bun@v2
+
+      - run: bun install
+
+      # The framework's typecheck script checks every package next to it, so this
+      # covers `core` as well as `framework`.
+      - run: bun run typecheck
+        working-directory: framework
+
+      - run: bun run test
+        working-directory: core
