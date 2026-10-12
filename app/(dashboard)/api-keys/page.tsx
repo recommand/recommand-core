@@ -385,7 +385,7 @@ export default function Page() {
               />
               <Select
                 value={keyType}
-                onValueChange={(value: "basic" | "jwt") => setKeyType(value)}
+                onValueChange={(value) => setKeyType(value as "basic" | "jwt")}
               >
                 <SelectTrigger id="key-type">
                   <SelectValue />
@@ -420,8 +420,8 @@ export default function Page() {
                   />
                   <Select
                     value={expirationUnit}
-                    onValueChange={(value: "hours" | "days") =>
-                      setExpirationUnit(value)
+                    onValueChange={(value) =>
+                      setExpirationUnit(value as "hours" | "days")
                     }
                   >
                     <SelectTrigger id="expiration-unit" className="w-[120px]">
