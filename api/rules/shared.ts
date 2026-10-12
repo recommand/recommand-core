@@ -105,8 +105,8 @@ export const ruleResponseSchema = z.object({
   condition: versionedConditionResponseSchema.nullable(),
   actions: z.array(ruleActionSchema),
   schemaVersion: z.number().int(),
-  createdAt: z.coerce.date(),
-  updatedAt: z.coerce.date().nullable(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime().nullable(),
 }).openapi({ ref: "Rule" });
 
 export const ruleDeliveryResponseSchema = z.object({
@@ -122,13 +122,13 @@ export const ruleDeliveryResponseSchema = z.object({
   payload: z.unknown(),
   status: z.enum(["pending", "in_flight", "succeeded", "failed", "giving_up"]),
   attempts: z.number().int(),
-  retryAt: z.coerce.date(),
-  lockedUntil: z.coerce.date().nullable(),
+  retryAt: z.string().datetime(),
+  lockedUntil: z.string().datetime().nullable(),
   lastError: z.string().nullable(),
   lastResponseStatus: z.number().int().nullable(),
-  processedAt: z.coerce.date().nullable(),
-  createdAt: z.coerce.date(),
-  updatedAt: z.coerce.date(),
+  processedAt: z.string().datetime().nullable(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
 }).openapi({ ref: "RuleDelivery" });
 
 export const ruleDeliveriesListResponseSchema = z.object({
