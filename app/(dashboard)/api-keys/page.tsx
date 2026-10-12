@@ -303,7 +303,7 @@ export default function Page() {
                       apiKeyId: id,
                     },
                   })
-                  .then(async (res: Response) => {
+                  .then(async (res) => {
                     const json = await res.json();
                     if (json.success) {
                       toast.success(t`API key deleted successfully`);
