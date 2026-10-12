@@ -1,6 +1,17 @@
 import { zodResolver } from "@recommand/lib/zod-validator";
 import type { OpenAPIV3 } from "openapi-types";
 import z from "zod";
+import "zod-openapi/extend";
+
+/**
+ * A boolean filter in a query string, where every value is a string. Shared so
+ * that every such filter is one type in the OpenAPI document.
+ */
+export const booleanStringSchema = z.enum(["true", "false"]).openapi({
+  description: "A boolean, written as `true` or `false`.",
+  example: "true",
+  ref: "BooleanString",
+});
 
 export function describeSuccessResponse<T>(
   description: string,
