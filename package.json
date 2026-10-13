@@ -13,8 +13,7 @@
     "@types/pg": "^8.11.11",
     "@types/react": "^19.0.0",
     "drizzle-kit": "^0.31.11",
-    "react-email": "5.2.11",
-    "tsx": "^4.19.3"
+    "react-email": "5.2.11"
   },
   "peerDependencies": {
     "react": "^19.0.0",
