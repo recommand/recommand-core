@@ -31,6 +31,36 @@ export const paginationResponse = z
 export const parameterSchema = (schema: OpenAPIV3_1.SchemaObject) =>
   schema as OpenAPIV3.SchemaObject;
 
+/**
+ * The query schema of a list endpoint: its `limit` and `page`, to extend with
+ * any other parameters the list takes. Every list counts pages from 1; how
+ * many items a page holds by default, and at most, is the list's own choice.
+ */
+export const paginationQuery = ({
+  defaultLimit,
+  maxLimit,
+  maxPage,
+}: {
+  defaultLimit: number;
+  maxLimit: number;
+  maxPage?: number;
+}) =>
+  z.object({
+    limit: z.coerce.number().int().min(1).max(maxLimit).default(defaultLimit).openapi({
+      description: "The number of items per page",
+      examples: [defaultLimit],
+    }),
+    page: (maxPage === undefined
+      ? z.coerce.number().int().min(1)
+      : z.coerce.number().int().min(1).max(maxPage)
+    )
+      .default(1)
+      .openapi({
+        description: "The page number to retrieve",
+        examples: [1],
+      }),
+  });
+
 export function describeSuccessResponse<T>(
   description: string,
   bodySchema: any = {}
