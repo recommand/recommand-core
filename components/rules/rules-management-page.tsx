@@ -163,11 +163,12 @@ export function RulesManagementPage({
         throw new Error(stringifyActionFailure(json.errors));
       }
 
-      const result = json as { success: true } & RuleDeliveriesPageDto;
-      setDeliveries(result.deliveries);
-      setDeliveriesPage(result.page);
-      setDeliveriesPageCount(result.pageCount);
-      setDeliveriesTotal(result.total);
+      const { deliveries, pagination } = json as { success: true } & RuleDeliveriesPageDto;
+      setDeliveries(deliveries);
+      setDeliveriesPage(pagination.page);
+      // An empty list has no pages, but the dialog still shows it as page 1 of 1.
+      setDeliveriesPageCount(Math.max(1, pagination.totalPages));
+      setDeliveriesTotal(pagination.total);
     } catch (error) {
       console.error(error);
       toast.error(t`Failed to load deliveries`);

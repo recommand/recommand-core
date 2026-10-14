@@ -300,10 +300,12 @@ export async function listRuleDeliveriesPage(
 
   return {
     deliveries,
-    page,
-    limit,
-    total: count,
-    pageCount: Math.max(1, Math.ceil(count / limit)),
+    pagination: {
+      limit,
+      page,
+      total: count,
+      totalPages: Math.ceil(count / limit),
+    },
   };
 }
 
