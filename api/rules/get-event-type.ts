@@ -22,7 +22,7 @@ const getEventTypeRouteDescription = describeRoute({
   description: "Fetch metadata for a single event type.",
   tags: ["Rules"],
   responses: {
-    ...describeSuccessResponseWithZod("Successfully retrieved event type", eventTypeResponseSchema),
+    ...describeSuccessResponseWithZod("Successfully retrieved event type", eventTypeResponseSchema.openapi({ description: "The event type, with what a rule written for it can use." })),
     ...describeErrorResponse(404, "Event type not found"),
     ...describeErrorResponse(500, "Failed to load event type"),
   },

@@ -37,6 +37,10 @@ export function describeSuccessResponse<T>(
   };
 }
 
+/**
+ * A 200 response whose body is `bodySchema` with `success: true` added. A
+ * description given to `bodySchema` with `.openapi()` describes the body.
+ */
 export function describeSuccessResponseWithZod(
   description: string,
   bodySchema: z.ZodObject<any> = z.object({})
@@ -52,6 +56,7 @@ export function describeSuccessResponseWithZod(
                 success: z.literal(true),
               })
               .extend(bodySchema.shape)
+              .openapi({ description: bodySchema._def.zodOpenApi?.openapi?.description })
           ),
         },
       },
