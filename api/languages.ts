@@ -1,4 +1,5 @@
 import { Server } from "@recommand/lib/api";
+import { describeRoute } from "hono-openapi";
 import { actionSuccess, actionFailure } from "@recommand/lib/utils";
 import { getSupportedLanguages } from "@core/lib/translations-server";
 
@@ -29,7 +30,7 @@ const LANGUAGE_NAMES: Record<string, string> = {
   uk: "Українська",
 };
 
-const _getLanguages = server.get("/languages", async (c) => {
+const _getLanguages = server.get("/languages", describeRoute({ hide: true, security: [] }), async (c) => {
   try {
     const codes = await getSupportedLanguages();
 
