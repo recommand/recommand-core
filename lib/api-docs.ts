@@ -13,6 +13,16 @@ export const booleanStringSchema = z.enum(["true", "false"]).openapi({
   ref: "BooleanString",
 });
 
+/** The page a list endpoint returns alongside its items. */
+export const paginationResponse = z
+  .object({
+    limit: z.number().int().min(1).openapi({ description: "Maximum number of items on a page." }),
+    page: z.number().int().min(1).openapi({ description: "The page returned, counting from 1." }),
+    total: z.number().int().min(0).openapi({ description: "Total number of items across all pages." }),
+    totalPages: z.number().int().min(0).openapi({ description: "Number of pages at this page size." }),
+  })
+  .openapi({ ref: "Pagination" });
+
 export function describeSuccessResponse<T>(
   description: string,
   bodySchema: any = {}

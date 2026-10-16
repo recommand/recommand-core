@@ -2,7 +2,7 @@ import { type AuthenticatedTeamContext, type AuthenticatedUserContext } from "@c
 import { type Context } from "@recommand/lib/api";
 import { z } from "zod";
 import "zod-openapi/extend";
-import { booleanStringSchema } from "../../lib/api-docs";
+import { booleanStringSchema, paginationResponse } from "../../lib/api-docs";
 import {
   createRuleApiSchema,
   updateRuleSchema,
@@ -133,10 +133,7 @@ export const ruleDeliveryResponseSchema = z.object({
 
 export const ruleDeliveriesListResponseSchema = z.object({
   deliveries: z.array(ruleDeliveryResponseSchema),
-  page: z.number().int(),
-  limit: z.number().int(),
-  total: z.number().int(),
-  pageCount: z.number().int(),
+  pagination: paginationResponse,
 });
 
 export const conditionFieldResponseSchema = z.object({
