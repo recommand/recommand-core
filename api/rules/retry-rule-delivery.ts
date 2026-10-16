@@ -18,7 +18,7 @@ const retryRuleDeliveryRouteDescription = describeRoute({
   tags: ["Rules"],
   responses: {
     ...describeSuccessResponseWithZod("Successfully queued retry", z.object({
-      delivery: ruleDeliveryResponseSchema,
+      delivery: ruleDeliveryResponseSchema.openapi({ description: "The delivery, queued for another attempt." }),
     })),
     ...describeErrorResponse(404, "Rule delivery not found"),
     ...describeErrorResponse(500, "Failed to retry rule delivery"),

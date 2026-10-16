@@ -21,7 +21,7 @@ const updateRuleRouteDescription = describeRoute({
   tags: ["Rules"],
   responses: {
     ...describeSuccessResponseWithZod("Successfully updated rule", z.object({
-      rule: ruleResponseSchema,
+      rule: ruleResponseSchema.openapi({ description: "The rule, as updated." }),
     })),
     ...describeErrorResponse(400, "Invalid rule payload"),
     ...describeErrorResponse(404, "Rule not found"),

@@ -18,7 +18,7 @@ const listRulesRouteDescription = describeRoute({
   tags: ["Rules"],
   responses: {
     ...describeSuccessResponseWithZod("Successfully retrieved rules", z.object({
-      rules: z.array(ruleResponseSchema),
+      rules: z.array(ruleResponseSchema).openapi({ description: "The team's automation rules." }),
     })),
     ...describeErrorResponse(500, "Failed to load rules"),
   },
