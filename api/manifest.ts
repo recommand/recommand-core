@@ -1,4 +1,5 @@
 import { Server } from "@recommand/lib/api";
+import { describeRoute } from "hono-openapi";
 import { actionSuccess } from "@recommand/lib/utils";
 import { getApps } from "@recommand/lib/app";
 import { isPublicSignupEnabled } from "@core/lib/signup";
@@ -17,7 +18,7 @@ export type ManifestData = {
   publicSignupEnabled: boolean;
 };
 
-const _getManifest = server.get("/manifest", async (c) => {
+const _getManifest = server.get("/manifest", describeRoute({ hide: true, security: [] }), async (c) => {
   const apps = await getApps();
   const legal: LegalDocument[] = [];
 

@@ -32,6 +32,7 @@ function generateSecureToken(): string {
 
 const login = server.post(
   "/auth/login",
+  describeRoute({ hide: true, security: [] }),
   withTranslation(),
   zodValidator(
     "json",
@@ -103,6 +104,7 @@ const login = server.post(
 
 const signup = server.post(
   "/auth/signup",
+  describeRoute({ hide: true, security: [] }),
   withTranslation(),
   zodValidator(
     "json",
@@ -185,7 +187,7 @@ const signup = server.post(
   }
 );
 
-const logout = server.post("/auth/logout", withTranslation(), async (c) => {
+const logout = server.post("/auth/logout", describeRoute({ hide: true, security: [] }), withTranslation(), async (c) => {
   const t = c.get("t");
   try {
     await deleteSession(c);
@@ -332,6 +334,7 @@ const createTeamEndpoint = server.post(
 
 const requestPasswordReset = server.post(
   "/auth/request-password-reset",
+  describeRoute({ hide: true, security: [] }),
   withTranslation(),
   zodValidator(
     "json",
@@ -402,6 +405,7 @@ const requestPasswordReset = server.post(
 
 const confirmEmail = server.post(
   "/auth/confirm-email",
+  describeRoute({ hide: true, security: [] }),
   withTranslation(),
   zodValidator(
     "json",
@@ -487,6 +491,7 @@ const confirmEmail = server.post(
 
 const resendConfirmationEmail = server.post(
   "/auth/resend-confirmation",
+  describeRoute({ hide: true, security: [] }),
   withTranslation(),
   zodValidator(
     "json",
@@ -564,6 +569,7 @@ const resendConfirmationEmail = server.post(
 
 const resetPassword = server.post(
   "/auth/reset-password",
+  describeRoute({ hide: true, security: [] }),
   withTranslation(),
   zodValidator(
     "json",
