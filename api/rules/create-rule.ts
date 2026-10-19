@@ -21,7 +21,7 @@ const createRuleRouteDescription = describeRoute({
   tags: ["Rules"],
   responses: {
     ...describeSuccessResponseWithZod("Successfully created rule", z.object({
-      rule: ruleResponseSchema,
+      rule: ruleResponseSchema.openapi({ description: "The rule, as created." }),
     })),
     ...describeErrorResponse(400, "Invalid rule payload"),
   },

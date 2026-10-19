@@ -18,7 +18,7 @@ const listEventTypesRouteDescription = describeRoute({
   tags: ["Rules"],
   responses: {
     ...describeSuccessResponseWithZod("Successfully retrieved event types", z.object({
-      eventTypes: z.array(eventTypeResponseSchema),
+      eventTypes: z.array(eventTypeResponseSchema).openapi({ description: "The event types rules can be written for." }),
     })),
     ...describeErrorResponse(500, "Failed to load event types"),
   },
