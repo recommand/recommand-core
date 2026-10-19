@@ -187,107 +187,130 @@ const signup = server.post(
   }
 );
 
-const logout = server.post("/auth/logout", describeRoute({ hide: true, security: [] }), withTranslation(), async (c) => {
-  const t = c.get("t");
-  try {
-    await deleteSession(c);
-    return c.json(actionSuccess());
-  } catch (e) {
-    console.error(e);
-    return c.json(actionFailure(t`Internal server error`), 500);
-  }
-});
-
-const me = server.get("/auth/me", requireAuth(), withTranslation(), async (c) => {
-  const t = c.get("t");
-  try {
-    const user = await getCurrentUser(c);
-    if (!user) {
-      return c.json(actionFailure(t`User not found`), 404);
+const logout = server.post(
+  "/auth/logout",
+  describeRoute({ hide: true, security: [] }),
+  withTranslation(),
+  async (c) => {
+    const t = c.get("t");
+    try {
+      await deleteSession(c);
+      return c.json(actionSuccess());
+    } catch (e) {
+      console.error(e);
+      return c.json(actionFailure(t`Internal server error`), 500);
     }
-    const completedOnboardingSteps = await getCompletedOnboardingSteps(user.id);
+  }
+);
 
-    // Fetch all scoped permissions for the authenticated user
-    const teamIds = user.teams?.filter(tm => tm.isMember).map(tm => tm.id) ?? [];
-    let teamPermissions: Record<string, string[]> = {};
-    let globalPermissions: string[] = [];
-
-    if (teamIds.length > 0) {
-      const permissions = await db
-        .select({
-          teamId: userPermissions.teamId,
-          permissionId: userPermissions.permissionId,
-        })
-        .from(userPermissions)
-        .where(
-          and(
-            eq(userPermissions.userId, user.id),
-            inArray(userPermissions.teamId, teamIds),
-          )
-        );
-
-      // Group permissions by team
-      for (const perm of permissions) {
-        if (!teamPermissions[perm.teamId]) {
-          teamPermissions[perm.teamId] = [];
-        }
-        teamPermissions[perm.teamId].push(perm.permissionId);
+const me = server.get(
+  "/auth/me",
+  describeRoute({ hide: true }),
+  requireAuth(),
+  withTranslation(),
+  async (c) => {
+    const t = c.get("t");
+    try {
+      const user = await getCurrentUser(c);
+      if (!user) {
+        return c.json(actionFailure(t`User not found`), 404);
       }
-    }
+      const completedOnboardingSteps = await getCompletedOnboardingSteps(user.id);
 
-    const globalPermissionRows = await db
-      .select({ permissionId: userGlobalPermissions.permissionId })
-      .from(userGlobalPermissions)
-      .where(eq(userGlobalPermissions.userId, user.id));
+      // Fetch all scoped permissions for the authenticated user
+      const teamIds = user.teams?.filter(tm => tm.isMember).map(tm => tm.id) ?? [];
+      let teamPermissions: Record<string, string[]> = {};
+      let globalPermissions: string[] = [];
 
-    globalPermissions = globalPermissionRows.map((permission) => permission.permissionId);
+      if (teamIds.length > 0) {
+        const permissions = await db
+          .select({
+            teamId: userPermissions.teamId,
+            permissionId: userPermissions.permissionId,
+          })
+          .from(userPermissions)
+          .where(
+            and(
+              eq(userPermissions.userId, user.id),
+              inArray(userPermissions.teamId, teamIds),
+            )
+          );
 
-    return c.json(
-      actionSuccess({
-        data: {
-          ...user,
-          teams: user.teams?.map(resolveTeamLogoUrl),
-          completedOnboardingSteps,
-          teamPermissions,
-          globalPermissions,
-          features: {
-            s3Enabled: isS3Enabled(),
-            teamLogoEnabled: isTeamLogoEnabled(),
+        // Group permissions by team
+        for (const perm of permissions) {
+          if (!teamPermissions[perm.teamId]) {
+            teamPermissions[perm.teamId] = [];
+          }
+          teamPermissions[perm.teamId].push(perm.permissionId);
+        }
+      }
+
+      const globalPermissionRows = await db
+        .select({ permissionId: userGlobalPermissions.permissionId })
+        .from(userGlobalPermissions)
+        .where(eq(userGlobalPermissions.userId, user.id));
+
+      globalPermissions = globalPermissionRows.map((permission) => permission.permissionId);
+
+      return c.json(
+        actionSuccess({
+          data: {
+            ...user,
+            teams: user.teams?.map(resolveTeamLogoUrl),
+            completedOnboardingSteps,
+            teamPermissions,
+            globalPermissions,
+            features: {
+              s3Enabled: isS3Enabled(),
+              teamLogoEnabled: isTeamLogoEnabled(),
+            },
           },
-        },
-      })
-    );
-  } catch (e) {
-    console.error(e);
-    return c.json(actionFailure(t`Internal server error`), 500);
-  }
-});
-
-const teams = server.get("/auth/teams", requireAuth(), withTranslation(), async (c) => {
-  const t = c.get("t");
-  try {
-    const userId = c.get("user")?.id;
-    if (!userId) {
-      return c.json(actionFailure(t`Unauthorized`), 401);
+        })
+      );
+    } catch (e) {
+      console.error(e);
+      return c.json(actionFailure(t`Internal server error`), 500);
     }
-    const userTeams = await getUserTeams(userId);
-    return c.json(actionSuccess({ data: userTeams.map(resolveTeamLogoUrl) }));
-  } catch (e) {
-    console.error(e);
-    return c.json(actionFailure(t`Internal server error`), 500);
   }
-});
+);
 
-const getUsersEndpoint = server.get("/auth/users", requireAdmin(), withTranslation(), async (c) => {
-  const t = c.get("t");
-  try {
-    const usersWithoutPassword: UserWithoutPassword[] = await getUsers();
-    return c.json(actionSuccess({ usersWithoutPassword }));
-  } catch (e) {
-    console.error(e);
-    return c.json(actionFailure(t`Internal server error`), 500);
+const teams = server.get(
+  "/auth/teams",
+  describeRoute({ hide: true }),
+  requireAuth(),
+  withTranslation(),
+  async (c) => {
+    const t = c.get("t");
+    try {
+      const userId = c.get("user")?.id;
+      if (!userId) {
+        return c.json(actionFailure(t`Unauthorized`), 401);
+      }
+      const userTeams = await getUserTeams(userId);
+      return c.json(actionSuccess({ data: userTeams.map(resolveTeamLogoUrl) }));
+    } catch (e) {
+      console.error(e);
+      return c.json(actionFailure(t`Internal server error`), 500);
+    }
   }
-});
+);
+
+const getUsersEndpoint = server.get(
+  "/auth/users",
+  describeRoute({ hide: true }),
+  requireAdmin(),
+  withTranslation(),
+  async (c) => {
+    const t = c.get("t");
+    try {
+      const usersWithoutPassword: UserWithoutPassword[] = await getUsers();
+      return c.json(actionSuccess({ usersWithoutPassword }));
+    } catch (e) {
+      console.error(e);
+      return c.json(actionFailure(t`Internal server error`), 500);
+    }
+  }
+);
 
 const createTeamEndpoint = server.post(
   "/auth/teams",
