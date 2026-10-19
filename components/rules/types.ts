@@ -46,10 +46,12 @@ export type RuleDeliveryDto = {
 
 export type RuleDeliveriesPageDto = {
   deliveries: RuleDeliveryDto[];
-  page: number;
-  limit: number;
-  total: number;
-  pageCount: number;
+  pagination: {
+    limit: number;
+    page: number;
+    total: number;
+    totalPages: number;
+  };
 };
 
 export type EventTypeDto = {
