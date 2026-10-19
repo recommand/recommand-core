@@ -1,5 +1,5 @@
 import { zodResolver } from "@recommand/lib/zod-validator";
-import type { OpenAPIV3 } from "openapi-types";
+import type { OpenAPIV3, OpenAPIV3_1 } from "openapi-types";
 import z from "zod";
 import "zod-openapi/extend";
 
@@ -9,7 +9,7 @@ import "zod-openapi/extend";
  */
 export const booleanStringSchema = z.enum(["true", "false"]).openapi({
   description: "A boolean, written as `true` or `false`.",
-  example: "true",
+  examples: ["true"],
   ref: "BooleanString",
 });
 
@@ -22,6 +22,14 @@ export const paginationResponse = z
     totalPages: z.number().int().min(0).openapi({ description: "Number of pages at this page size." }),
   })
   .openapi({ ref: "Pagination" });
+
+/**
+ * A parameter's or header's schema, written as the OpenAPI 3.1 Schema Object it
+ * is. `openapi-types` types it as an OpenAPI 3.0 one, without `examples`
+ * (https://github.com/kogosoftwarellc/open-api/issues/923), so it's cast to that.
+ */
+export const parameterSchema = (schema: OpenAPIV3_1.SchemaObject) =>
+  schema as OpenAPIV3.SchemaObject;
 
 export function describeSuccessResponse<T>(
   description: string,
@@ -37,7 +45,7 @@ export function describeSuccessResponse<T>(
           schema: {
             type: "object",
             properties: {
-              success: { type: "boolean", example: true },
+              success: { type: "boolean", examples: [true] },
               ...bodySchema,
             },
           },
@@ -89,7 +97,7 @@ export function describeErrorResponse(
           schema: {
             type: "object",
             properties: {
-              success: { type: "boolean", example: false },
+              success: { type: "boolean", examples: [false] },
               errors: {
                 type: "object",
                 additionalProperties: {
