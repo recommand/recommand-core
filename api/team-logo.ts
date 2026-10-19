@@ -6,6 +6,7 @@ import { requireTeamAccess } from "@core/lib/auth-middleware";
 import { requirePermission } from "@core/lib/permissions/permission-middleware";
 import { withTranslation } from "@core/lib/translation-middleware";
 import { compressImage } from "@core/lib/image";
+import { describeRoute } from "hono-openapi";
 
 const server = new Server();
 
@@ -14,6 +15,7 @@ const MAX_LOGO_SIZE = 2 * 1024 * 1024; // 2MB
 
 const uploadTeamLogo = server.post(
   "/auth/teams/:teamId/logo",
+  describeRoute({ hide: true }),
   requireTeamAccess(),
   requirePermission("core.team.manage"),
   withTranslation(),
@@ -70,6 +72,7 @@ const uploadTeamLogo = server.post(
 
 const deleteTeamLogo = server.delete(
   "/auth/teams/:teamId/logo",
+  describeRoute({ hide: true }),
   requireTeamAccess(),
   requirePermission("core.team.manage"),
   withTranslation(),

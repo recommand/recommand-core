@@ -20,6 +20,7 @@ import {
 } from "@core/data/permissions";
 import { requirePermission } from "@core/lib/permissions/permission-middleware";
 import { audit } from "@core/lib/audit";
+import { describeRoute } from "hono-openapi";
 
 const server = new Server();
 
@@ -255,6 +256,7 @@ const _revokePermission = server.delete(
 
 const _getGlobalPermissions = server.get(
   "/auth/permissions/global",
+  describeRoute({ hide: true }),
   requireAdmin(),
   withTranslation(),
   async (c) => {
