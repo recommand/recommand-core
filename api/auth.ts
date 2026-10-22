@@ -727,7 +727,7 @@ const deleteTeamEndpoint = server.delete(
     try {
       const team = c.get("team");
 
-      await deleteTeam(team.id);
+      await deleteTeam(team.id, { deletedBy: c.get("user")?.id ?? null });
       await audit(c, {
         action: "delete",
         subsystem: "core.team",
