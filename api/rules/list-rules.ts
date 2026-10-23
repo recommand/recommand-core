@@ -58,12 +58,8 @@ const _listRules = server.get(
 
 async function _listRulesImplementation(c: ListRulesContext) {
   try {
-    const query = c.req.valid("query");
-    const rules = await listRules(c.var.team.id, {
-      eventType: query.eventType ?? undefined,
-      actionType: query.actionType ?? undefined,
-      enabled: query.enabled ?? undefined,
-    });
+    const { actionType, enabled, eventType } = c.req.valid("query");
+    const rules = await listRules(c.var.team.id, { actionType, enabled, eventType });
 
     return c.json(actionSuccess({ rules }));
   } catch (error) {
