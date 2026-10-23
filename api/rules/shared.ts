@@ -15,13 +15,13 @@ export const ruleActionTypeSchema = z.enum(["webhook", "email"]).openapi({
 });
 
 export const listRulesQuerySchema = z.object({
-  eventType: z.string().nullish().openapi({
+  eventType: z.string().optional().openapi({
     description: "Filter by exact event type.",
   }),
-  actionType: ruleActionTypeSchema.nullish().openapi({
+  actionType: ruleActionTypeSchema.optional().openapi({
     description: "Filter by action type.",
   }),
-  enabled: booleanQuerySchema.nullish().openapi({
+  enabled: booleanQuerySchema.optional().openapi({
     description: "Filter by enabled state.",
   }),
 });
