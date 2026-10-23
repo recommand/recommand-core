@@ -6,7 +6,7 @@ import { describeRoute } from "hono-openapi";
 import { z } from "zod";
 import "zod-openapi/extend";
 import { retryRuleDelivery } from "../../data/rules/rules";
-import { describeErrorResponse, describeSuccessResponseWithZod } from "../../lib/api-docs";
+import { describeErrorResponse, describeSuccessResponse } from "../../lib/api-docs";
 import { type DeliveryContext, deliveryParamSchema, deliveryParamSchemaWithTeamId, ruleDeliveryResponseSchema } from "./shared";
 
 const server = new Server();
@@ -17,7 +17,7 @@ const retryRuleDeliveryRouteDescription = describeRoute({
   description: "Requeue a delivery for another attempt.",
   tags: ["Rules"],
   responses: {
-    ...describeSuccessResponseWithZod("Successfully queued retry", z.object({
+    ...describeSuccessResponse("Successfully queued retry", z.object({
       delivery: ruleDeliveryResponseSchema.openapi({ description: "The delivery, queued for another attempt." }),
     })),
     ...describeErrorResponse(404, "Rule delivery not found"),

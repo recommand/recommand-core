@@ -61,35 +61,11 @@ export const paginationQuery = ({
       }),
   });
 
-export function describeSuccessResponse<T>(
-  description: string,
-  bodySchema: any = {}
-): {
-  [key: string]: OpenAPIV3.ReferenceObject | OpenAPIV3.ResponseObject;
-} {
-  return {
-    [200]: {
-      description,
-      content: {
-        "application/json": {
-          schema: {
-            type: "object",
-            properties: {
-              success: { type: "boolean", examples: [true] },
-              ...bodySchema,
-            },
-          },
-        },
-      },
-    },
-  };
-}
-
 /**
  * A 200 response whose body is `bodySchema` with `success: true` added. A
  * description given to `bodySchema` with `.openapi()` describes the body.
  */
-export function describeSuccessResponseWithZod(
+export function describeSuccessResponse(
   description: string,
   bodySchema: z.ZodObject<any> = z.object({})
 ) {
