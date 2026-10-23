@@ -127,7 +127,7 @@ export function describeErrorResponse(
           schema: {
             type: "object",
             properties: {
-              success: { type: "boolean", examples: [false] },
+              success: { type: "boolean", const: false },
               errors: {
                 type: "object",
                 additionalProperties: {
@@ -137,6 +137,7 @@ export function describeErrorResponse(
               },
               ...bodySchema,
             },
+            required: ["success", "errors"],
           },
         },
       },
