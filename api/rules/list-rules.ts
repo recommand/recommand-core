@@ -62,7 +62,7 @@ async function _listRulesImplementation(c: ListRulesContext) {
     const rules = await listRules(c.var.team.id, {
       eventType: query.eventType ?? undefined,
       actionType: query.actionType ?? undefined,
-      enabled: query.enabled === undefined ? undefined : query.enabled === "true",
+      enabled: query.enabled ?? undefined,
     });
 
     return c.json(actionSuccess({ rules }));
