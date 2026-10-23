@@ -2,7 +2,7 @@ import { type AuthenticatedTeamContext, type AuthenticatedUserContext } from "@c
 import { type Context } from "@recommand/lib/api";
 import { z } from "zod";
 import "zod-openapi/extend";
-import { booleanStringSchema, paginationQuery, paginationResponse } from "../../lib/api-docs";
+import { booleanQuerySchema, paginationQuery, paginationResponse } from "../../lib/api-docs";
 import {
   createRuleApiSchema,
   updateRuleSchema,
@@ -21,7 +21,7 @@ export const listRulesQuerySchema = z.object({
   actionType: ruleActionTypeSchema.nullish().openapi({
     description: "Filter by action type.",
   }),
-  enabled: booleanStringSchema.nullish().openapi({
+  enabled: booleanQuerySchema.nullish().openapi({
     description: "Filter by enabled state.",
   }),
 });

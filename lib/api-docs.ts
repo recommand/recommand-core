@@ -4,14 +4,15 @@ import z from "zod";
 import "zod-openapi/extend";
 
 /**
- * A boolean filter in a query string, where every value is a string. Shared so
- * that every such filter is one type in the OpenAPI document.
+ * A boolean query parameter. A query string carries it as the text `true` or
+ * `false`, which is how OpenAPI writes a boolean parameter, so the document
+ * declares it a boolean and a generated client takes one. Any other text,
+ * an empty value included, is rejected.
  */
-export const booleanStringSchema = z.enum(["true", "false"]).openapi({
-  description: "A boolean, written as `true` or `false`.",
-  examples: ["true"],
-  ref: "BooleanString",
-});
+export const booleanQuerySchema = z.preprocess(
+  (value) => (value === "true" ? true : value === "false" ? false : value),
+  z.boolean()
+);
 
 /** The page a list endpoint returns alongside its items. */
 export const paginationResponse = z
