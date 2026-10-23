@@ -8,6 +8,15 @@ export const CORE_BACKEND_EVENTS = Object.freeze({
     PERMISSION_REVOKED: "permission.revoked",
 });
 
+/**
+ * The context of `TEAM_BEFORE_DELETE` and `TEAM_DELETED`. `deletedBy` is the
+ * user who deleted the team, or null when no user did.
+ */
+export type TeamDeletionEvent = {
+    teamId: string;
+    deletedBy: string | null;
+};
+
 export type BackendEventListener<T> = (event: string, context: T) => void | Promise<void>;
 
 const backendEventListeners: Record<string, BackendEventListener<any>[]> = {};
