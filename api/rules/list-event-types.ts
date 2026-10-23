@@ -6,7 +6,7 @@ import { describeRoute } from "hono-openapi";
 import { z } from "zod";
 import "zod-openapi/extend";
 import { listEventTypeDefinitions } from "../../data/rules/events";
-import { describeErrorResponse, describeSuccessResponseWithZod } from "../../lib/api-docs";
+import { describeErrorResponse, describeSuccessResponse } from "../../lib/api-docs";
 import { mapEventTypeDefinition, eventTypeResponseSchema, teamIdParamSchema, type ListEventTypesContext } from "./shared";
 
 const server = new Server();
@@ -17,7 +17,7 @@ const listEventTypesRouteDescription = describeRoute({
   description: "List event types available for rule authoring.",
   tags: ["Rules"],
   responses: {
-    ...describeSuccessResponseWithZod("Successfully retrieved event types", z.object({
+    ...describeSuccessResponse("Successfully retrieved event types", z.object({
       eventTypes: z.array(eventTypeResponseSchema).openapi({ description: "The event types rules can be written for." }),
     })),
     ...describeErrorResponse(500, "Failed to load event types"),

@@ -18,7 +18,7 @@ import { sendEmail } from "@core/lib/email";
 import { getEmailTemplate } from "@core/emails";
 import { randomBytes } from "crypto";
 import { describeRoute } from "hono-openapi";
-import { describeErrorResponse, describeSuccessResponseWithZod } from "@core/lib/api-docs";
+import { describeErrorResponse, describeSuccessResponse } from "@core/lib/api-docs";
 import { createServerT, resolveSupportedLanguage, toSupportedLanguage } from "@core/lib/translations-server";
 import { audit, hashAuditIdentifier } from "@core/lib/audit";
 import { isPublicSignupEnabled } from "@core/lib/signup";
@@ -759,7 +759,7 @@ const verify = server.get(
     summary: "Verify Authentication",
     tags: ["Authentication"],
     responses: {
-      ...describeSuccessResponseWithZod("User is authenticated"),
+      ...describeSuccessResponse("User is authenticated"),
       ...describeErrorResponse(401, "User is not authenticated"),
       ...describeErrorResponse(500, "Internal server error"),
     },

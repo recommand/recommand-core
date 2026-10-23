@@ -5,7 +5,7 @@ import { zodValidator } from "@recommand/lib/zod-validator";
 import { describeRoute } from "hono-openapi";
 import "zod-openapi/extend";
 import { listRuleDeliveriesPage } from "../../data/rules/rules";
-import { describeErrorResponse, describeSuccessResponseWithZod } from "../../lib/api-docs";
+import { describeErrorResponse, describeSuccessResponse } from "../../lib/api-docs";
 import {
   type ListRuleDeliveriesContext,
   listRuleDeliveriesQuerySchema,
@@ -22,7 +22,7 @@ const listRuleDeliveriesRouteDescription = describeRoute({
   description: "List delivery attempts for a rule.",
   tags: ["Rules"],
   responses: {
-    ...describeSuccessResponseWithZod("Successfully retrieved rule deliveries", ruleDeliveriesListResponseSchema.openapi({ description: "The rule's delivery attempts on this page, and where the page sits." })),
+    ...describeSuccessResponse("Successfully retrieved rule deliveries", ruleDeliveriesListResponseSchema.openapi({ description: "The rule's delivery attempts on this page, and where the page sits." })),
     ...describeErrorResponse(500, "Failed to load rule deliveries"),
   },
 });

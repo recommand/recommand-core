@@ -6,7 +6,7 @@ import { describeRoute } from "hono-openapi";
 import { z } from "zod";
 import "zod-openapi/extend";
 import { getRule } from "../../data/rules/rules";
-import { describeErrorResponse, describeSuccessResponseWithZod } from "../../lib/api-docs";
+import { describeErrorResponse, describeSuccessResponse } from "../../lib/api-docs";
 import { type RuleContext, ruleIdParamSchema, ruleIdParamSchemaWithTeamId, ruleResponseSchema } from "./shared";
 
 const server = new Server();
@@ -17,7 +17,7 @@ const getRuleRouteDescription = describeRoute({
   description: "Fetch a single automation rule by ID.",
   tags: ["Rules"],
   responses: {
-    ...describeSuccessResponseWithZod("Successfully retrieved rule", z.object({
+    ...describeSuccessResponse("Successfully retrieved rule", z.object({
       rule: ruleResponseSchema.openapi({ description: "The rule." }),
     })),
     ...describeErrorResponse(404, "Rule not found"),

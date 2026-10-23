@@ -5,7 +5,7 @@ import { zodValidator } from "@recommand/lib/zod-validator";
 import { describeRoute } from "hono-openapi";
 import "zod-openapi/extend";
 import { deleteRule } from "../../data/rules/rules";
-import { describeErrorResponse, describeSuccessResponseWithZod } from "../../lib/api-docs";
+import { describeErrorResponse, describeSuccessResponse } from "../../lib/api-docs";
 import { audit } from "../../lib/audit";
 import { type RuleContext, ruleIdParamSchema, ruleIdParamSchemaWithTeamId } from "./shared";
 
@@ -17,7 +17,7 @@ const deleteRuleRouteDescription = describeRoute({
   description: "Delete an automation rule.",
   tags: ["Rules"],
   responses: {
-    ...describeSuccessResponseWithZod("Successfully deleted rule"),
+    ...describeSuccessResponse("Successfully deleted rule"),
     ...describeErrorResponse(500, "Failed to delete rule"),
   },
 });
