@@ -387,7 +387,7 @@ export default function Page() {
                         userId: userId,
                       },
                     })
-                    .then(async (res: Response) => {
+                    .then(async (res) => {
                       const json = await res.json();
                       if (json.success) {
                         toast.success(t`Team member removed successfully`);

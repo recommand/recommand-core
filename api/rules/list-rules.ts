@@ -6,7 +6,7 @@ import { describeRoute } from "hono-openapi";
 import { z } from "zod";
 import "zod-openapi/extend";
 import { listRules } from "../../data/rules/rules";
-import { describeErrorResponse, describeSuccessResponseWithZod } from "../../lib/api-docs";
+import { describeErrorResponse, describeSuccessResponse } from "../../lib/api-docs";
 import { listRulesQuerySchema, ruleResponseSchema, teamIdParamSchema } from "./shared";
 
 const server = new Server();
@@ -17,8 +17,8 @@ const listRulesRouteDescription = describeRoute({
   description: "List automation rules for the current team.",
   tags: ["Rules"],
   responses: {
-    ...describeSuccessResponseWithZod("Successfully retrieved rules", z.object({
-      rules: z.array(ruleResponseSchema),
+    ...describeSuccessResponse("Successfully retrieved rules", z.object({
+      rules: z.array(ruleResponseSchema).openapi({ description: "The team's automation rules." }),
     })),
     ...describeErrorResponse(500, "Failed to load rules"),
   },
@@ -58,12 +58,8 @@ const _listRules = server.get(
 
 async function _listRulesImplementation(c: ListRulesContext) {
   try {
-    const query = c.req.valid("query");
-    const rules = await listRules(c.var.team.id, {
-      eventType: query.eventType ?? undefined,
-      actionType: query.actionType ?? undefined,
-      enabled: query.enabled === undefined ? undefined : query.enabled === "true",
-    });
+    const { actionType, enabled, eventType } = c.req.valid("query");
+    const rules = await listRules(c.var.team.id, { actionType, enabled, eventType });
 
     return c.json(actionSuccess({ rules }));
   } catch (error) {

@@ -18,6 +18,7 @@ import { sendEmail } from "@core/lib/email";
 import { getEmailTemplate } from "@core/emails";
 import { randomBytes } from "crypto";
 import { describeRoute } from "hono-openapi";
+import { describeErrorResponse, describeSuccessResponse } from "@core/lib/api-docs";
 import { createServerT, resolveSupportedLanguage, toSupportedLanguage } from "@core/lib/translations-server";
 import { audit, hashAuditIdentifier } from "@core/lib/audit";
 import { isPublicSignupEnabled } from "@core/lib/signup";
@@ -31,6 +32,7 @@ function generateSecureToken(): string {
 
 const login = server.post(
   "/auth/login",
+  describeRoute({ hide: true, security: [] }),
   withTranslation(),
   zodValidator(
     "json",
@@ -102,6 +104,7 @@ const login = server.post(
 
 const signup = server.post(
   "/auth/signup",
+  describeRoute({ hide: true, security: [] }),
   withTranslation(),
   zodValidator(
     "json",
@@ -184,107 +187,130 @@ const signup = server.post(
   }
 );
 
-const logout = server.post("/auth/logout", withTranslation(), async (c) => {
-  const t = c.get("t");
-  try {
-    await deleteSession(c);
-    return c.json(actionSuccess());
-  } catch (e) {
-    console.error(e);
-    return c.json(actionFailure(t`Internal server error`), 500);
-  }
-});
-
-const me = server.get("/auth/me", requireAuth(), withTranslation(), async (c) => {
-  const t = c.get("t");
-  try {
-    const user = await getCurrentUser(c);
-    if (!user) {
-      return c.json(actionFailure(t`User not found`), 404);
+const logout = server.post(
+  "/auth/logout",
+  describeRoute({ hide: true, security: [] }),
+  withTranslation(),
+  async (c) => {
+    const t = c.get("t");
+    try {
+      await deleteSession(c);
+      return c.json(actionSuccess());
+    } catch (e) {
+      console.error(e);
+      return c.json(actionFailure(t`Internal server error`), 500);
     }
-    const completedOnboardingSteps = await getCompletedOnboardingSteps(user.id);
+  }
+);
 
-    // Fetch all scoped permissions for the authenticated user
-    const teamIds = user.teams?.filter(tm => tm.isMember).map(tm => tm.id) ?? [];
-    let teamPermissions: Record<string, string[]> = {};
-    let globalPermissions: string[] = [];
-
-    if (teamIds.length > 0) {
-      const permissions = await db
-        .select({
-          teamId: userPermissions.teamId,
-          permissionId: userPermissions.permissionId,
-        })
-        .from(userPermissions)
-        .where(
-          and(
-            eq(userPermissions.userId, user.id),
-            inArray(userPermissions.teamId, teamIds),
-          )
-        );
-
-      // Group permissions by team
-      for (const perm of permissions) {
-        if (!teamPermissions[perm.teamId]) {
-          teamPermissions[perm.teamId] = [];
-        }
-        teamPermissions[perm.teamId].push(perm.permissionId);
+const me = server.get(
+  "/auth/me",
+  describeRoute({ hide: true }),
+  requireAuth(),
+  withTranslation(),
+  async (c) => {
+    const t = c.get("t");
+    try {
+      const user = await getCurrentUser(c);
+      if (!user) {
+        return c.json(actionFailure(t`User not found`), 404);
       }
-    }
+      const completedOnboardingSteps = await getCompletedOnboardingSteps(user.id);
 
-    const globalPermissionRows = await db
-      .select({ permissionId: userGlobalPermissions.permissionId })
-      .from(userGlobalPermissions)
-      .where(eq(userGlobalPermissions.userId, user.id));
+      // Fetch all scoped permissions for the authenticated user
+      const teamIds = user.teams?.filter(tm => tm.isMember).map(tm => tm.id) ?? [];
+      let teamPermissions: Record<string, string[]> = {};
+      let globalPermissions: string[] = [];
 
-    globalPermissions = globalPermissionRows.map((permission) => permission.permissionId);
+      if (teamIds.length > 0) {
+        const permissions = await db
+          .select({
+            teamId: userPermissions.teamId,
+            permissionId: userPermissions.permissionId,
+          })
+          .from(userPermissions)
+          .where(
+            and(
+              eq(userPermissions.userId, user.id),
+              inArray(userPermissions.teamId, teamIds),
+            )
+          );
 
-    return c.json(
-      actionSuccess({
-        data: {
-          ...user,
-          teams: user.teams?.map(resolveTeamLogoUrl),
-          completedOnboardingSteps,
-          teamPermissions,
-          globalPermissions,
-          features: {
-            s3Enabled: isS3Enabled(),
-            teamLogoEnabled: isTeamLogoEnabled(),
+        // Group permissions by team
+        for (const perm of permissions) {
+          if (!teamPermissions[perm.teamId]) {
+            teamPermissions[perm.teamId] = [];
+          }
+          teamPermissions[perm.teamId].push(perm.permissionId);
+        }
+      }
+
+      const globalPermissionRows = await db
+        .select({ permissionId: userGlobalPermissions.permissionId })
+        .from(userGlobalPermissions)
+        .where(eq(userGlobalPermissions.userId, user.id));
+
+      globalPermissions = globalPermissionRows.map((permission) => permission.permissionId);
+
+      return c.json(
+        actionSuccess({
+          data: {
+            ...user,
+            teams: user.teams?.map(resolveTeamLogoUrl),
+            completedOnboardingSteps,
+            teamPermissions,
+            globalPermissions,
+            features: {
+              s3Enabled: isS3Enabled(),
+              teamLogoEnabled: isTeamLogoEnabled(),
+            },
           },
-        },
-      })
-    );
-  } catch (e) {
-    console.error(e);
-    return c.json(actionFailure(t`Internal server error`), 500);
-  }
-});
-
-const teams = server.get("/auth/teams", requireAuth(), withTranslation(), async (c) => {
-  const t = c.get("t");
-  try {
-    const userId = c.get("user")?.id;
-    if (!userId) {
-      return c.json(actionFailure(t`Unauthorized`), 401);
+        })
+      );
+    } catch (e) {
+      console.error(e);
+      return c.json(actionFailure(t`Internal server error`), 500);
     }
-    const userTeams = await getUserTeams(userId);
-    return c.json(actionSuccess({ data: userTeams.map(resolveTeamLogoUrl) }));
-  } catch (e) {
-    console.error(e);
-    return c.json(actionFailure(t`Internal server error`), 500);
   }
-});
+);
 
-const getUsersEndpoint = server.get("/auth/users", requireAdmin(), withTranslation(), async (c) => {
-  const t = c.get("t");
-  try {
-    const usersWithoutPassword: UserWithoutPassword[] = await getUsers();
-    return c.json(actionSuccess({ usersWithoutPassword }));
-  } catch (e) {
-    console.error(e);
-    return c.json(actionFailure(t`Internal server error`), 500);
+const teams = server.get(
+  "/auth/teams",
+  describeRoute({ hide: true }),
+  requireAuth(),
+  withTranslation(),
+  async (c) => {
+    const t = c.get("t");
+    try {
+      const userId = c.get("user")?.id;
+      if (!userId) {
+        return c.json(actionFailure(t`Unauthorized`), 401);
+      }
+      const userTeams = await getUserTeams(userId);
+      return c.json(actionSuccess({ data: userTeams.map(resolveTeamLogoUrl) }));
+    } catch (e) {
+      console.error(e);
+      return c.json(actionFailure(t`Internal server error`), 500);
+    }
   }
-});
+);
+
+const getUsersEndpoint = server.get(
+  "/auth/users",
+  describeRoute({ hide: true }),
+  requireAdmin(),
+  withTranslation(),
+  async (c) => {
+    const t = c.get("t");
+    try {
+      const usersWithoutPassword: UserWithoutPassword[] = await getUsers();
+      return c.json(actionSuccess({ usersWithoutPassword }));
+    } catch (e) {
+      console.error(e);
+      return c.json(actionFailure(t`Internal server error`), 500);
+    }
+  }
+);
 
 const createTeamEndpoint = server.post(
   "/auth/teams",
@@ -331,6 +357,7 @@ const createTeamEndpoint = server.post(
 
 const requestPasswordReset = server.post(
   "/auth/request-password-reset",
+  describeRoute({ hide: true, security: [] }),
   withTranslation(),
   zodValidator(
     "json",
@@ -401,6 +428,7 @@ const requestPasswordReset = server.post(
 
 const confirmEmail = server.post(
   "/auth/confirm-email",
+  describeRoute({ hide: true, security: [] }),
   withTranslation(),
   zodValidator(
     "json",
@@ -486,6 +514,7 @@ const confirmEmail = server.post(
 
 const resendConfirmationEmail = server.post(
   "/auth/resend-confirmation",
+  describeRoute({ hide: true, security: [] }),
   withTranslation(),
   zodValidator(
     "json",
@@ -563,6 +592,7 @@ const resendConfirmationEmail = server.post(
 
 const resetPassword = server.post(
   "/auth/reset-password",
+  describeRoute({ hide: true, security: [] }),
   withTranslation(),
   zodValidator(
     "json",
@@ -697,7 +727,7 @@ const deleteTeamEndpoint = server.delete(
     try {
       const team = c.get("team");
 
-      await deleteTeam(team.id);
+      await deleteTeam(team.id, { deletedBy: c.get("user")?.id ?? null });
       await audit(c, {
         action: "delete",
         subsystem: "core.team",
@@ -729,59 +759,9 @@ const verify = server.get(
     summary: "Verify Authentication",
     tags: ["Authentication"],
     responses: {
-      200: {
-        description: "User is authenticated",
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              properties: {
-                success: { type: "boolean", example: true },
-              },
-            },
-          },
-        },
-      },
-      401: {
-        description: "User is not authenticated",
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              properties: {
-                success: { type: "boolean", example: false },
-                errors: {
-                  type: "object",
-                  additionalProperties: {
-                    type: "array",
-                    items: { type: "string" },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-      500: {
-        description: "Internal server error",
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              properties: {
-                success: { type: "boolean", example: false },
-                errors: {
-                  type: "object",
-                  additionalProperties: {
-                    type: "array",
-                    items: { type: "string" },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
+      ...describeSuccessResponse("User is authenticated"),
+      ...describeErrorResponse(401, "User is not authenticated"),
+      ...describeErrorResponse(500, "Internal server error"),
     },
   }),
   withTranslation(),

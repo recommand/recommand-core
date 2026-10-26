@@ -1,5 +1,5 @@
 import { teamMembers, teams, userPermissions, users } from "@core/db/schema";
-import { emitBackendEvent, CORE_BACKEND_EVENTS } from "@core/lib/backend-events";
+import { emitBackendEvent, CORE_BACKEND_EVENTS, type TeamDeletionEvent } from "@core/lib/backend-events";
 import { getTeamCreationPermissions } from "@core/lib/permissions";
 import { presignUrl, isTeamLogoEnabled } from "@core/lib/s3";
 import { resolveSupportedLanguage, toSupportedLanguage } from "@core/lib/translations-server";
@@ -119,12 +119,17 @@ export function resolveTeamLogoUrl(team: Team): Team & { logoUrl: string | null 
   };
 }
 
-export async function deleteTeam(teamId: string) {
+/**
+ * Delete a team. `deletedBy` is the user who asked for it, passed on to the
+ * listeners so whatever they change on the team's behalf can be attributed.
+ */
+export async function deleteTeam(teamId: string, options: { deletedBy?: string | null } = {}) {
+  const event: TeamDeletionEvent = { teamId, deletedBy: options.deletedBy ?? null };
   // Allow other packages to veto the deletion (e.g. when the team still owns
   // resources that need to be cleaned up first). A throwing listener aborts the
   // delete before any data is removed.
-  await emitBackendEvent(CORE_BACKEND_EVENTS.TEAM_BEFORE_DELETE, { teamId });
+  await emitBackendEvent(CORE_BACKEND_EVENTS.TEAM_BEFORE_DELETE, event);
   const deletedTeam = await db.delete(teams).where(eq(teams.id, teamId));
-  await emitBackendEvent(CORE_BACKEND_EVENTS.TEAM_DELETED, { teamId });
+  await emitBackendEvent(CORE_BACKEND_EVENTS.TEAM_DELETED, event);
   return deletedTeam;
 }

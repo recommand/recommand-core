@@ -5,6 +5,7 @@ import { createJwtApiKey } from "@core/data/api-keys";
 import { jwtVerifyClientSignedJWT } from "@core/data/oauth";
 import { addSeconds, fromUnixTime, differenceInSeconds } from "date-fns";
 import { zodValidator } from "@recommand/lib/zod-validator";
+import { describeRoute } from "hono-openapi";
 
 const server = new Server();
 
@@ -15,6 +16,7 @@ const tokenSchema = z.object({
 
 const _token = server.post(
     "/oauth2/token",
+    describeRoute({ hide: true, security: [] }),
     zodValidator("form", tokenSchema),
     async (c) => {
         try{

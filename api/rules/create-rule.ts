@@ -6,7 +6,7 @@ import { describeRoute } from "hono-openapi";
 import { z } from "zod";
 import "zod-openapi/extend";
 import { createRule } from "../../data/rules/rules";
-import { describeErrorResponse, describeSuccessResponseWithZod } from "../../lib/api-docs";
+import { describeErrorResponse, describeSuccessResponse } from "../../lib/api-docs";
 import { audit } from "../../lib/audit";
 import { createRuleApiSchema } from "../../lib/rules/types";
 import { ruleAuditSnapshot } from "./audit";
@@ -20,8 +20,8 @@ const createRuleRouteDescription = describeRoute({
   description: "Create a new automation rule for the current team.",
   tags: ["Rules"],
   responses: {
-    ...describeSuccessResponseWithZod("Successfully created rule", z.object({
-      rule: ruleResponseSchema,
+    ...describeSuccessResponse("Successfully created rule", z.object({
+      rule: ruleResponseSchema.openapi({ description: "The rule, as created." }),
     })),
     ...describeErrorResponse(400, "Invalid rule payload"),
   },

@@ -2,20 +2,26 @@ import { type AuthenticatedTeamContext, type AuthenticatedUserContext } from "@c
 import { type Context } from "@recommand/lib/api";
 import { z } from "zod";
 import "zod-openapi/extend";
+import { booleanQuerySchema, paginationQuery, paginationResponse } from "../../lib/api-docs";
 import {
   createRuleApiSchema,
   updateRuleSchema,
   type EventTypeDefinition,
 } from "../../lib/rules/types";
 
+export const ruleActionTypeSchema = z.enum(["webhook", "email"]).openapi({
+  description: "What a rule does when it matches: call a webhook or send an email.",
+  ref: "RuleActionType",
+});
+
 export const listRulesQuerySchema = z.object({
-  eventType: z.string().nullish().openapi({
+  eventType: z.string().optional().openapi({
     description: "Filter by exact event type.",
   }),
-  actionType: z.enum(["webhook", "email"]).nullish().openapi({
+  actionType: ruleActionTypeSchema.optional().openapi({
     description: "Filter by action type.",
   }),
-  enabled: z.enum(["true", "false"]).nullish().openapi({
+  enabled: booleanQuerySchema.optional().openapi({
     description: "Filter by enabled state.",
   }),
 });
@@ -24,10 +30,7 @@ export const teamIdParamSchema = z.object({
   teamId: z.string(),
 });
 
-export const listRuleDeliveriesQuerySchema = z.object({
-  page: z.coerce.number().int().positive().optional(),
-  limit: z.coerce.number().int().positive().max(100).optional(),
-});
+export const listRuleDeliveriesQuerySchema = paginationQuery({ defaultLimit: 25, maxLimit: 100 });
 
 export const ruleIdParamSchema = z.object({
   id: z.string().openapi({
@@ -52,38 +55,43 @@ export const deliveryParamSchemaWithTeamId = deliveryParamSchema.extend({
   teamId: z.string(),
 });
 
+export const webhookRuleActionSchema = z.object({
+  config: z.object({
+    secret: z.string().optional(),
+    url: z.string().url(),
+  }).openapi({ ref: "WebhookRuleActionConfig" }),
+  type: z.literal("webhook"),
+  version: z.literal(1),
+}).openapi({ ref: "WebhookRuleAction" });
+
+export const emailRuleActionSchema = z.object({
+  config: z.object({
+    attach: z.record(z.boolean()).optional(),
+    to: z.array(z.string().email()),
+  }).openapi({ ref: "EmailRuleActionConfig" }),
+  type: z.literal("email"),
+  version: z.literal(1),
+}).openapi({ ref: "EmailRuleAction" });
+
 export const ruleActionSchema = z.discriminatedUnion("type", [
-  z.object({
-    type: z.literal("webhook"),
-    version: z.literal(1),
-    config: z.object({
-      url: z.string().url(),
-      secret: z.string().optional(),
-    }),
-  }),
-  z.object({
-    type: z.literal("email"),
-    version: z.literal(1),
-    config: z.object({
-      to: z.array(z.string().email()),
-      attach: z.record(z.boolean()).optional(),
-    }),
-  }),
-]);
+  webhookRuleActionSchema,
+  emailRuleActionSchema,
+]).openapi({ ref: "RuleAction" });
+
+/** The operators a rule applies to one field. */
+export const conditionMatchSchema = z.object({
+  contains: z.unknown().optional(),
+  eq: z.unknown().optional(),
+  exists: z.boolean().optional(),
+  in: z.array(z.unknown()).optional(),
+  neq: z.unknown().optional(),
+  notIn: z.array(z.unknown()).optional(),
+}).openapi({ ref: "ConditionMatch" });
 
 export const versionedConditionResponseSchema = z.object({
   version: z.literal(1),
-  match: z.record(
-    z.object({
-      eq: z.unknown().optional(),
-      neq: z.unknown().optional(),
-      in: z.array(z.unknown()).optional(),
-      notIn: z.array(z.unknown()).optional(),
-      contains: z.unknown().optional(),
-      exists: z.boolean().optional(),
-    })
-  ),
-});
+  match: z.record(conditionMatchSchema),
+}).openapi({ ref: "RuleCondition" });
 
 export const ruleResponseSchema = z.object({
   id: z.string(),
@@ -94,9 +102,9 @@ export const ruleResponseSchema = z.object({
   condition: versionedConditionResponseSchema.nullable(),
   actions: z.array(ruleActionSchema),
   schemaVersion: z.number().int(),
-  createdAt: z.coerce.date(),
-  updatedAt: z.coerce.date().nullable(),
-});
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime().nullable(),
+}).openapi({ ref: "Rule" });
 
 export const ruleDeliveryResponseSchema = z.object({
   id: z.string(),
@@ -111,21 +119,18 @@ export const ruleDeliveryResponseSchema = z.object({
   payload: z.unknown(),
   status: z.enum(["pending", "in_flight", "succeeded", "failed", "giving_up"]),
   attempts: z.number().int(),
-  retryAt: z.coerce.date(),
-  lockedUntil: z.coerce.date().nullable(),
+  retryAt: z.string().datetime(),
+  lockedUntil: z.string().datetime().nullable(),
   lastError: z.string().nullable(),
   lastResponseStatus: z.number().int().nullable(),
-  processedAt: z.coerce.date().nullable(),
-  createdAt: z.coerce.date(),
-  updatedAt: z.coerce.date(),
-});
+  processedAt: z.string().datetime().nullable(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+}).openapi({ ref: "RuleDelivery" });
 
 export const ruleDeliveriesListResponseSchema = z.object({
   deliveries: z.array(ruleDeliveryResponseSchema),
-  page: z.number().int(),
-  limit: z.number().int(),
-  total: z.number().int(),
-  pageCount: z.number().int(),
+  pagination: paginationResponse,
 });
 
 export const conditionFieldResponseSchema = z.object({
@@ -136,29 +141,38 @@ export const conditionFieldResponseSchema = z.object({
   enumValues: z.array(z.string()).optional(),
   enumLabels: z.record(z.string()).optional(),
   picker: z.string().optional(),
-});
+}).openapi({ ref: "ConditionField" });
+
+export const eventTypeAttachmentSchema = z.object({
+  description: z.string().optional(),
+  key: z.string(),
+  label: z.string(),
+}).openapi({ ref: "EventTypeAttachment" });
+
+export const eventTypeEmailSchema = z.object({
+  attachments: z.array(eventTypeAttachmentSchema).optional(),
+  template: z.string(),
+}).openapi({ ref: "EventTypeEmail" });
+
+export const eventTypeWebhookSchema = z.object({
+  eventType: z.string(),
+}).openapi({ ref: "EventTypeWebhook" });
+
+/** How an event type is labelled and grouped in the rule builder. */
+export const eventTypeDisplaySchema = z.object({
+  description: z.string().optional(),
+  group: z.string().optional(),
+  label: z.string(),
+}).openapi({ ref: "EventTypeDisplay" });
 
 export const eventTypeResponseSchema = z.object({
   type: z.string(),
   aggregateType: z.string(),
   conditionFields: z.array(conditionFieldResponseSchema),
-  email: z.object({
-    template: z.string(),
-    attachments: z.array(z.object({
-      key: z.string(),
-      label: z.string(),
-      description: z.string().optional(),
-    })).optional(),
-  }).optional(),
-  webhook: z.object({
-    eventType: z.string(),
-  }).optional(),
-  ui: z.object({
-    label: z.string(),
-    description: z.string().optional(),
-    group: z.string().optional(),
-  }).optional(),
-});
+  email: eventTypeEmailSchema.optional(),
+  webhook: eventTypeWebhookSchema.optional(),
+  ui: eventTypeDisplaySchema.optional(),
+}).openapi({ ref: "EventType" });
 
 export const eventTypeParamSchema = z.object({
   type: z.string().openapi({

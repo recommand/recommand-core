@@ -266,13 +266,8 @@ export async function listRuleDeliveries(teamId: string, ruleId: string) {
 export async function listRuleDeliveriesPage(
   teamId: string,
   ruleId: string,
-  options?: {
-    page?: number;
-    limit?: number;
-  }
+  { limit, page }: { limit: number; page: number }
 ) {
-  const page = Math.max(1, options?.page ?? 1);
-  const limit = Math.min(100, Math.max(1, options?.limit ?? 25));
   const offset = (page - 1) * limit;
 
   const [{ count }] = await db
@@ -300,10 +295,12 @@ export async function listRuleDeliveriesPage(
 
   return {
     deliveries,
-    page,
-    limit,
-    total: count,
-    pageCount: Math.max(1, Math.ceil(count / limit)),
+    pagination: {
+      limit,
+      page,
+      total: count,
+      totalPages: Math.ceil(count / limit),
+    },
   };
 }
 

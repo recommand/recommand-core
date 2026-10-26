@@ -1,34 +1,74 @@
 import { zodResolver } from "@recommand/lib/zod-validator";
-import type { OpenAPIV3 } from "openapi-types";
+import type { OpenAPIV3, OpenAPIV3_1 } from "openapi-types";
 import z from "zod";
+import "zod-openapi/extend";
 
-export function describeSuccessResponse<T>(
-  description: string,
-  bodySchema: any = {}
-): {
-  [key: string]: OpenAPIV3.ReferenceObject | OpenAPIV3.ResponseObject;
-} {
-  return {
-    [200]: {
-      description,
-      content: {
-        "application/json": {
-          schema: {
-            type: "object",
-            properties: {
-              success: { type: "boolean", example: true },
-              ...bodySchema,
-            },
-          },
-        },
-      },
-    },
-  };
-}
+/**
+ * A boolean query parameter. A query string carries it as the text `true` or
+ * `false`, which is how OpenAPI writes a boolean parameter, so the document
+ * declares it a boolean and a generated client takes one. Any other text,
+ * an empty value included, is rejected.
+ */
+export const booleanQuerySchema = z.preprocess(
+  (value) => (value === "true" ? true : value === "false" ? false : value),
+  z.boolean()
+);
 
-export function describeSuccessResponseWithZod(
+/** The page a list endpoint returns alongside its items. */
+export const paginationResponse = z
+  .object({
+    limit: z.number().int().min(1).openapi({ description: "Maximum number of items on a page." }),
+    page: z.number().int().min(1).openapi({ description: "The page returned, counting from 1." }),
+    total: z.number().int().min(0).openapi({ description: "Total number of items across all pages." }),
+    totalPages: z.number().int().min(0).openapi({ description: "Number of pages at this page size." }),
+  })
+  .openapi({ ref: "Pagination" });
+
+/**
+ * A parameter's or header's schema, written as the OpenAPI 3.1 Schema Object it
+ * is. `openapi-types` types it as an OpenAPI 3.0 one, without `examples`
+ * (https://github.com/kogosoftwarellc/open-api/issues/923), so it's cast to that.
+ */
+export const parameterSchema = (schema: OpenAPIV3_1.SchemaObject) =>
+  schema as OpenAPIV3.SchemaObject;
+
+/**
+ * The query schema of a list endpoint: its `limit` and `page`, to extend with
+ * any other parameters the list takes. Every list counts pages from 1; how
+ * many items a page holds by default, and at most, is the list's own choice.
+ */
+export const paginationQuery = ({
+  defaultLimit,
+  maxLimit,
+  maxPage,
+}: {
+  defaultLimit: number;
+  maxLimit: number;
+  maxPage?: number;
+}) =>
+  z.object({
+    limit: z.coerce.number().int().min(1).max(maxLimit).default(defaultLimit).openapi({
+      description: "The number of items per page",
+      examples: [defaultLimit],
+    }),
+    page: (maxPage === undefined
+      ? z.coerce.number().int().min(1)
+      : z.coerce.number().int().min(1).max(maxPage)
+    )
+      .default(1)
+      .openapi({
+        description: "The page number to retrieve",
+        examples: [1],
+      }),
+  });
+
+/**
+ * A 200 response whose body is `bodySchema` with `success: true` added. A
+ * description given to `bodySchema` with `.openapi()` describes the body.
+ */
+export function describeSuccessResponse(
   description: string,
-  bodySchema: z.ZodObject<any>
+  bodySchema: z.ZodObject<any> = z.object({})
 ) {
   return {
     200: {
@@ -41,6 +81,7 @@ export function describeSuccessResponseWithZod(
                 success: z.literal(true),
               })
               .extend(bodySchema.shape)
+              .openapi({ description: bodySchema._def.zodOpenApi?.openapi?.description })
           ),
         },
       },
@@ -63,7 +104,7 @@ export function describeErrorResponse(
           schema: {
             type: "object",
             properties: {
-              success: { type: "boolean", example: false },
+              success: { type: "boolean", const: false },
               errors: {
                 type: "object",
                 additionalProperties: {
@@ -73,6 +114,7 @@ export function describeErrorResponse(
               },
               ...bodySchema,
             },
+            required: ["success", "errors"],
           },
         },
       },

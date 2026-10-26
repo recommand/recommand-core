@@ -1,16 +1,19 @@
 import { toast } from "@core/components/ui/sonner";
-import { useActiveTeam } from "@core/hooks/user";
+import { useActiveTeam, useHasPermission } from "@core/hooks/user";
 import type { OnboardingStep } from "@core/lib/onboarding-store";
 import { useUserStore } from "@core/lib/user-store";
 import { rc } from "@recommand/lib/client";
 import { stringifyActionFailure } from "@recommand/lib/utils";
 import type { Onboarding } from "@core/api/onboarding";
+import type { Auth } from "@core/api/auth";
 import { Button } from "@core/components/ui/button";
-import { ArrowRight } from "lucide-react";
-import { useCallback } from "react";
+import { ConfirmDialog } from "@core/components/confirm-dialog";
+import { ArrowRight, Trash2 } from "lucide-react";
+import { useCallback, useState } from "react";
 import { useTranslation } from "@core/hooks/use-translation";
 
 const client = rc<Onboarding>("core");
+const authClient = rc<Auth>("core");
 
 export default function Onboarding({ step }: { step: OnboardingStep }) {
   const activeTeam = useActiveTeam();
@@ -46,7 +49,7 @@ export default function Onboarding({ step }: { step: OnboardingStep }) {
   }, [activeTeam?.id, addCompletedOnboardingStep, step.id]);
 
   return <div>
-    <div className="flex flex-col items-center py-12 space-y-12 h-svh">
+    <div className="flex flex-col items-center py-12 space-y-12 min-h-svh">
       <img src="/logo.svg" alt={t`Recommand Logo`} className="h-8 w-auto min-w-32" />
       <div className="flex flex-col items-center space-y-2">
         <h1 className="text-2xl font-bold text-center">{t(step.title)}</h1>
@@ -65,6 +68,61 @@ export default function Onboarding({ step }: { step: OnboardingStep }) {
           <ArrowRight className="w-4 h-4" />
         </Button>
       </div>}
+      {step.scope === "team" && <DeleteOnboardingTeamButton />}
     </div>
   </div>;
+}
+
+// A team that is still being onboarded holds nothing worth keeping yet, so it can
+// be removed from here instead of finishing setup first.
+function DeleteOnboardingTeamButton() {
+  const activeTeam = useActiveTeam();
+  const canManageTeam = useHasPermission("core.team.manage");
+  const teams = useUserStore(x => x.teams);
+  const removeTeam = useUserStore(x => x.removeTeam);
+  const setActiveTeam = useUserStore(x => x.setActiveTeam);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const { t } = useTranslation();
+
+  if (!activeTeam || !canManageTeam) {
+    return null;
+  }
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const response = await authClient.auth.teams[":teamId"].$delete({
+        param: { teamId: activeTeam.id },
+      });
+      const json = await response.json();
+      if (!json.success) {
+        throw new Error(stringifyActionFailure(json.errors));
+      }
+
+      const remainingTeams = teams.filter(team => team.id !== activeTeam.id);
+      removeTeam(activeTeam.id);
+      setActiveTeam(remainingTeams[0] ?? null);
+      toast.success(t`Team deleted successfully`);
+    } catch (error) {
+      toast.error(error instanceof Error
+        ? t`Failed to delete team. ${t(error.message)}`
+        : t`Failed to delete team`);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  return <ConfirmDialog
+    title={t`Delete Team`}
+    description={t`Are you sure you want to delete the team "${activeTeam.name}"? Its setup has not been finished yet. This action cannot be undone.`}
+    confirmButtonText={t`Delete Team`}
+    onConfirm={handleDelete}
+    isLoading={isDeleting}
+    trigger={
+      <Button variant="ghost" size="sm" className="text-muted-foreground" disabled={isDeleting}>
+        <Trash2 className="w-4 h-4" />
+        {t`Delete this team`}
+      </Button>
+    }
+  />;
 }

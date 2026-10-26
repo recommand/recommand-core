@@ -1,11 +1,21 @@
 import { usePermissionChecker } from '@core/hooks/user';
 import type { LucideIcon } from 'lucide-react';
-import { useMemo } from 'react';
+import { type ComponentType, useMemo } from 'react';
 import { create } from 'zustand';
 
 export interface MenuGroup {
   id: string; // E.g. "main.general" or "main.admin", where "main" indicates the main menu
   title: string;
+}
+
+// Right-hand segment of a root menu item, which then renders as a split
+// button, e.g. a shortcut to the currently selected record. Hidden when the
+// sidebar is collapsed.
+export interface MenuItemAction {
+  icon: ComponentType<{ className?: string }>;
+  label: string; // Tooltip and accessible name
+  href?: string;
+  onClick?: () => void;
 }
 
 export interface MenuItem {
@@ -17,6 +27,8 @@ export interface MenuItem {
   // Small trailing count/label ("6", "new"). Re-register the item with a new
   // value to update it live; omit (or pass undefined) to clear it.
   badge?: string | number;
+  // Re-register the item to update or clear the action, like `badge`.
+  action?: MenuItemAction;
   isActive?: boolean;
   groupId?: string;
   requiredPermission?: string; // If set, the menu item is only visible to users with this permission

@@ -10,7 +10,7 @@ import {
   SidebarRail,
 } from '@core/components/ui/sidebar';
 import { useTranslation } from '@core/hooks/use-translation';
-import { type MenuItem, useMenuGroups, useMenuItems } from '@core/lib/menu-store';
+import { type MenuItem, type MenuItemAction, useMenuGroups, useMenuItems } from '@core/lib/menu-store';
 import { useUserStore } from '@core/lib/user-store';
 import type { LucideIcon } from 'lucide-react';
 import { LogIn } from 'lucide-react';
@@ -31,6 +31,7 @@ const buildMenuItems = (menuItems: MenuItem[], currentPath: string, prefix: stri
             onClick: item.onClick,
             icon: item.icon as LucideIcon,
             badge: item.badge,
+            action: item.action,
             isActive: item.isActive || item.href === currentPath,
             items: menuItems
               .filter(
@@ -55,6 +56,7 @@ const buildMenuItems = (menuItems: MenuItem[], currentPath: string, prefix: stri
         onClick?: () => void;
         icon?: LucideIcon;
         badge?: string | number;
+        action?: MenuItemAction;
         isActive?: boolean;
         items?: Array<{
           title: string;

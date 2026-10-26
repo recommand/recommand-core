@@ -14,6 +14,9 @@ import {
   SidebarMenuSubItem,
   useSidebar,
 } from '@core/components/ui/sidebar';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@core/components/ui/tooltip';
+import type { MenuItemAction } from '@core/lib/menu-store';
+import { cn } from '@core/lib/utils';
 import { ChevronRight, type LucideIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -23,6 +26,31 @@ function NavBadge({ value }: { value: string | number }) {
     <span className="ml-auto flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-sidebar-primary px-1.5 text-[11px] font-medium tabular-nums text-sidebar-primary-foreground">
       {value}
     </span>
+  );
+}
+
+/** Right-hand segment of a split nav item, e.g. "open the current record". */
+function NavAction({ action, onNavigate }: { action: MenuItemAction; onNavigate: () => void }) {
+  const className =
+    'flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-r-md text-sidebar-foreground/60 outline-hidden ring-sidebar-ring transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 [&>svg]:size-4';
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        {action.onClick ? (
+          <button type="button" onClick={action.onClick} aria-label={action.label} className={className}>
+            <action.icon />
+          </button>
+        ) : (
+          <Link to={action.href ?? '#'} onClick={onNavigate} aria-label={action.label} className={className}>
+            <action.icon />
+          </Link>
+        )}
+      </TooltipTrigger>
+      <TooltipContent side="right" align="center">
+        {action.label}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -36,6 +64,7 @@ export function NavMain({
     url: string;
     icon?: LucideIcon;
     badge?: string | number;
+    action?: MenuItemAction;
     isActive?: boolean;
     onClick?: () => void;
     items?: {
@@ -154,12 +183,20 @@ export function NavMain({
             );
           }
 
+          // With an action the item renders as a split button: the item itself on
+          // the left, the action as a separate segment on the right.
+          const hasAction = item.action && state === 'expanded';
+
           return (
-            <SidebarMenuItem key={item.title}>
+            <SidebarMenuItem
+              key={item.title}
+              className={cn(hasAction && 'flex items-center')}
+            >
               <SidebarMenuButton
                 tooltip={item.title}
                 asChild={!item.onClick}
                 onClick={item.onClick}
+                className={cn(hasAction && 'flex-1 rounded-r-none')}
               >
                 {item.onClick ? (
                   <>
@@ -175,6 +212,12 @@ export function NavMain({
                   </Link>
                 )}
               </SidebarMenuButton>
+              {hasAction && (
+                <>
+                  <div className="h-4 w-px shrink-0 bg-sidebar-border opacity-0 transition-opacity group-hover/menu-item:opacity-100 group-focus-within/menu-item:opacity-100" />
+                  <NavAction action={item.action!} onNavigate={closeMobileSidebar} />
+                </>
+              )}
             </SidebarMenuItem>
           );
         })}

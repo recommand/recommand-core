@@ -420,3 +420,5 @@ Used for emails to addresses configured on this team\, such as billing and docum
 Signup by invitation only,Registreren kan alleen op uitnodiging
 Public signup is disabled. Ask an existing user to invite you to their team.,Openbare registratie is uitgeschakeld. Vraag een bestaande gebruiker om je uit te nodigen voor diens team.
 Public signup is disabled. Ask an existing user to invite you.,Openbare registratie is uitgeschakeld. Vraag een bestaande gebruiker om je uit te nodigen.
+Delete this team,Dit team verwijderen
+Are you sure you want to delete the team "{0}"? Its setup has not been finished yet. This action cannot be undone.,Weet je zeker dat je het team "{0}" wilt verwijderen? De configuratie ervan is nog niet afgerond. Deze actie kan niet ongedaan worden gemaakt.
