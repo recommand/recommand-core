@@ -89,84 +89,98 @@ export function describeSuccessResponse(
   };
 }
 
+/**
+ * The body of every error response: `success: false`, and the messages that say
+ * what went wrong. `actionFailure` and the request validator both answer with it.
+ */
+const errorResponse = z
+  .object({
+    success: z.literal(false),
+    errors: z.record(z.string(), z.array(z.string())).openapi({
+      description:
+        "What went wrong, per field of the request. Messages about the request as a whole are under `root`.",
+    }),
+  })
+  .openapi({ ref: "ErrorResponse" });
+
+/**
+ * A response with an error status, whose body is the error body with the
+ * fields of `bodySchema` added, for a route that says more than the messages.
+ * A description given to `bodySchema` with `.openapi()` describes the body.
+ */
 export function describeErrorResponse(
   status: number,
   description: string,
-  bodySchema: any = {}
-): {
-  [key: string]: OpenAPIV3.ReferenceObject | OpenAPIV3.ResponseObject;
-} {
+  bodySchema: z.ZodObject<any> = z.object({})
+) {
   return {
     [status]: {
       description,
       content: {
         "application/json": {
-          schema: {
-            type: "object",
-            properties: {
-              success: { type: "boolean", const: false },
-              errors: {
-                type: "object",
-                additionalProperties: {
-                  type: "array",
-                  items: { type: "string" },
-                },
-              },
-              ...bodySchema,
-            },
-            required: ["success", "errors"],
-          },
+          schema: zodResolver(
+            errorResponse
+              .extend(bodySchema.shape)
+              .openapi({ description: bodySchema._def.zodOpenApi?.openapi?.description })
+          ),
         },
       },
     },
   };
 }
 
-/**
- * The 400 a route answers when the request does not match its schema.
- *
- * On top of the `errors` map every error response carries, the request
- * validator adds `invalidInputDetails`: the same failures as a list, each with
- * the path it applies to. For a union of schemas it also carries the failures
- * of every variant, so a caller can see why the other variants were not a
- * match. The field is optional, because a 400 the route raises itself answers
- * with the plain error body.
- */
-export function describeValidationErrorResponse(
-  description: string,
-  bodySchema: any = {}
-): {
-  [key: string]: OpenAPIV3.ReferenceObject | OpenAPIV3.ResponseObject;
-} {
-  const inputDetail = {
-    path: {
-      type: "string",
+const inputDetail = z
+  .object({
+    path: z.string().openapi({
       description: "Dotted path of the field the message applies to.",
-    },
-    message: { type: "string" },
-  };
+    }),
+    message: z.string(),
+  })
+  .openapi({ ref: "InputDetail" });
 
-  return describeErrorResponse(400, description, {
-    invalidInputDetails: {
-      type: "array",
-      description:
-        "Present when the request body or query did not match the schema.",
-      items: {
-        type: "object",
-        properties: {
-          ...inputDetail,
-          unionErrors: {
-            type: "array",
-            description:
-              "For a union of schemas, the failures of every variant, in the order the variants are declared.",
-            items: {
-              type: "array",
-              items: { type: "object", properties: inputDetail },
-            },
-          },
-        },
+const invalidInputDetail = inputDetail
+  .extend({
+    unionErrors: z
+      .array(z.array(inputDetail))
+      .optional()
+      .openapi({
+        description:
+          "For a union of schemas, the failures of every variant, in the order the variants are declared.",
+      }),
+  })
+  .openapi({ ref: "InvalidInputDetail" });
+
+/**
+ * The body of a 400 the request validator answers when the request does not
+ * match its schema.
+ *
+ * On top of the `errors` map every error response carries, it adds
+ * `invalidInputDetails`: the same failures as a list, each with the path it
+ * applies to. For a union of schemas it also carries the failures of every
+ * variant, so a caller can see why the other variants were not a match. The
+ * field is optional, because a 400 the route raises itself answers with the
+ * plain error body.
+ */
+const validationErrorResponse = errorResponse
+  .extend({
+    invalidInputDetails: z
+      .array(invalidInputDetail)
+      .optional()
+      .openapi({
+        description:
+          "Present when the request body or query did not match the schema.",
+      }),
+  })
+  .openapi({ ref: "ValidationErrorResponse" });
+
+/** The 400 a route answers when the request does not match its schema. */
+export function describeValidationErrorResponse(description: string) {
+  return {
+    400: {
+      description,
+      content: {
+        "application/json": { schema: zodResolver(validationErrorResponse) },
       },
     },
-    ...bodySchema,
-  });
+  };
 }
