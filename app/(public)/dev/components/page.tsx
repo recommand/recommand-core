@@ -1,3 +1,14 @@
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@core/components/ui/alert-dialog';
 import { Badge } from '@core/components/ui/badge';
 import { Button } from '@core/components/ui/button';
 import {
@@ -10,11 +21,45 @@ import {
   CardTitle,
 } from '@core/components/ui/card';
 import { Checkbox } from '@core/components/ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@core/components/ui/dialog';
 import { Input } from '@core/components/ui/input';
 import { Label } from '@core/components/ui/label';
+import {
+  Popover,
+  PopoverContent,
+  PopoverDescription,
+  PopoverHeader,
+  PopoverTitle,
+  PopoverTrigger,
+} from '@core/components/ui/popover';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@core/components/ui/sheet';
+import { toast } from '@core/components/ui/sonner';
 import { Switch } from '@core/components/ui/switch';
 import { Textarea } from '@core/components/ui/textarea';
-import { ArrowRight, Plus, Trash2 } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@core/components/ui/tooltip';
+import { ArrowRight, Info, Moon, Plus, Sun, Trash2 } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { type ReactNode, useState } from 'react';
 import { Navigate } from 'react-router';
 
@@ -23,6 +68,7 @@ import { Navigate } from 'react-router';
  * reviewing them under the deployment's theme. Only available in development.
  */
 export default function ComponentGalleryPage() {
+  const { resolvedTheme, setTheme } = useTheme();
   if (!import.meta.env.DEV) return <Navigate to="/" replace />;
 
   return (
@@ -30,9 +76,22 @@ export default function ComponentGalleryPage() {
       <header className="flex h-topbar items-center border-b px-6">
         <h1 className="text-base font-title">Components</h1>
         <span className="ml-3 text-sm text-muted-foreground">
-          Light on the left, dark on the right. Development only.
+          The left panel follows the app theme, the right one is always dark. Overlays follow the
+          app theme. Development only.
         </span>
+        <Button
+          variant="outline"
+          size="sm"
+          className="ml-auto"
+          onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+        >
+          {resolvedTheme === 'dark' ? <Sun /> : <Moon />}
+          {resolvedTheme === 'dark' ? 'Light' : 'Dark'}
+        </Button>
       </header>
+      <div className="border-b p-6">
+        <Overlays />
+      </div>
       <div className="grid grid-cols-1 xl:grid-cols-2">
         <Panel />
         <div className="dark border-l bg-background text-foreground">
@@ -228,6 +287,102 @@ function Cards() {
           </CardFooter>
         </Card>
       </div>
+    </Section>
+  );
+}
+
+function Overlays() {
+  return (
+    <Section title="Overlays">
+      <Row>
+        <Dialog>
+          <DialogTrigger render={<Button variant="outline" />}>Dialog</DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Rename the API key</DialogTitle>
+              <DialogDescription>The key keeps working; only its name changes.</DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-2">
+              <Label htmlFor="gallery-key-name">Name</Label>
+              <Input id="gallery-key-name" defaultValue="erp-sync" />
+            </div>
+            <DialogFooter>
+              <Button variant="outline">Cancel</Button>
+              <Button>Save</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <AlertDialog>
+          <AlertDialogTrigger render={<Button variant="destructive" />}>
+            Alert dialog
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Revoke erp-sync?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Systems using this key can no longer send or read documents. This cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction variant="destructive-solid">Revoke key</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <Sheet>
+          <SheetTrigger render={<Button variant="outline" />}>Drawer</SheetTrigger>
+          <SheetContent>
+            <SheetHeader>
+              <SheetTitle>INV-2026-0912</SheetTitle>
+              <SheetDescription>Invoice to Atelier Verbeke, delivered on 14 Oct.</SheetDescription>
+            </SheetHeader>
+            <div className="px-4 text-muted-foreground">Delivery details go here.</div>
+            <SheetFooter>
+              <Button size="sm">Resend</Button>
+            </SheetFooter>
+          </SheetContent>
+        </Sheet>
+
+        <Popover>
+          <PopoverTrigger render={<Button variant="outline" />}>Popover</PopoverTrigger>
+          <PopoverContent align="start">
+            <PopoverHeader>
+              <PopoverTitle>Receiving on Peppol</PopoverTitle>
+              <PopoverDescription>Since 2 Sep 2026, as 0208:0456123987.</PopoverDescription>
+            </PopoverHeader>
+          </PopoverContent>
+        </Popover>
+
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger
+              render={<Button variant="ghost" size="icon" aria-label="More information" />}
+            >
+              <Info />
+            </TooltipTrigger>
+            <TooltipContent>Delivered over Peppol</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
+        <Button
+          variant="outline"
+          onClick={() => toast.success('Invoice delivered to Atelier Verbeke')}
+        >
+          Success toast
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() =>
+            toast.error('Delivery failed', {
+              description: 'The receiving access point did not answer.',
+            })
+          }
+        >
+          Error toast
+        </Button>
+      </Row>
     </Section>
   );
 }

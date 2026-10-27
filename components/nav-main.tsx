@@ -36,16 +36,26 @@ function NavAction({ action, onNavigate }: { action: MenuItemAction; onNavigate:
 
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        {action.onClick ? (
-          <button type="button" onClick={action.onClick} aria-label={action.label} className={className}>
-            <action.icon />
-          </button>
-        ) : (
-          <Link to={action.href ?? '#'} onClick={onNavigate} aria-label={action.label} className={className}>
-            <action.icon />
-          </Link>
-        )}
+      <TooltipTrigger
+        render={
+          action.onClick ? (
+            <button
+              type="button"
+              onClick={action.onClick}
+              aria-label={action.label}
+              className={className}
+            />
+          ) : (
+            <Link
+              to={action.href ?? '#'}
+              onClick={onNavigate}
+              aria-label={action.label}
+              className={className}
+            />
+          )
+        }
+      >
+        <action.icon />
       </TooltipTrigger>
       <TooltipContent side="right" align="center">
         {action.label}
@@ -188,10 +198,7 @@ export function NavMain({
           const hasAction = item.action && state === 'expanded';
 
           return (
-            <SidebarMenuItem
-              key={item.title}
-              className={cn(hasAction && 'flex items-center')}
-            >
+            <SidebarMenuItem key={item.title} className={cn(hasAction && 'flex items-center')}>
               <SidebarMenuButton
                 tooltip={item.title}
                 asChild={!item.onClick}

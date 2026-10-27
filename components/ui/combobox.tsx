@@ -63,8 +63,7 @@ export function Combobox({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button
+      <PopoverTrigger render={<button
           type="button"
           role="combobox"
           aria-expanded={open}
@@ -73,8 +72,7 @@ export function Combobox({
             "border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 flex w-full items-center justify-between gap-2 rounded-md border bg-transparent px-3 py-2 text-sm whitespace-nowrap shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 h-9",
             !value && "text-muted-foreground",
             className,
-          )}
-        >
+          )} />}>
           <span className="truncate">
             {selectedOption ? (
               <span className="flex items-center gap-2">
@@ -90,8 +88,7 @@ export function Combobox({
             )}
           </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </button>
-      </PopoverTrigger>
+        </PopoverTrigger>
       <PopoverContent className="w-full p-0" align="start">
         <Command>
           <CommandInput placeholder={resolvedSearchPlaceholder} className="h-9" />
