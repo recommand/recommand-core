@@ -726,7 +726,7 @@ function Notices() {
         <Alert variant="info">
           <Info />
           <AlertTitle>Playground</AlertTitle>
-          <AlertDescription>Nothing you send here leaves Recommand.</AlertDescription>
+          <AlertDescription>Nothing you send here leaves the playground.</AlertDescription>
         </Alert>
         <Alert variant="success">
           <AlertTitle>Company verified</AlertTitle>

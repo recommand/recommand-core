@@ -1,4 +1,5 @@
 import { Section, Text } from "@react-email/components";
+import { getAppIdentity } from "@recommand/lib/app-identity";
 import { Button, EmailLayout, EmailHeading, InfoSection, baseUrl } from "./components/shared";
 import { fallbackT, type TranslationFunction } from "@core/lib/translations";
 
@@ -17,7 +18,7 @@ export const SignupEmailConfirmation = ({
     <EmailHeading>{t`Confirm your email`}</EmailHeading>
     <Text className="mb-4">{firstName ? t`Hello ${firstName},` : t`Hello,`}</Text>
     <Text className="mb-4">
-      {t`Thank you for signing up for Recommand. Please confirm your email address to get started.`}
+      {t`Thank you for signing up for ${getAppIdentity().name}. Please confirm your email address to get started.`}
     </Text>
     <Section className="my-6 text-center">
       <Button variant="primary" href={confirmationUrl}>

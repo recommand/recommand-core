@@ -56,10 +56,6 @@ export default function FramePreviewPage() {
   }, []);
 
   useEffect(() => {
-    setUIConfig(
-      'sidebar.logo',
-      <span className="text-lg font-title text-sidebar-accent-foreground">Acme</span>,
-    );
     setUIConfig('team-switcher.meta', (team: Team, place: 'sidebar' | 'panel') => {
       const playground = team.name.includes('Playground');
       return (

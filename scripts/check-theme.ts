@@ -83,7 +83,7 @@ function check(prefix: string, rawValue: string): string | undefined {
   return `${base === 'text' ? 'colour or type' : 'colour'} outside the contract`;
 }
 
-for (const path of new Glob('components/**/*.tsx').scanSync({ cwd: root })) {
+for (const path of new Glob('{components,app}/**/*.tsx').scanSync({ cwd: root })) {
   const source = readFileSync(join(root, path), 'utf-8');
   source.split('\n').forEach((text, index) => {
     for (const match of text.matchAll(UTILITY)) {

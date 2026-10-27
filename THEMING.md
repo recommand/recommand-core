@@ -101,6 +101,6 @@ steps, which a theme may redefine.
 
 ## Keeping components on the contract
 
-`bun run check:theme` fails when a component under `components/` uses a
-colour, size or type token outside this contract, or a raw colour such as
-`bg-red-500` or `text-[#123456]`.
+`bun run check:theme` fails when a component under `components/` or a page
+under `app/` uses a colour, size or type token outside this contract, or a
+raw colour such as `bg-red-500` or `text-[#123456]`.

@@ -14,7 +14,7 @@ interface EmailDefinition<TProps = any> {
 
 /**
  * Resolves an email by checking for overrides in all packages.
- * Packages are checked in reverse alphabetical order (matching Recommand Framework app attachment order).
+ * Packages are checked in reverse alphabetical order (matching the framework's app attachment order).
  *
  * @param emailName - The name of the email
  * @returns The email component and subject function

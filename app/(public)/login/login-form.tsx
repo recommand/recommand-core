@@ -1,4 +1,5 @@
 import { Button } from "../../../components/ui/button";
+import { AppLogo } from "@core/components/app-logo";
 import {
   Card,
   CardContent,
@@ -28,7 +29,7 @@ export function LoginForm({
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { publicSignupEnabled } = usePublicSignupEnabled();
-  const logoSrc = useUIConfig("auth.logo-src", "/logo.svg");
+  const logoSrc = useUIConfig<string | undefined>("auth.logo-src", undefined);
   const logoClassName = useUIConfig("auth.logo-class", "h-12 w-auto");
   const containerClassName = useUIConfig("auth.container-class", "flex flex-col gap-6");
 
@@ -50,11 +51,7 @@ export function LoginForm({
   return (
     <div className={cn(containerClassName, className)} {...props}>
       <div className="flex justify-center mb-4">
-        <img
-          src={logoSrc}
-          alt={t`Logo`}
-          className={logoClassName}
-        />
+        <AppLogo src={logoSrc} className={logoClassName} />
       </div>
       <Card>
         <CardHeader>

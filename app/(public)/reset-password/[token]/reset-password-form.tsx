@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { AppLogo } from "@core/components/app-logo";
 import { Button } from "../../../../components/ui/button";
 import {
   Card,
@@ -27,7 +28,7 @@ export default function ResetPasswordForm({ token }: ResetPasswordFormProps) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { t } = useTranslation();
-  const logoSrc = useUIConfig("auth.logo-src", "/logo.svg");
+  const logoSrc = useUIConfig<string | undefined>("auth.logo-src", undefined);
   const logoClassName = useUIConfig("auth.logo-class", "h-12 w-auto");
   const containerClassName = useUIConfig("auth.container-class", "flex flex-col gap-6");
 
@@ -75,11 +76,7 @@ export default function ResetPasswordForm({ token }: ResetPasswordFormProps) {
   return (
     <div className={containerClassName}>
       <div className="flex justify-center mb-4">
-        <img
-          src={logoSrc}
-          alt={t`Logo`}
-          className={logoClassName}
-        />
+        <AppLogo src={logoSrc} className={logoClassName} />
       </div>
       <Card className="mx-auto">
       <CardHeader>

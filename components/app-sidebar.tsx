@@ -18,6 +18,7 @@ import {
 } from '@core/lib/menu-store';
 import { useUIConfig } from '@core/lib/ui-config-store';
 import { useUserStore } from '@core/lib/user-store';
+import { appIdentity } from '@recommand/lib/app-identity-client';
 import type { LucideIcon } from 'lucide-react';
 import { LogIn } from 'lucide-react';
 import type * as React from 'react';
@@ -85,9 +86,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const location = useLocation();
   const { user, teams, activeTeam, setActiveTeam } = useUserStore();
   const { t } = useTranslation();
-  // The product's logo at the top of the sidebar, set by the app through the
-  // `sidebar.logo` UI config. It should follow the sidebar theme.
-  const logo = useUIConfig<ReactNode>('sidebar.logo', null);
+  // The logo at the top of the sidebar: the app's `sidebar.logo` UI config
+  // (which should follow the sidebar theme), else the deployment's
+  // `sidebarLogo` from its app identity.
+  const logoConfig = useUIConfig<ReactNode>('sidebar.logo', null);
+  const logo =
+    logoConfig ??
+    (appIdentity.sidebarLogo ? (
+      <img src={appIdentity.sidebarLogo} alt={appIdentity.name} className="h-5.5 w-auto" />
+    ) : null);
 
   // Build the menu hierarchy for main items
   const defaultItems = buildMenuItems(

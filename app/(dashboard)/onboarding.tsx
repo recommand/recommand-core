@@ -1,4 +1,5 @@
 import { toast } from "@core/components/ui/sonner";
+import { AppLogo } from "@core/components/app-logo";
 import { useActiveTeam, useHasPermission } from "@core/hooks/user";
 import type { OnboardingStep } from "@core/lib/onboarding-store";
 import { useUserStore } from "@core/lib/user-store";
@@ -50,7 +51,7 @@ export default function Onboarding({ step }: { step: OnboardingStep }) {
 
   return <div>
     <div className="flex flex-col items-center py-12 space-y-12 min-h-svh">
-      <img src="/logo.svg" alt={t`Recommand Logo`} className="h-8 w-auto min-w-32" />
+      <AppLogo className="h-8 w-auto" />
       <div className="flex flex-col items-center space-y-2">
         <h1 className="text-2xl font-bold text-center">{t(step.title)}</h1>
         {step.description && <p className="text-sm text-muted-foreground text-balance max-w-sm text-center">{t(step.description)}</p>}
