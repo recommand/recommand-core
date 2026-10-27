@@ -1,0 +1,210 @@
+/*
+ * Core's theme contract, with neutral defaults.
+ *
+ * These are the only variables and Tailwind tokens core components read. A
+ * deployment's theme (imported after this file through `@app-theme`) sets
+ * any of them; whatever it leaves out keeps the default below. The standard
+ * shadcn/ui variables use shadcn's neutral values; the extensions follow
+ * them. THEMING.md describes every token.
+ */
+
+@custom-variant dark (&:where(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *));
+
+:root {
+  /* shadcn/ui */
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+
+  /* Extensions */
+  --active: oklch(0.97 0 0);
+  --placeholder: oklch(0.556 0 0);
+  --disabled: oklch(0.708 0 0);
+  --overlay: oklch(0 0 0 / 50%);
+  --sidebar-muted-foreground: oklch(0.556 0 0);
+  --success: oklch(0.527 0.154 150.069);
+  --success-soft: oklch(0.982 0.018 155.826);
+  --success-line: oklch(0.925 0.084 155.995);
+  --warning: oklch(0.769 0.188 70.08);
+  --warning-foreground: oklch(0.555 0.163 48.998);
+  --warning-soft: oklch(0.987 0.022 95.277);
+  --warning-line: oklch(0.924 0.12 95.746);
+  --destructive-soft: oklch(0.936 0.032 17.717);
+  --info-soft: oklch(0.97 0.014 254.604);
+  --info-line: oklch(0.882 0.059 254.128);
+  --status-normal: oklch(0.205 0 0);
+  --status-positive: oklch(0.527 0.154 150.069);
+  --status-attention: oklch(0.769 0.188 70.08);
+}
+
+.dark,
+[data-theme="dark"] {
+  /* shadcn/ui */
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.922 0 0);
+  --sidebar-primary-foreground: oklch(0.205 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+
+  /* Extensions */
+  --active: oklch(1 0 0 / 8%);
+  --placeholder: oklch(0.708 0 0);
+  --disabled: oklch(0.556 0 0);
+  --overlay: oklch(0 0 0 / 60%);
+  --sidebar-muted-foreground: oklch(0.708 0 0);
+  --success: oklch(0.792 0.209 151.711);
+  --success-soft: oklch(0.266 0.065 152.934);
+  --success-line: oklch(0.792 0.209 151.711 / 25%);
+  --warning: oklch(0.828 0.189 84.429);
+  --warning-foreground: oklch(0.828 0.189 84.429);
+  --warning-soft: oklch(0.279 0.077 45.635);
+  --warning-line: oklch(0.828 0.189 84.429 / 25%);
+  --destructive-soft: oklch(0.704 0.191 22.216 / 16%);
+  --info-soft: oklch(0.282 0.091 267.935);
+  --info-line: oklch(0.707 0.165 254.624 / 25%);
+  --status-normal: oklch(0.922 0 0);
+  --status-positive: oklch(0.792 0.209 151.711);
+  --status-attention: oklch(0.828 0.189 84.429);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --color-active: var(--active);
+  --color-placeholder: var(--placeholder);
+  --color-disabled: var(--disabled);
+  --color-overlay: var(--overlay);
+  --color-sidebar-muted-foreground: var(--sidebar-muted-foreground);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-success-line: var(--success-line);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-line: var(--warning-line);
+  --color-destructive-soft: var(--destructive-soft);
+  --color-info-soft: var(--info-soft);
+  --color-info-line: var(--info-line);
+  --color-status-normal: var(--status-normal);
+  --color-status-positive: var(--status-positive);
+  --color-status-attention: var(--status-attention);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* Sizes and type roles, defaulting to stock shadcn/ui proportions. */
+@theme {
+  --spacing-control: 2rem;
+  --spacing-control-sm: 1.75rem;
+  --spacing-control-lg: 2.25rem;
+  --spacing-table-head: 2.5rem;
+  --spacing-table-row: 3rem;
+  --spacing-topbar: 3.5rem;
+  --spacing-sidebar: 16rem;
+  --spacing-drawer: 24rem;
+
+  --font-weight-button: 500;
+
+  --text-micro: 0.6875rem;
+  --text-micro--line-height: 1rem;
+  --text-table-head: 0.875rem;
+  --text-table-head--line-height: 1.25rem;
+  --text-table-head--font-weight: 500;
+}
+
+:root {
+  /* `none` or `uppercase`: how table heads are set. */
+  --table-head-transform: none;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
