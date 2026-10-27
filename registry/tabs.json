@@ -1,0 +1,20 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "tabs",
+  "type": "registry:ui",
+  "dependencies": [
+    "@base-ui/react@^1.9.0",
+    "class-variance-authority@^0.7.1"
+  ],
+  "registryDependencies": [
+    "@recommand/theme",
+    "@recommand/utils"
+  ],
+  "files": [
+    {
+      "path": "ui/tabs.tsx",
+      "type": "registry:ui",
+      "content": "import { Tabs as TabsPrimitive } from '@base-ui/react/tabs';\nimport { cn } from '@/lib/utils';\nimport { cva, type VariantProps } from 'class-variance-authority';\n\nfunction Tabs({ className, orientation = 'horizontal', ...props }: TabsPrimitive.Root.Props) {\n  return (\n    <TabsPrimitive.Root\n      data-slot=\"tabs\"\n      data-orientation={orientation}\n      className={cn('group/tabs flex gap-2 data-horizontal:flex-col', className)}\n      {...props}\n    />\n  );\n}\n\n/**\n * `segmented` (the default) switches between views inside a page: a track of\n * `h-control` with the active segment on the page background. `line` is a row\n * of page tabs, `h-tabs` high, with the active tab underlined.\n */\nconst tabsListVariants = cva(\n  'group/tabs-list inline-flex w-fit items-center text-muted-foreground group-data-vertical/tabs:h-fit group-data-vertical/tabs:flex-col',\n  {\n    variants: {\n      variant: {\n        segmented: 'h-control justify-center gap-0.5 rounded-lg bg-muted p-0.5',\n        line: 'h-tabs gap-6 border-b',\n      },\n    },\n    defaultVariants: { variant: 'segmented' },\n  },\n);\n\nfunction TabsList({\n  className,\n  variant = 'segmented',\n  ...props\n}: TabsPrimitive.List.Props & VariantProps<typeof tabsListVariants>) {\n  return (\n    <TabsPrimitive.List\n      data-slot=\"tabs-list\"\n      data-variant={variant}\n      className={cn(tabsListVariants({ variant }), className)}\n      {...props}\n    />\n  );\n}\n\nfunction TabsTrigger({ className, ...props }: TabsPrimitive.Tab.Props) {\n  return (\n    <TabsPrimitive.Tab\n      data-slot=\"tabs-trigger\"\n      className={cn(\n        \"relative inline-flex items-center justify-center gap-1.5 text-sm font-medium whitespace-nowrap transition-colors outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-active:text-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4\",\n        // Segmented: the active segment is a plate on the page background, its radius nested inside the track.\n        'group-data-[variant=segmented]/tabs-list:h-full group-data-[variant=segmented]/tabs-list:flex-1 group-data-[variant=segmented]/tabs-list:rounded-[calc(var(--radius-lg)-2px)] group-data-[variant=segmented]/tabs-list:border group-data-[variant=segmented]/tabs-list:border-transparent group-data-[variant=segmented]/tabs-list:px-3 group-data-[variant=segmented]/tabs-list:data-active:border-border group-data-[variant=segmented]/tabs-list:data-active:bg-background',\n        // Line: an underline in the primary colour under the active tab.\n        'group-data-[variant=line]/tabs-list:h-full group-data-[variant=line]/tabs-list:after:absolute group-data-[variant=line]/tabs-list:after:inset-x-0 group-data-[variant=line]/tabs-list:after:-bottom-px group-data-[variant=line]/tabs-list:after:h-0.5 group-data-[variant=line]/tabs-list:after:bg-primary group-data-[variant=line]/tabs-list:after:opacity-0 group-data-[variant=line]/tabs-list:data-active:after:opacity-100',\n        className,\n      )}\n      {...props}\n    />\n  );\n}\n\nfunction TabsContent({ className, ...props }: TabsPrimitive.Panel.Props) {\n  return (\n    <TabsPrimitive.Panel\n      data-slot=\"tabs-content\"\n      className={cn('flex-1 text-sm outline-none', className)}\n      {...props}\n    />\n  );\n}\n\nexport { Tabs, TabsContent, TabsList, TabsTrigger, tabsListVariants };\n"
+    }
+  ]
+}

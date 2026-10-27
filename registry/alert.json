@@ -1,0 +1,19 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "alert",
+  "type": "registry:ui",
+  "dependencies": [
+    "class-variance-authority@^0.7.1"
+  ],
+  "registryDependencies": [
+    "@recommand/theme",
+    "@recommand/utils"
+  ],
+  "files": [
+    {
+      "path": "ui/alert.tsx",
+      "type": "registry:ui",
+      "content": "import { cn } from '@/lib/utils';\nimport { cva, type VariantProps } from 'class-variance-authority';\nimport type * as React from 'react';\n\nconst alertVariants = cva(\n  \"group/alert relative grid w-full gap-1 rounded-xl border p-4 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4\",\n  {\n    variants: {\n      variant: {\n        default: 'bg-card text-card-foreground',\n        /** Something needs the reader's attention. The title and icon are amber; the text stays readable. */\n        warning:\n          'border-warning-line bg-warning-soft *:[svg]:text-warning-foreground *:data-[slot=alert-title]:text-warning-foreground *:data-[slot=alert-description]:text-foreground',\n        info: 'border-info-line bg-info-soft *:data-[slot=alert-description]:text-foreground',\n        success:\n          'border-success-line bg-success-soft *:[svg]:text-success *:data-[slot=alert-title]:text-success *:data-[slot=alert-description]:text-foreground',\n        /** Only for the consequences of a destructive action, never for a failed status: use `warning`. */\n        destructive:\n          'border-destructive-soft bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current',\n      },\n    },\n    defaultVariants: {\n      variant: 'default',\n    },\n  },\n);\n\nfunction Alert({\n  className,\n  variant,\n  ...props\n}: React.ComponentProps<'div'> & VariantProps<typeof alertVariants>) {\n  return (\n    <div\n      data-slot=\"alert\"\n      role=\"alert\"\n      className={cn(alertVariants({ variant }), className)}\n      {...props}\n    />\n  );\n}\n\nfunction AlertTitle({ className, ...props }: React.ComponentProps<'div'>) {\n  return (\n    <div\n      data-slot=\"alert-title\"\n      className={cn(\n        'font-title group-has-[>svg]/alert:col-start-2 [&_a]:underline [&_a]:underline-offset-3 [&_a]:hover:text-foreground',\n        className,\n      )}\n      {...props}\n    />\n  );\n}\n\nfunction AlertDescription({ className, ...props }: React.ComponentProps<'div'>) {\n  return (\n    <div\n      data-slot=\"alert-description\"\n      className={cn(\n        'text-sm text-balance text-muted-foreground md:text-pretty [&_a]:underline [&_a]:underline-offset-3 [&_a]:hover:text-foreground [&_p:not(:last-child)]:mb-4',\n        className,\n      )}\n      {...props}\n    />\n  );\n}\n\nfunction AlertAction({ className, ...props }: React.ComponentProps<'div'>) {\n  return (\n    <div data-slot=\"alert-action\" className={cn('absolute top-2 right-2', className)} {...props} />\n  );\n}\n\nexport { Alert, AlertAction, AlertDescription, AlertTitle };\n"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "tooltip",
+  "type": "registry:ui",
+  "dependencies": [
+    "@base-ui/react@^1.9.0"
+  ],
+  "registryDependencies": [
+    "@recommand/theme",
+    "@recommand/utils"
+  ],
+  "files": [
+    {
+      "path": "ui/tooltip.tsx",
+      "type": "registry:ui",
+      "content": "import { Tooltip as TooltipPrimitive } from '@base-ui/react/tooltip';\nimport { cn } from '@/lib/utils';\n\nfunction TooltipProvider({ delay = 0, ...props }: TooltipPrimitive.Provider.Props) {\n  return <TooltipPrimitive.Provider data-slot=\"tooltip-provider\" delay={delay} {...props} />;\n}\n\nfunction Tooltip({ ...props }: TooltipPrimitive.Root.Props) {\n  return <TooltipPrimitive.Root data-slot=\"tooltip\" {...props} />;\n}\n\nfunction TooltipTrigger({ ...props }: TooltipPrimitive.Trigger.Props) {\n  return <TooltipPrimitive.Trigger data-slot=\"tooltip-trigger\" {...props} />;\n}\n\n/** An inverted label: the text colour as background, 8px radius. */\nfunction TooltipContent({\n  className,\n  side = 'top',\n  sideOffset = 4,\n  align = 'center',\n  alignOffset = 0,\n  children,\n  ...props\n}: TooltipPrimitive.Popup.Props &\n  Pick<TooltipPrimitive.Positioner.Props, 'align' | 'alignOffset' | 'side' | 'sideOffset'>) {\n  return (\n    <TooltipPrimitive.Portal>\n      <TooltipPrimitive.Positioner\n        align={align}\n        alignOffset={alignOffset}\n        side={side}\n        sideOffset={sideOffset}\n        className=\"isolate z-50\"\n      >\n        <TooltipPrimitive.Popup\n          data-slot=\"tooltip-content\"\n          className={cn(\n            'z-50 inline-flex w-fit max-w-xs origin-(--transform-origin) items-center gap-1.5 rounded-md bg-foreground px-2 py-1 text-xs text-background data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95',\n            className,\n          )}\n          {...props}\n        >\n          {children}\n        </TooltipPrimitive.Popup>\n      </TooltipPrimitive.Positioner>\n    </TooltipPrimitive.Portal>\n  );\n}\n\nexport { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger };\n"
+    }
+  ]
+}

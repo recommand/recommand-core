@@ -6,7 +6,9 @@
     "db:generate": "drizzle-kit generate",
     "test": "bun test ./test/*.test.ts",
     "email:dev": "email dev --port 3002",
-    "check:theme": "bun run scripts/check-theme.ts"
+    "check:theme": "bun run scripts/check-theme.ts",
+    "registry:build": "bun run scripts/build-registry.ts",
+    "registry:check": "bun run scripts/build-registry.ts --check"
   },
   "devDependencies": {
     "@react-email/preview-server": "5.2.11",
@@ -22,7 +24,6 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
-    "@radix-ui/react-slot": "^1.5.0",
     "@react-email/components": "^1.0.12",
     "@react-email/render": "^2.1.0",
     "@tanstack/react-table": "^8.21.3",

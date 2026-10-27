@@ -1,0 +1,16 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "utils",
+  "type": "registry:lib",
+  "dependencies": [
+    "clsx@2.1.1",
+    "tailwind-merge@^3.7.0"
+  ],
+  "files": [
+    {
+      "path": "lib/utils.ts",
+      "type": "registry:lib",
+      "content": "import { type ClassValue, clsx } from 'clsx';\nimport { extendTailwindMerge } from 'tailwind-merge';\n\n/**\n * tailwind-merge only knows Tailwind's own type scale. Without these entries\n * it reads the theme contract's type roles (THEMING.md) as text colours and\n * drops the real colour class next to them.\n */\nconst twMerge = extendTailwindMerge({\n  extend: {\n    classGroups: {\n      'font-size': [{ text: ['button-sm', 'micro', 'table-head', 'page-title', 'kpi'] }],\n      'font-weight': [{ font: ['button', 'title'] }],\n    },\n  },\n});\n\nexport function cn(...inputs: ClassValue[]) {\n  return twMerge(clsx(inputs));\n}\n"
+    }
+  ]
+}

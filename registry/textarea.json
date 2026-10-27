@@ -1,0 +1,17 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "textarea",
+  "type": "registry:ui",
+  "registryDependencies": [
+    "@recommand/input",
+    "@recommand/theme",
+    "@recommand/utils"
+  ],
+  "files": [
+    {
+      "path": "ui/textarea.tsx",
+      "type": "registry:ui",
+      "content": "import { fieldClasses } from '@/components/ui/input';\nimport { cn } from '@/lib/utils';\nimport type * as React from 'react';\n\nfunction Textarea({ className, ...props }: React.ComponentProps<'textarea'>) {\n  return (\n    <textarea\n      data-slot=\"textarea\"\n      className={cn(fieldClasses, 'flex field-sizing-content min-h-16 px-3 py-2', className)}\n      {...props}\n    />\n  );\n}\n\nexport { Textarea };\n"
+    }
+  ]
+}

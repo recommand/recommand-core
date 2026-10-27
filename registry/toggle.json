@@ -1,0 +1,20 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "toggle",
+  "type": "registry:ui",
+  "dependencies": [
+    "@base-ui/react@^1.9.0",
+    "class-variance-authority@^0.7.1"
+  ],
+  "registryDependencies": [
+    "@recommand/theme",
+    "@recommand/utils"
+  ],
+  "files": [
+    {
+      "path": "ui/toggle.tsx",
+      "type": "registry:ui",
+      "content": "import { Toggle as TogglePrimitive } from '@base-ui/react/toggle';\nimport { cn } from '@/lib/utils';\nimport { cva, type VariantProps } from 'class-variance-authority';\n\nconst toggleVariants = cva(\n  \"group/toggle inline-flex items-center justify-center gap-1.5 rounded-lg text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 data-pressed:bg-active data-pressed:text-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4\",\n  {\n    variants: {\n      variant: {\n        default: 'bg-transparent',\n        outline: 'border border-input bg-background',\n      },\n      size: {\n        default: 'h-control min-w-(--spacing-control) px-3',\n        sm: 'h-control-sm min-w-(--spacing-control-sm) px-2.5 text-button-sm',\n        lg: 'h-control-lg min-w-(--spacing-control-lg) px-3',\n      },\n    },\n    defaultVariants: { variant: 'default', size: 'default' },\n  },\n);\n\nfunction Toggle({\n  className,\n  variant = 'default',\n  size = 'default',\n  ...props\n}: TogglePrimitive.Props & VariantProps<typeof toggleVariants>) {\n  return (\n    <TogglePrimitive\n      data-slot=\"toggle\"\n      className={cn(toggleVariants({ variant, size, className }))}\n      {...props}\n    />\n  );\n}\n\nexport { Toggle, toggleVariants };\n"
+    }
+  ]
+}
