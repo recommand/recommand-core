@@ -1,5 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+/* State variants (data-open, data-horizontal, ...) for the Base UI components. */
+@import "./variants.css";
 /* The theme contract and its neutral defaults (see THEMING.md). */
 @import "./theme-default.css";
 /* The deployment's theme (`recommand.theme` in its package.json) overrides them. */

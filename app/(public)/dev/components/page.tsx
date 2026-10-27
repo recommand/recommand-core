@@ -21,6 +21,16 @@ import {
   CardTitle,
 } from '@core/components/ui/card';
 import { Checkbox } from '@core/components/ui/checkbox';
+import { Combobox } from '@core/components/ui/combobox';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandShortcut,
+} from '@core/components/ui/command';
 import {
   Dialog,
   DialogContent,
@@ -30,6 +40,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@core/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuTrigger,
+} from '@core/components/ui/dropdown-menu';
 import { Input } from '@core/components/ui/input';
 import { Label } from '@core/components/ui/label';
 import {
@@ -41,6 +62,13 @@ import {
   PopoverTrigger,
 } from '@core/components/ui/popover';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@core/components/ui/select';
+import {
   Sheet,
   SheetContent,
   SheetDescription,
@@ -51,14 +79,16 @@ import {
 } from '@core/components/ui/sheet';
 import { toast } from '@core/components/ui/sonner';
 import { Switch } from '@core/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@core/components/ui/tabs';
 import { Textarea } from '@core/components/ui/textarea';
+import { ToggleGroup, ToggleGroupItem } from '@core/components/ui/toggle-group';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@core/components/ui/tooltip';
-import { ArrowRight, Info, Moon, Plus, Sun, Trash2 } from 'lucide-react';
+import { ArrowRight, ChevronDown, Info, Moon, Plus, Sun, Trash2 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { type ReactNode, useState } from 'react';
 import { Navigate } from 'react-router';
@@ -108,6 +138,7 @@ function Panel() {
       <Buttons />
       <Fields />
       <Choices />
+      <Menus />
       <Badges />
       <Cards />
     </div>
@@ -383,6 +414,112 @@ function Overlays() {
           Error toast
         </Button>
       </Row>
+    </Section>
+  );
+}
+
+function Menus() {
+  const [status, setStatus] = useState('');
+  const [company, setCompany] = useState('');
+  const [view, setView] = useState(['all']);
+  const [showArchived, setShowArchived] = useState(false);
+  return (
+    <Section title="Menus and choices">
+      <Row>
+        <DropdownMenu>
+          <DropdownMenuTrigger render={<Button variant="outline" />}>
+            Actions <ChevronDown />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-56">
+            <DropdownMenuLabel>Document</DropdownMenuLabel>
+            <DropdownMenuGroup>
+              <DropdownMenuItem>
+                Resend <DropdownMenuShortcut>R</DropdownMenuShortcut>
+              </DropdownMenuItem>
+              <DropdownMenuItem>Download UBL</DropdownMenuItem>
+              <DropdownMenuCheckboxItem checked={showArchived} onCheckedChange={setShowArchived}>
+                Show archived
+              </DropdownMenuCheckboxItem>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem variant="destructive">
+              <Trash2 /> Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <Select value={status} onValueChange={setStatus}>
+          <SelectTrigger className="w-44">
+            <SelectValue placeholder="All statuses" />
+          </SelectTrigger>
+          <SelectContent>
+            {['Delivered', 'Sent', 'Received', 'Failed'].map((label) => (
+              <SelectItem key={label} value={label.toLowerCase()}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <div className="w-56">
+          <Combobox
+            value={company}
+            onValueChange={setCompany}
+            placeholder="Choose a company"
+            options={[
+              { value: 'verbeke', label: 'Atelier Verbeke BV' },
+              { value: 'ardennes', label: 'Hotel Ardennes' },
+              { value: 'meulemans', label: 'Meulemans Staal' },
+            ]}
+          />
+        </div>
+      </Row>
+
+      <Row>
+        <ToggleGroup
+          variant="segmented"
+          value={view}
+          onValueChange={(value) => value.length && setView(value)}
+        >
+          <ToggleGroupItem value="all">All</ToggleGroupItem>
+          <ToggleGroupItem value="sent">Sent</ToggleGroupItem>
+          <ToggleGroupItem value="received">Received</ToggleGroupItem>
+        </ToggleGroup>
+        <Tabs defaultValue="overview">
+          <TabsList>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="payload">Payload</TabsTrigger>
+            <TabsTrigger value="events">Events</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </Row>
+
+      <Tabs defaultValue="documents" className="max-w-xl">
+        <TabsList variant="line">
+          <TabsTrigger value="documents">
+            Documents <span className="text-micro text-muted-foreground">5,016</span>
+          </TabsTrigger>
+          <TabsTrigger value="deliveries">Deliveries</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
+        </TabsList>
+        <TabsContent value="documents" className="text-muted-foreground">
+          Underlined tabs switch the page; segmented tabs switch a view inside it.
+        </TabsContent>
+      </Tabs>
+
+      <Command className="max-w-md border">
+        <CommandInput placeholder="Search documents and IDs" />
+        <CommandList>
+          <CommandEmpty>Nothing found.</CommandEmpty>
+          <CommandGroup heading="Actions">
+            <CommandItem>
+              Send document <CommandShortcut>S</CommandShortcut>
+            </CommandItem>
+            <CommandItem>Verify a recipient</CommandItem>
+            <CommandItem>Open API keys</CommandItem>
+          </CommandGroup>
+        </CommandList>
+      </Command>
     </Section>
   );
 }

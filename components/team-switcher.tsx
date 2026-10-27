@@ -184,11 +184,9 @@ export function TeamSwitcher({
               }
             }}
           >
-            <DropdownMenuTrigger asChild>
-              <SidebarMenuButton
+            <DropdownMenuTrigger render={<SidebarMenuButton
                 size="lg"
-                className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-              >
+                className="data-popup-open:bg-sidebar-accent data-popup-open:text-sidebar-accent-foreground" />}>
                 <div className="flex aspect-square size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-sheet-light p-1 group-data-[collapsible=icon]:size-8">
                 <img src={activeTeam.logoUrl || "/icon.svg"} alt={activeTeam.name} className="size-full object-contain" />
                 </div>
@@ -201,8 +199,7 @@ export function TeamSwitcher({
                   </span>
                 </div>
                 <ChevronsUpDown className="ml-auto group-data-[collapsible=icon]:hidden" />
-              </SidebarMenuButton>
-            </DropdownMenuTrigger>
+              </DropdownMenuTrigger>
             <DropdownMenuContent
               className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
               align="start"
@@ -238,7 +235,7 @@ export function TeamSwitcher({
                       <DropdownMenuItem
                         key={team.id}
                         className="gap-2 p-2 flex justify-between group"
-                        onSelect={(e) => e.preventDefault()}
+                        closeOnClick={false}
                       >
                         <div
                           className="flex gap-2 items-center flex-1 cursor-pointer"
@@ -336,18 +333,14 @@ export function TeamSwitcher({
                             return (
                               <DropdownMenuItem
                                 key={item.id}
-                                asChild
-                                className="gap-2 p-2"
-                              >
-                                <Link to={item.href}>
+                                className="gap-2 p-2" render={<Link to={item.href} />}>
                                   {item.icon && (
                                     <div className="flex size-8 items-center justify-center rounded-lg border bg-muted">
                                       <item.icon className="size-5" />
                                     </div>
                                   )}
                                   <span>{item.title}</span>
-                                </Link>
-                              </DropdownMenuItem>
+                                </DropdownMenuItem>
                             );
                           } else {
                             return (

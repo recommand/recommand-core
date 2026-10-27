@@ -70,6 +70,7 @@ Tailwind spacing tokens, so `h-control`, `w-sidebar` and so on.
 | `sidebar` | 16rem | The sidebar width |
 | `drawer` | 24rem | The width of a sheet used as a drawer |
 | `card` | 1rem | Padding inside cards |
+| `tabs` | 2.5rem | The height of a row of underlined tabs |
 
 ### Type
 

@@ -32,12 +32,10 @@ export function ColumnHeader<TData, TValue>({
   return (
     <div className={cn("flex items-center space-x-2", className)}>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
+        <DropdownMenuTrigger render={<Button
             variant="ghost"
             size="sm"
-            className="-ml-3 h-8 data-[state=open]:bg-accent"
-          >
+            className="-ml-3 h-8 data-popup-open:bg-accent" />}>
             <span>{title}</span>
             {column.getIsSorted() === "desc" ? (
               <ArrowDown className="ml-2 h-4 w-4" />
@@ -46,8 +44,7 @@ export function ColumnHeader<TData, TValue>({
             ) : (
               <ChevronsUpDown className="ml-2 h-4 w-4" />
             )}
-          </Button>
-        </DropdownMenuTrigger>
+          </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
           <DropdownMenuItem onClick={() => column.toggleSorting(false)}>
             <ArrowUp className="mr-2 h-3.5 w-3.5 text-muted-foreground/70" />

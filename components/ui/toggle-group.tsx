@@ -1,43 +1,48 @@
-"use client"
+import { Toggle as TogglePrimitive } from '@base-ui/react/toggle';
+import { ToggleGroup as ToggleGroupPrimitive } from '@base-ui/react/toggle-group';
+import { toggleVariants } from '@core/components/ui/toggle';
+import { cn } from '@core/lib/utils';
+import type { VariantProps } from 'class-variance-authority';
+import * as React from 'react';
 
-import * as React from "react"
-import * as ToggleGroupPrimitive from "@radix-ui/react-toggle-group"
-import { type VariantProps } from "class-variance-authority"
+type ToggleGroupVariant = VariantProps<typeof toggleVariants>['variant'] | 'segmented';
 
-import { cn } from "@core/lib/utils"
-import { toggleVariants } from "@core/components/ui/toggle"
+const ToggleGroupContext = React.createContext<{
+  variant?: ToggleGroupVariant;
+  size?: VariantProps<typeof toggleVariants>['size'];
+}>({ variant: 'default', size: 'default' });
 
-const ToggleGroupContext = React.createContext<
-  VariantProps<typeof toggleVariants>
->({
-  size: "default",
-  variant: "default",
-})
-
+/**
+ * A group of toggles. With `variant="segmented"` it is a segmented control:
+ * the same track and active plate as the segmented tabs, for choices that do
+ * not switch a panel. Pass `multiple` to allow more than one pressed item.
+ */
 function ToggleGroup({
   className,
-  variant,
-  size,
+  variant = 'default',
+  size = 'default',
   children,
   ...props
-}: React.ComponentProps<typeof ToggleGroupPrimitive.Root> &
-  VariantProps<typeof toggleVariants>) {
+}: ToggleGroupPrimitive.Props & {
+  variant?: ToggleGroupVariant;
+  size?: VariantProps<typeof toggleVariants>['size'];
+}) {
   return (
-    <ToggleGroupPrimitive.Root
+    <ToggleGroupPrimitive
       data-slot="toggle-group"
       data-variant={variant}
       data-size={size}
       className={cn(
-        "group/toggle-group flex w-fit items-center rounded-md data-[variant=outline]:shadow-xs",
-        className
+        'group/toggle-group flex w-fit flex-row items-center gap-1 rounded-lg data-[variant=segmented]:h-control data-[variant=segmented]:gap-0.5 data-[variant=segmented]:bg-muted data-[variant=segmented]:p-0.5',
+        className,
       )}
       {...props}
     >
       <ToggleGroupContext.Provider value={{ variant, size }}>
         {children}
       </ToggleGroupContext.Provider>
-    </ToggleGroupPrimitive.Root>
-  )
+    </ToggleGroupPrimitive>
+  );
 }
 
 function ToggleGroupItem({
@@ -46,28 +51,26 @@ function ToggleGroupItem({
   variant,
   size,
   ...props
-}: React.ComponentProps<typeof ToggleGroupPrimitive.Item> &
-  VariantProps<typeof toggleVariants>) {
-  const context = React.useContext(ToggleGroupContext)
-
+}: TogglePrimitive.Props & VariantProps<typeof toggleVariants>) {
+  const context = React.useContext(ToggleGroupContext);
+  const segmented = context.variant === 'segmented';
   return (
-    <ToggleGroupPrimitive.Item
+    <TogglePrimitive
       data-slot="toggle-group-item"
-      data-variant={context.variant || variant}
-      data-size={context.size || size}
       className={cn(
         toggleVariants({
-          variant: context.variant || variant,
-          size: context.size || size,
+          variant: segmented ? 'default' : (variant ?? (context.variant as 'default' | 'outline')),
+          size: size ?? context.size ?? 'default',
         }),
-        "min-w-0 flex-1 shrink-0 rounded-none shadow-none first:rounded-l-md last:rounded-r-md focus:z-10 focus-visible:z-10 data-[variant=outline]:border-l-0 data-[variant=outline]:first:border-l",
-        className
+        segmented &&
+          'h-full rounded-[calc(var(--radius-lg)-2px)] border border-transparent hover:bg-transparent data-pressed:border-border data-pressed:bg-background',
+        className,
       )}
       {...props}
     >
       {children}
-    </ToggleGroupPrimitive.Item>
-  )
+    </TogglePrimitive>
+  );
 }
 
-export { ToggleGroup, ToggleGroupItem }
+export { ToggleGroup, ToggleGroupItem };

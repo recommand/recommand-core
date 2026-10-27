@@ -41,11 +41,9 @@ export function NavUser({
     <SidebarMenu>
       <SidebarMenuItem>
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <SidebarMenuButton
+          <DropdownMenuTrigger render={<SidebarMenuButton
               size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-            >
+              className="data-popup-open:bg-sidebar-accent data-popup-open:text-sidebar-accent-foreground" />}>
               <Avatar className="h-8 w-8 rounded-lg">
                 <AvatarImage src={user.avatar} alt={user.name} />
                 <AvatarFallback className="rounded-lg">
@@ -57,8 +55,7 @@ export function NavUser({
                 <span className="truncate text-xs">{user.email}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
-            </SidebarMenuButton>
-          </DropdownMenuTrigger>
+            </DropdownMenuTrigger>
           <DropdownMenuContent
             className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
             side={isMobile ? "bottom" : "right"}
@@ -87,18 +84,13 @@ export function NavUser({
                     <DropdownMenuItem
                       key={item.id}
                       onClick={item.onClick}
-                      asChild={!item.onClick && !!item.href}
+                      render={!item.onClick && item.href ? <Link to={item.href} /> : undefined}
                     >
-                      {item.onClick ? (
+                      {item.onClick || item.href ? (
                         <>
                           {item.icon && <item.icon />}
                           {item.title}
                         </>
-                      ) : item.href ? (
-                        <Link to={item.href}>
-                          {item.icon && <item.icon />}
-                          {item.title}
-                        </Link>
                       ) : null}
                     </DropdownMenuItem>
                   ))}
