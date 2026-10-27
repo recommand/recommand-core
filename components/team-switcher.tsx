@@ -1,42 +1,70 @@
-import { ChevronsUpDown, Plus, Pencil, Search } from "lucide-react";
-import { Link } from "react-router-dom";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@core/components/ui/dropdown-menu";
-import {
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  useSidebar,
-} from "@core/components/ui/sidebar";
-import type { Team } from "@core/data/teams";
-import { Skeleton } from "@core/components/ui/skeleton";
+import type { Auth } from '@core/api/auth';
+import { Button } from '@core/components/ui/button';
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@core/components/ui/dialog";
-import { Button } from "@core/components/ui/button";
-import { Input } from "@core/components/ui/input";
-import { useState } from "react";
-import { useUserStore } from "@core/lib/user-store";
-import { toast } from "@core/components/ui/sonner";
-import { rc } from "@recommand/lib/client";
-import { stringifyActionFailure } from "@recommand/lib/utils";
-import type { Auth } from "@core/api/auth";
-import type { MenuItem } from "@core/lib/menu-store";
-import { useTranslation } from "@core/hooks/use-translation";
+  DialogHeader,
+  DialogTitle,
+} from '@core/components/ui/dialog';
+import { Input } from '@core/components/ui/input';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@core/components/ui/input-group';
+import { Popover, PopoverContent, PopoverTrigger } from '@core/components/ui/popover';
+import { Skeleton } from '@core/components/ui/skeleton';
+import { toast } from '@core/components/ui/sonner';
+import type { Team } from '@core/data/teams';
+import { useTranslation } from '@core/hooks/use-translation';
+import type { MenuItem } from '@core/lib/menu-store';
+import { useUIConfig } from '@core/lib/ui-config-store';
+import { useUserStore } from '@core/lib/user-store';
+import { cn } from '@core/lib/utils';
+import { rc } from '@recommand/lib/client';
+import { stringifyActionFailure } from '@recommand/lib/utils';
+import { Check, ChevronDown, Pencil, Plus, Search } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
 
-const client = rc<Auth>("core");
+const client = rc<Auth>('core');
+
+type TeamMeta = (team: Team, place: 'sidebar' | 'panel') => ReactNode;
+
+// Admins also see teams they are not a member of.
+type ListedTeam = Team & { isMember?: boolean };
+
+/** The team's logo, or its initials, on a small tile. */
+function TeamTile({ team, className }: { team: Team; className?: string }) {
+  return (
+    <span
+      className={cn(
+        'flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-background text-micro font-medium text-foreground',
+        className,
+      )}
+    >
+      {team.logoUrl ? (
+        // biome-ignore lint/performance/noImgElement: a plain Vite app; there is no image component to use.
+        <img src={team.logoUrl} alt="" className="size-full object-contain p-0.5" />
+      ) : (
+        team.name
+          .split(/\s+/)
+          .slice(0, 2)
+          .map((word) => word[0])
+          .join('')
+          .toUpperCase()
+      )}
+    </span>
+  );
+}
+
+/** A section heading in the panel, in the table-head style. */
+function PanelLabel({ children }: { children: ReactNode }) {
+  return (
+    <div className="px-2 pt-1.5 pb-1 text-table-head text-muted-foreground [text-transform:var(--table-head-transform)]">
+      {children}
+    </div>
+  );
+}
 
 export function TeamSwitcher({
   teams,
@@ -49,18 +77,21 @@ export function TeamSwitcher({
   setActiveTeam: (team: Team) => void;
   menuItems: Record<string, MenuItem[]>;
 }) {
-  const { isMobile } = useSidebar();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isCreateTeamDialogOpen, setIsCreateTeamDialogOpen] = useState(false);
-  const [newTeamName, setNewTeamName] = useState("");
+  const [newTeamName, setNewTeamName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [isEditTeamDialogOpen, setIsEditTeamDialogOpen] = useState(false);
-  const [editTeamName, setEditTeamName] = useState("");
+  const [editTeamName, setEditTeamName] = useState('');
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const fetchTeams = useUserStore((x) => x.fetchTeams);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const { t } = useTranslation();
+  // A line under each team's name, such as its environment, set by the app
+  // through the `team-switcher.meta` UI config. `place` says whether it is
+  // drawn in the sidebar or in the panel.
+  const teamMeta = useUIConfig<TeamMeta | null>('team-switcher.meta', null);
 
   const handleCreateTeam = async () => {
     if (!newTeamName.trim()) {
@@ -86,13 +117,13 @@ export function TeamSwitcher({
         await fetchTeams();
         setActiveTeam(newTeam);
         setIsCreateTeamDialogOpen(false);
-        setNewTeamName("");
+        setNewTeamName('');
         toast.success(t`Team created successfully`);
       } else {
         throw new Error(stringifyActionFailure(json.errors));
       }
     } catch (error) {
-      console.error("Error creating team:", error);
+      console.error('Error creating team:', error);
       toast.error(t`Failed to create team`);
     } finally {
       setIsCreating(false);
@@ -114,7 +145,7 @@ export function TeamSwitcher({
 
     setIsUpdating(true);
     try {
-      const response = await client.auth.teams[":teamId"].$put({
+      const response = await client.auth.teams[':teamId'].$put({
         param: { teamId: editingTeam.id },
         json: {
           name: editTeamName,
@@ -133,15 +164,17 @@ export function TeamSwitcher({
           setActiveTeam(updatedTeam);
         }
         setIsEditTeamDialogOpen(false);
-        setEditTeamName("");
+        setEditTeamName('');
         setEditingTeam(null);
         toast.success(t`Team name updated successfully`);
       } else {
         throw new Error(stringifyActionFailure(json.errors));
       }
     } catch (error) {
-      console.error("Error updating team:", error);
-      toast.error(t`Failed to update team name: ${error instanceof Error ? t(error.message) : t`Unknown error`}`);
+      console.error('Error updating team:', error);
+      toast.error(
+        t`Failed to update team name: ${error instanceof Error ? t(error.message) : t`Unknown error`}`,
+      );
     } finally {
       setIsUpdating(false);
     }
@@ -151,232 +184,200 @@ export function TeamSwitcher({
     setSearchQuery(value);
   };
 
+  const matches = (team: Team) =>
+    !searchQuery.trim() || team.name.toLowerCase().includes(searchQuery.toLowerCase());
+  const myTeams = teams.filter(
+    (team: ListedTeam) => (team.isMember === true || team.isMember === undefined) && matches(team),
+  );
+  const otherTeams = teams.filter((team: ListedTeam) => team.isMember === false && matches(team));
+
+  const chooseTeam = (team: Team) => {
+    setActiveTeam(team);
+    setIsDropdownOpen(false);
+    setSearchQuery('');
+  };
+
   if (!activeTeam) {
     return (
-      <SidebarMenu>
-        <SidebarMenuItem>
-          <SidebarMenuButton
-            size="lg"
-            className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-          >
-            <Skeleton className="size-8 rounded-lg" />
-            <div className="grid flex-1 text-left text-sm leading-tight">
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="mt-1 h-3 w-16" />
-            </div>
-            <ChevronsUpDown className="ml-auto" />
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-      </SidebarMenu>
+      <div className="flex h-14 flex-col justify-center gap-1.5 rounded-lg border border-sidebar-border-strong px-3 group-data-[collapsible=icon]:hidden">
+        <Skeleton className="h-3.5 w-28 bg-sidebar-accent" />
+        <Skeleton className="h-3 w-16 bg-sidebar-accent" />
+      </div>
     );
   }
 
+  const rowClassName =
+    'group/team flex w-full cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 text-left text-sm outline-none hover:bg-accent focus-visible:bg-accent data-current:bg-active';
+
   return (
     <>
-      <SidebarMenu>
-        <SidebarMenuItem>
-          <DropdownMenu
-            open={isDropdownOpen}
-            onOpenChange={(open) => {
-              setIsDropdownOpen(open);
-              if (!open) {
-                setSearchQuery("");
-              }
-            }}
-          >
-            <DropdownMenuTrigger render={<SidebarMenuButton
-                size="lg"
-                className="data-popup-open:bg-sidebar-accent data-popup-open:text-sidebar-accent-foreground" />}>
-                <div className="flex aspect-square size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-sheet-light p-1 group-data-[collapsible=icon]:size-8">
-                <img src={activeTeam.logoUrl || "/icon.svg"} alt={activeTeam.name} className="size-full object-contain" />
-                </div>
-                <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
-                  <span className="truncate font-medium">
-                    {activeTeam.name}
-                  </span>
-                  <span className="truncate text-xs">
-                    {activeTeam.teamDescription}
-                  </span>
-                </div>
-                <ChevronsUpDown className="ml-auto group-data-[collapsible=icon]:hidden" />
-              </DropdownMenuTrigger>
-            <DropdownMenuContent
-              className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-              align="start"
-              side={isMobile ? "bottom" : "right"}
-              sideOffset={4}
-            >
-              <div className="px-2 py-2 border-b">
-                <div className="relative">
-                  <Search className="absolute left-2 top-2.5 size-4 text-muted-foreground" />
-                  <Input
-                    placeholder={t`Search teams...`}
-                    value={searchQuery}
-                    onChange={(e) => handleSearchChange(e.target.value)}
-                    className="pl-8 h-9"
-                    onClick={(e) => e.stopPropagation()}
-                    onKeyDown={(e) => e.stopPropagation()}
-                  />
-                </div>
-              </div>
+      <Popover
+        open={isDropdownOpen}
+        onOpenChange={(open) => {
+          setIsDropdownOpen(open);
+          if (!open) {
+            setSearchQuery('');
+          }
+        }}
+      >
+        <PopoverTrigger
+          render={
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 rounded-lg border border-sidebar-border-strong px-3 py-2 text-left outline-none transition-colors hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring data-popup-open:bg-sidebar-accent group-data-[collapsible=icon]:size-control group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0"
+            />
+          }
+        >
+          <TeamTile
+            team={activeTeam}
+            className="hidden size-7 group-data-[collapsible=icon]:flex"
+          />
+          <div className="grid min-w-0 flex-1 gap-0.5 group-data-[collapsible=icon]:hidden">
+            <span className="truncate text-sm text-sidebar-accent-foreground">
+              {activeTeam.name}
+            </span>
+            {teamMeta && <span className="truncate">{teamMeta(activeTeam, 'sidebar')}</span>}
+          </div>
+          <ChevronDown className="size-4 shrink-0 text-sidebar-muted-foreground group-data-[collapsible=icon]:hidden" />
+        </PopoverTrigger>
+        <PopoverContent
+          align="start"
+          side="bottom"
+          sideOffset={6}
+          className="flex w-90 max-w-[calc(100vw-2rem)] flex-col gap-1 p-1"
+        >
+          {teams.length > 5 && (
+            <InputGroup className="h-control-sm">
+              <InputGroupAddon>
+                <Search />
+              </InputGroupAddon>
+              <InputGroupInput
+                placeholder={t`Search teams...`}
+                value={searchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                autoFocus
+              />
+            </InputGroup>
+          )}
 
-              <>
-                <DropdownMenuLabel className="text-muted-foreground text-xs px-2 py-2">
-                  {t`My Teams`}
-                </DropdownMenuLabel>
-                <div className="max-h-[300px] overflow-y-auto">
-                  {teams
-                    .filter((team: any) =>
-                      (team.isMember === true || team.isMember === undefined) &&
-                      (!searchQuery.trim() ||
-                        team.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                    )
-                    .map((team, index) => (
-                      <DropdownMenuItem
-                        key={team.id}
-                        className="gap-2 p-2 flex justify-between group"
-                        closeOnClick={false}
-                      >
-                        <div
-                          className="flex gap-2 items-center flex-1 cursor-pointer"
-                          onClick={() => {
-                            setActiveTeam(team);
-                            setIsDropdownOpen(false);
-                            setSearchQuery("");
-                          }}
-                        >
-                          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border bg-sheet-light">
-                          <img src={team.logoUrl || "/icon.svg"} alt={team.name} className="size-full object-contain" />
-                          </div>
-                          {team.name}
-                        </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEditTeam(team);
-                          }}
-                          className="opacity-0 group-hover:opacity-100 p-2 hover:bg-accent rounded transition-all"
-                        >
-                          <Pencil className="size-3" />
-                        </button>
-                      </DropdownMenuItem>
-                    ))}
-                </div>
-
-                  {teams.filter((team: any) =>
-                    team.isMember === false &&
-                    (!searchQuery.trim() ||
-                      team.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                  ).length > 0 && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuLabel className="text-muted-foreground text-xs px-2 py-2">
-                        {t`Other Teams`}
-                      </DropdownMenuLabel>
-                      <div className="max-h-[200px] overflow-y-auto">
-                        {teams
-                        .filter((team: any) =>
-                          team.isMember === false &&
-                          (!searchQuery.trim() ||
-                            team.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                        )
-                        .map((team) => (
-                          <DropdownMenuItem
-                            key={team.id}
-                            className="gap-2 p-2"
-                            onClick={() => {
-                              setActiveTeam(team);
-                              setIsDropdownOpen(false);
-                              setSearchQuery("");
-                            }}
-                          >
-                            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border bg-sheet-light">
-                              <img src={team.logoUrl || "/icon.svg"} alt={team.name} className="size-full object-contain" />
-                            </div>
-                            {team.name}
-                          </DropdownMenuItem>
-                        ))}
+          {myTeams.length > 0 && (
+            <div className="flex flex-col">
+              <PanelLabel>{t`My Teams`}</PanelLabel>
+              <div className="flex max-h-75 flex-col gap-0.5 overflow-y-auto">
+                {myTeams.map((team) => (
+                  <div key={team.id} className="relative">
+                    <button
+                      type="button"
+                      data-current={team.id === activeTeam.id ? '' : undefined}
+                      className={rowClassName}
+                      onClick={() => chooseTeam(team)}
+                    >
+                      <TeamTile team={team} />
+                      <div className="grid min-w-0 flex-1">
+                        <span className="truncate">{team.name}</span>
+                        {teamMeta && <span className="truncate">{teamMeta(team, 'panel')}</span>}
                       </div>
-                    </>
-                  )}
+                      {team.id === activeTeam.id && (
+                        <Check className="mr-8 size-4 text-foreground" />
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={t`Edit team name`}
+                      onClick={() => handleEditTeam(team)}
+                      className="absolute top-1/2 right-1.5 flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-background hover:text-foreground focus-visible:opacity-100 [div:hover>&]:opacity-100"
+                    >
+                      <Pencil className="size-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
-                  {searchQuery.trim() &&
-                   teams.filter((team: any) => team.name.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
-                    <div className="py-6 text-center text-sm text-muted-foreground">
-                      {t`No teams found`}
-                    </div>
-                  )}
+          {otherTeams.length > 0 && (
+            <div className="flex flex-col border-t pt-1">
+              <PanelLabel>{t`Other Teams`}</PanelLabel>
+              <div className="flex max-h-50 flex-col gap-0.5 overflow-y-auto">
+                {otherTeams.map((team) => (
+                  <button
+                    key={team.id}
+                    type="button"
+                    className={rowClassName}
+                    onClick={() => chooseTeam(team)}
+                  >
+                    <TeamTile team={team} />
+                    <span className="truncate">{team.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
-                  {!searchQuery.trim() && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        className="gap-2 p-2"
+          {searchQuery.trim() && myTeams.length === 0 && otherTeams.length === 0 && (
+            <div className="py-6 text-center text-sm text-muted-foreground">{t`No teams found`}</div>
+          )}
+
+          {!searchQuery.trim() && (
+            <div className="flex flex-col gap-0.5 border-t pt-1">
+              <button
+                type="button"
+                className={rowClassName}
+                onClick={() => {
+                  setIsCreateTeamDialogOpen(true);
+                  setIsDropdownOpen(false);
+                }}
+              >
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-md border">
+                  <Plus className="size-4" />
+                </span>
+                {t`Add team`}
+              </button>
+              {menuItems &&
+                Object.values(menuItems)
+                  .flat()
+                  .map((item) => {
+                    const content = (
+                      <>
+                        <span className="flex size-8 shrink-0 items-center justify-center rounded-md border">
+                          {item.icon && <item.icon className="size-4" />}
+                        </span>
+                        <span className="truncate">{item.title}</span>
+                      </>
+                    );
+                    return item.href && !item.onClick ? (
+                      <Link
+                        key={item.id}
+                        to={item.href}
+                        className={rowClassName}
+                        onClick={() => setIsDropdownOpen(false)}
+                      >
+                        {content}
+                      </Link>
+                    ) : (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className={rowClassName}
                         onClick={() => {
-                          setIsCreateTeamDialogOpen(true);
                           setIsDropdownOpen(false);
+                          item.onClick?.();
                         }}
                       >
-                        <div className="flex size-8 items-center justify-center rounded-lg border bg-muted">
-                          <Plus className="size-5" />
-                        </div>
-                        <div>{t`Add team`}</div>
-                      </DropdownMenuItem>
-                    </>
-                  )}
+                        {content}
+                      </button>
+                    );
+                  })}
+            </div>
+          )}
+        </PopoverContent>
+      </Popover>
 
-                  {!searchQuery.trim() && menuItems &&
-                    Object.entries(menuItems).map(([group, items]) => (
-                      <DropdownMenuGroup key={group}>
-                        {items.map((item) => {
-                          if (item.href && !item.onClick) {
-                            return (
-                              <DropdownMenuItem
-                                key={item.id}
-                                className="gap-2 p-2" render={<Link to={item.href} />}>
-                                  {item.icon && (
-                                    <div className="flex size-8 items-center justify-center rounded-lg border bg-muted">
-                                      <item.icon className="size-5" />
-                                    </div>
-                                  )}
-                                  <span>{item.title}</span>
-                                </DropdownMenuItem>
-                            );
-                          } else {
-                            return (
-                              <DropdownMenuItem
-                                key={item.id}
-                                onClick={item.onClick}
-                                className="gap-2 p-2"
-                              >
-                                {item.icon && (
-                                  <div className="flex size-8 items-center justify-center rounded-lg border bg-muted">
-                                    <item.icon className="size-5" />
-                                  </div>
-                                )}
-                                <span>{item.title}</span>
-                              </DropdownMenuItem>
-                            );
-                          }
-                        })}
-                      </DropdownMenuGroup>
-                    ))}
-              </>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </SidebarMenuItem>
-      </SidebarMenu>
-
-      <Dialog
-        open={isCreateTeamDialogOpen}
-        onOpenChange={setIsCreateTeamDialogOpen}
-      >
+      <Dialog open={isCreateTeamDialogOpen} onOpenChange={setIsCreateTeamDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t`Create a new team`}</DialogTitle>
-            <DialogDescription>
-              {t`Add a new team to collaborate with others.`}
-            </DialogDescription>
+            <DialogDescription>{t`Add a new team to collaborate with others.`}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
@@ -386,7 +387,7 @@ export function TeamSwitcher({
                 value={newTeamName}
                 onChange={(e) => setNewTeamName(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") {
+                  if (e.key === 'Enter') {
                     handleCreateTeam();
                   }
                 }}
@@ -394,32 +395,21 @@ export function TeamSwitcher({
             </div>
           </div>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsCreateTeamDialogOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setIsCreateTeamDialogOpen(false)}>
               {t`Cancel`}
             </Button>
-            <Button
-              onClick={handleCreateTeam}
-              disabled={isCreating || !newTeamName.trim()}
-            >
+            <Button onClick={handleCreateTeam} disabled={isCreating || !newTeamName.trim()}>
               {isCreating ? t`Creating...` : t`Create team`}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Dialog
-        open={isEditTeamDialogOpen}
-        onOpenChange={setIsEditTeamDialogOpen}
-      >
+      <Dialog open={isEditTeamDialogOpen} onOpenChange={setIsEditTeamDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t`Edit team name`}</DialogTitle>
-            <DialogDescription>
-              {t`Update the name of "${editingTeam?.name}".`}
-            </DialogDescription>
+            <DialogDescription>{t`Update the name of "${editingTeam?.name}".`}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
@@ -429,7 +419,7 @@ export function TeamSwitcher({
                 value={editTeamName}
                 onChange={(e) => setEditTeamName(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") {
+                  if (e.key === 'Enter') {
                     handleUpdateTeam();
                   }
                 }}
@@ -441,7 +431,7 @@ export function TeamSwitcher({
               variant="outline"
               onClick={() => {
                 setIsEditTeamDialogOpen(false);
-                setEditTeamName("");
+                setEditTeamName('');
                 setEditingTeam(null);
               }}
             >
@@ -449,11 +439,7 @@ export function TeamSwitcher({
             </Button>
             <Button
               onClick={handleUpdateTeam}
-              disabled={
-                isUpdating ||
-                !editTeamName.trim() ||
-                editTeamName === editingTeam?.name
-              }
+              disabled={isUpdating || !editTeamName.trim() || editTeamName === editingTeam?.name}
             >
               {isUpdating ? t`Updating...` : t`Update team`}
             </Button>

@@ -1,5 +1,5 @@
-import { type ClassValue, clsx } from "clsx";
-import { extendTailwindMerge } from "tailwind-merge";
+import { type ClassValue, clsx } from 'clsx';
+import { extendTailwindMerge } from 'tailwind-merge';
 
 /**
  * tailwind-merge only knows Tailwind's own type scale. Without these entries
@@ -9,8 +9,8 @@ import { extendTailwindMerge } from "tailwind-merge";
 const twMerge = extendTailwindMerge({
   extend: {
     classGroups: {
-      "font-size": [{ text: ["button-sm", "micro", "table-head"] }],
-      "font-weight": [{ font: ["button", "title"] }],
+      'font-size': [{ text: ['button-sm', 'micro', 'table-head', 'page-title', 'kpi'] }],
+      'font-weight': [{ font: ['button', 'title'] }],
     },
   },
 });

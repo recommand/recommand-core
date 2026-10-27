@@ -1,14 +1,15 @@
 import {
   Breadcrumb,
-  BreadcrumbList,
-  BreadcrumbItem,
   BreadcrumbLink,
-  BreadcrumbSeparator,
+  BreadcrumbList,
   BreadcrumbPage,
-} from "@core/components/ui/breadcrumb";
-import { SidebarInset, SidebarTrigger } from "@core/components/ui/sidebar";
-import { Separator } from "@core/components/ui/separator";
-import { cn } from "@core/lib/utils";
+  BreadcrumbSeparator,
+  BreadcrumbItem as UIBreadcrumbItem,
+} from '@core/components/ui/breadcrumb';
+import { SidebarTrigger } from '@core/components/ui/sidebar';
+import { useUIConfig } from '@core/lib/ui-config-store';
+import { cn } from '@core/lib/utils';
+import { Fragment, type ReactNode } from 'react';
 
 export interface BreadcrumbItem {
   label: string;
@@ -26,6 +27,11 @@ interface PageProps {
   title?: React.ReactNode;
 }
 
+/**
+ * A page in the work area: a top bar with the breadcrumbs and the app's
+ * global actions (`topbar.actions` UI config), the page title with its
+ * description and buttons, and the content.
+ */
 export function PageTemplate({
   children,
   breadcrumbs = [],
@@ -36,65 +42,61 @@ export function PageTemplate({
   description,
   title,
 }: PageProps) {
+  const topbarActions = useUIConfig<ReactNode>('topbar.actions', null);
+  const current = breadcrumbs.at(-1);
+
   return (
-    <SidebarInset className={className} style={style}>
-      <div className="py-4 space-y-2 border-b border-border">
-        <header className="flex shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-          <div className="flex w-full items-center justify-between gap-2 px-4">
-            <div className="flex items-center gap-2">
-              <SidebarTrigger className="-ml-1" />
-              <Separator
-                orientation="vertical"
-                className="data-[orientation=vertical]:h-4"
-              />
-              <Breadcrumb>
-                <BreadcrumbList>
-                  {breadcrumbs.map(
-                    (item, index) =>
-                      index !== breadcrumbs.length - 1 && (
-                        <div key={index} className="flex items-center gap-2">
-                          <BreadcrumbItem
-                            key={index}
-                            className="hidden md:block"
-                          >
-                            {item.href ? (
-                              <BreadcrumbLink href={item.href}>
-                                {item.label}
-                              </BreadcrumbLink>
-                            ) : (
-                              <BreadcrumbPage>{item.label}</BreadcrumbPage>
-                            )}
-                          </BreadcrumbItem>
-                          {index < breadcrumbs.length - 2 && (
-                            <BreadcrumbSeparator className="hidden md:block" />
-                          )}
-                        </div>
-                      )
-                  )}
-                </BreadcrumbList>
-              </Breadcrumb>
-            </div>
-            <div className="flex items-center gap-2 min-h-[36px]">
-              {buttons &&
-                buttons.map((button, index) => <div key={index}>{button}</div>)}
-            </div>
-          </div>
-        </header>
-        {breadcrumbs.length > 0 && (
-          <div className="px-4">
-            <h2 className="text-2xl font-semibold">
-              {title !== undefined ? title : breadcrumbs[breadcrumbs.length - 1].label || "..."}
-            </h2>
-            <title>{breadcrumbs[breadcrumbs.length - 1].label || "..."}</title>
+    <div className={cn('flex min-h-full flex-col', className)} style={style}>
+      <header className="sticky top-0 z-10 flex h-topbar shrink-0 items-center justify-between gap-4 border-b bg-background px-gutter">
+        <div className="flex min-w-0 items-center gap-2">
+          <SidebarTrigger className="-ml-2 md:hidden" />
+          <Breadcrumb>
+            <BreadcrumbList>
+              {breadcrumbs.map((item, index) => {
+                const isLast = index === breadcrumbs.length - 1;
+                return (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: breadcrumbs are a fixed path; labels may repeat.
+                  <Fragment key={index}>
+                    <UIBreadcrumbItem className={cn(!isLast && 'hidden md:inline-flex')}>
+                      {item.href && !isLast ? (
+                        <BreadcrumbLink href={item.href}>{item.label}</BreadcrumbLink>
+                      ) : (
+                        <BreadcrumbPage>{item.label}</BreadcrumbPage>
+                      )}
+                    </UIBreadcrumbItem>
+                    {!isLast && <BreadcrumbSeparator className="hidden md:inline-flex" />}
+                  </Fragment>
+                );
+              })}
+            </BreadcrumbList>
+          </Breadcrumb>
+        </div>
+        {topbarActions && <div className="flex shrink-0 items-center gap-2">{topbarActions}</div>}
+      </header>
+      {current && (
+        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 px-gutter pt-gutter pb-1">
+          <div className="flex min-w-0 flex-col gap-1">
+            <h1 className="text-page-title">
+              {title !== undefined ? title : current.label || '...'}
+            </h1>
+            <title>{current.label || '...'}</title>
             {description && (
-              <p className="text-muted-foreground text-sm text-balance max-w-lg mt-1">
-                {description}
-              </p>
+              <p className="max-w-2xl text-sm text-balance text-muted-foreground">{description}</p>
             )}
           </div>
-        )}
-      </div>
-      <main className={cn("p-4 space-y-4", mainClassName)}>{children}</main>
-    </SidebarInset>
+          {buttons && buttons.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              {buttons.map((button, index) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: the buttons are passed as a fixed list.
+                <Fragment key={index}>{button}</Fragment>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+      <main className={cn('flex-1 space-y-4 px-gutter pt-4 pb-gutter', mainClassName)}>
+        {children}
+      </main>
+    </div>
   );
 }

@@ -20,10 +20,24 @@ import { cn } from '@core/lib/utils';
 import { ChevronRight, type LucideIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-/** Trailing count on a nav item — the sidebar's "something is waiting" signal. */
-function NavBadge({ value }: { value: string | number }) {
+type BadgeVariant = 'default' | 'action';
+
+/**
+ * Trailing count on a nav item. Neutral counts are plain text in the
+ * sidebar's muted colour; a count that needs action takes the warning colour.
+ */
+function NavBadge({
+  value,
+  variant = 'default',
+}: {
+  value: string | number;
+  variant?: BadgeVariant;
+}) {
   return (
-    <span className="ml-auto flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-sidebar-primary px-1.5 text-[11px] font-medium tabular-nums text-sidebar-primary-foreground">
+    <span
+      data-variant={variant}
+      className="ml-auto flex h-5 min-w-5 shrink-0 items-center justify-center rounded-sm px-1.5 text-micro text-sidebar-muted-foreground group-data-[collapsible=icon]:hidden data-[variant=action]:bg-warning data-[variant=action]:text-foreground"
+    >
       {value}
     </span>
   );
@@ -32,7 +46,7 @@ function NavBadge({ value }: { value: string | number }) {
 /** Right-hand segment of a split nav item, e.g. "open the current record". */
 function NavAction({ action, onNavigate }: { action: MenuItemAction; onNavigate: () => void }) {
   const className =
-    'flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-r-md text-sidebar-foreground/60 outline-hidden ring-sidebar-ring transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 [&>svg]:size-4';
+    'flex size-control shrink-0 cursor-pointer items-center justify-center rounded-r-md text-sidebar-muted-foreground outline-hidden transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring [&>svg]:size-4';
 
   return (
     <Tooltip>
@@ -64,27 +78,40 @@ function NavAction({ action, onNavigate }: { action: MenuItemAction; onNavigate:
   );
 }
 
-export function NavMain({
-  label,
-  items,
-}: {
-  label?: string;
-  items: {
+type NavItem = {
+  title: string;
+  url: string;
+  icon?: LucideIcon;
+  badge?: string | number;
+  badgeVariant?: BadgeVariant;
+  action?: MenuItemAction;
+  isActive?: boolean;
+  onClick?: () => void;
+  items?: {
     title: string;
     url: string;
-    icon?: LucideIcon;
-    badge?: string | number;
-    action?: MenuItemAction;
-    isActive?: boolean;
     onClick?: () => void;
-    items?: {
-      title: string;
-      url: string;
-      onClick?: () => void;
-      badge?: string | number;
-    }[];
+    badge?: string | number;
+    badgeVariant?: BadgeVariant;
   }[];
+};
+
+/** The label, icon and badge of an item. */
+function ItemContent({
+  item,
+}: {
+  item: Pick<NavItem, 'icon' | 'title' | 'badge' | 'badgeVariant'>;
 }) {
+  return (
+    <>
+      {item.icon && <item.icon />}
+      <span>{item.title}</span>
+      {item.badge != null && <NavBadge value={item.badge} variant={item.badgeVariant} />}
+    </>
+  );
+}
+
+export function NavMain({ label, items }: { label?: string; items: NavItem[] }) {
   const { state, isMobile, setOpenMobile } = useSidebar();
 
   const closeMobileSidebar = () => {
@@ -103,84 +130,86 @@ export function NavMain({
               <Collapsible
                 key={item.title}
                 defaultOpen={item.isActive}
-                className="group/collapsible" render={<SidebarMenuItem />}>
-                  <div className="flex items-center">
-                    {hasNoAction ? (
-                      <CollapsibleTrigger render={<SidebarMenuButton tooltip={item.title} className="flex-1 cursor-pointer" />}>
-                          {item.icon && <item.icon />}
-                          <span>{item.title}</span>
-                          {item.badge != null && state === 'expanded' && (
-                            <NavBadge value={item.badge} />
+                className="group/collapsible"
+                render={<SidebarMenuItem />}
+              >
+                <div className="flex items-center">
+                  {hasNoAction ? (
+                    <CollapsibleTrigger
+                      render={
+                        <SidebarMenuButton tooltip={item.title} className="flex-1 cursor-pointer" />
+                      }
+                    >
+                      <ItemContent item={item} />
+                      {state === 'expanded' && (
+                        <ChevronRight
+                          className={cn(
+                            'size-4 text-sidebar-muted-foreground transition-transform duration-200 group-data-open/collapsible:rotate-90',
+                            item.badge == null && 'ml-auto',
                           )}
-                          {state === 'expanded' && (
-                            <ChevronRight
-                              className={`${item.badge != null ? '' : 'ml-auto '}size-4 transition-transform duration-200 group-data-open/collapsible:rotate-90`}
-                            />
-                          )}
-                        </CollapsibleTrigger>
-                    ) : (
-                      <>
-                        <SidebarMenuButton
-                          tooltip={item.title}
-                          asChild={!item.onClick}
-                          onClick={item.onClick}
-                          className="flex-1"
-                        >
-                          {item.onClick ? (
-                            <>
-                              {item.icon && <item.icon />}
-                              <span>{item.title}</span>
-                              {item.badge != null && <NavBadge value={item.badge} />}
-                            </>
-                          ) : (
-                            <Link to={item.url} onClick={closeMobileSidebar}>
-                              {item.icon && <item.icon />}
-                              <span>{item.title}</span>
-                              {item.badge != null && <NavBadge value={item.badge} />}
-                            </Link>
-                          )}
-                        </SidebarMenuButton>
-                        {state === 'expanded' && (
-                          <CollapsibleTrigger render={<button
+                        />
+                      )}
+                    </CollapsibleTrigger>
+                  ) : (
+                    <>
+                      <SidebarMenuButton
+                        tooltip={item.title}
+                        isActive={item.isActive}
+                        onClick={item.onClick}
+                        className="flex-1"
+                        render={
+                          item.onClick ? undefined : (
+                            <Link to={item.url} onClick={closeMobileSidebar} />
+                          )
+                        }
+                      >
+                        <ItemContent item={item} />
+                      </SidebarMenuButton>
+                      {state === 'expanded' && (
+                        <CollapsibleTrigger
+                          render={
+                            <button
                               type="button"
-                              className="p-2 hover:bg-sidebar-accent rounded-md cursor-pointer" />}>
-                              <ChevronRight className="size-4 transition-transform duration-200 group-data-open/collapsible:rotate-90" />
-                            </CollapsibleTrigger>
-                        )}
-                      </>
-                    )}
-                  </div>
-                  {state === 'expanded' && (
-                    <CollapsibleContent>
-                      <SidebarMenuSub>
-                        {item.items.map((subItem) => {
-                          const hasAction = subItem.onClick || subItem.url !== '#';
-                          return (
-                            <SidebarMenuSubItem key={subItem.title}>
-                              <SidebarMenuSubButton
-                                asChild={!subItem.onClick}
-                                onClick={subItem.onClick}
-                                className={hasAction ? 'cursor-pointer' : ''}
-                              >
-                                {subItem.onClick ? (
-                                  <span className="flex w-full items-center">
-                                    <span>{subItem.title}</span>
-                                    {subItem.badge != null && <NavBadge value={subItem.badge} />}
-                                  </span>
-                                ) : (
-                                  <Link to={subItem.url} onClick={closeMobileSidebar}>
-                                    <span>{subItem.title}</span>
-                                    {subItem.badge != null && <NavBadge value={subItem.badge} />}
-                                  </Link>
-                                )}
-                              </SidebarMenuSubButton>
-                            </SidebarMenuSubItem>
-                          );
-                        })}
-                      </SidebarMenuSub>
-                    </CollapsibleContent>
+                              className="flex size-control shrink-0 cursor-pointer items-center justify-center rounded-md text-sidebar-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                            />
+                          }
+                        >
+                          <ChevronRight className="size-4 transition-transform duration-200 group-data-open/collapsible:rotate-90" />
+                        </CollapsibleTrigger>
+                      )}
+                    </>
                   )}
-                </Collapsible>
+                </div>
+                {state === 'expanded' && (
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      {item.items.map((subItem) => {
+                        const hasAction = subItem.onClick || subItem.url !== '#';
+                        return (
+                          <SidebarMenuSubItem key={subItem.title}>
+                            <SidebarMenuSubButton
+                              onClick={subItem.onClick}
+                              className={hasAction ? 'cursor-pointer' : ''}
+                              render={
+                                subItem.onClick ? (
+                                  <span />
+                                ) : (
+                                  <Link to={subItem.url} onClick={closeMobileSidebar} />
+                                )
+                              }
+                            >
+                              <span>{subItem.title}</span>
+                              {subItem.badge != null && (
+                                <NavBadge value={subItem.badge} variant={subItem.badgeVariant} />
+                              )}
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        );
+                      })}
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                )}
+              </Collapsible>
             );
           }
 
@@ -192,28 +221,19 @@ export function NavMain({
             <SidebarMenuItem key={item.title} className={cn(hasAction && 'flex items-center')}>
               <SidebarMenuButton
                 tooltip={item.title}
-                asChild={!item.onClick}
+                isActive={item.isActive}
                 onClick={item.onClick}
                 className={cn(hasAction && 'flex-1 rounded-r-none')}
+                render={
+                  item.onClick ? undefined : <Link to={item.url} onClick={closeMobileSidebar} />
+                }
               >
-                {item.onClick ? (
-                  <>
-                    {item.icon && <item.icon />}
-                    <span>{item.title}</span>
-                    {item.badge != null && <NavBadge value={item.badge} />}
-                  </>
-                ) : (
-                  <Link to={item.url} onClick={closeMobileSidebar}>
-                    {item.icon && <item.icon />}
-                    <span>{item.title}</span>
-                    {item.badge != null && <NavBadge value={item.badge} />}
-                  </Link>
-                )}
+                <ItemContent item={item} />
               </SidebarMenuButton>
-              {hasAction && (
+              {hasAction && item.action && (
                 <>
-                  <div className="h-4 w-px shrink-0 bg-sidebar-border opacity-0 transition-opacity group-hover/menu-item:opacity-100 group-focus-within/menu-item:opacity-100" />
-                  <NavAction action={item.action!} onNavigate={closeMobileSidebar} />
+                  <div className="h-4 w-px shrink-0 bg-sidebar-border opacity-0 transition-opacity group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100" />
+                  <NavAction action={item.action} onNavigate={closeMobileSidebar} />
                 </>
               )}
             </SidebarMenuItem>

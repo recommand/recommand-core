@@ -1,10 +1,5 @@
-import * as React from "react";
-import { CheckIcon, PlusCircleIcon } from "lucide-react";
-import { type Column } from "@tanstack/react-table";
-
-import { cn } from "@core/lib/utils";
-import { Badge } from "@core/components/ui/badge";
-import { Button } from "@core/components/ui/button";
+import { Badge } from '@core/components/ui/badge';
+import { Button } from '@core/components/ui/button';
 import {
   Command,
   CommandEmpty,
@@ -13,14 +8,14 @@ import {
   CommandItem,
   CommandList,
   CommandSeparator,
-} from "@core/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@core/components/ui/popover";
-import { Separator } from "@core/components/ui/separator";
-import { useTranslation } from "@core/hooks/use-translation";
+} from '@core/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@core/components/ui/popover';
+import { Separator } from '@core/components/ui/separator';
+import { useTranslation } from '@core/hooks/use-translation';
+import { cn } from '@core/lib/utils';
+import type { Column } from '@tanstack/react-table';
+import { CheckIcon, ChevronDownIcon } from 'lucide-react';
+import type * as React from 'react';
 
 interface DataTableFacetedFilterProps<TData, TValue> {
   column?: Column<TData, TValue>;
@@ -43,43 +38,41 @@ export function DataTableFacetedFilter<TData, TValue>({
 
   return (
     <Popover>
-      <PopoverTrigger render={<Button variant="outline" size="sm" className="h-8 border-dashed" />}>
-          <PlusCircleIcon className="h-4 w-4" />
-          {title}
-          {selectedValues?.size > 0 && (
-            <>
-              <Separator orientation="vertical" className="mx-2 h-4" />
-              <Badge
-                variant="secondary"
-                className="rounded-sm px-1 font-normal lg:hidden"
-              >
-                {selectedValues.size}
-              </Badge>
-              <div className="hidden space-x-1 lg:flex">
-                {selectedValues.size > 2 ? (
-                  <Badge
-                    variant="secondary"
-                    className="rounded-sm px-1 font-normal"
-                  >
-                    {t`${selectedValues.size} selected`}
-                  </Badge>
-                ) : (
-                  options
-                    .filter((option) => selectedValues.has(option.value))
-                    .map((option) => (
-                      <Badge
-                        variant="secondary"
-                        key={option.value}
-                        className="rounded-sm px-1 font-normal"
-                      >
-                        {option.label}
-                      </Badge>
-                    ))
-                )}
-              </div>
-            </>
-          )}
-        </PopoverTrigger>
+      <PopoverTrigger
+        render={
+          <Button
+            variant="outline"
+            data-filtered={selectedValues.size > 0 ? '' : undefined}
+            className="data-filtered:border-primary data-filtered:bg-active"
+          />
+        }
+      >
+        {title}
+        {selectedValues?.size > 0 && (
+          <>
+            <Separator orientation="vertical" className="mx-1 h-4" />
+            <Badge variant="secondary" className="px-1 lg:hidden">
+              {selectedValues.size}
+            </Badge>
+            <div className="hidden space-x-1 lg:flex">
+              {selectedValues.size > 2 ? (
+                <Badge variant="secondary" className="px-1">
+                  {t`${selectedValues.size} selected`}
+                </Badge>
+              ) : (
+                options
+                  .filter((option) => selectedValues.has(option.value))
+                  .map((option) => (
+                    <Badge variant="secondary" key={option.value} className="px-1">
+                      {option.label}
+                    </Badge>
+                  ))
+              )}
+            </div>
+          </>
+        )}
+        <ChevronDownIcon className="text-muted-foreground" />
+      </PopoverTrigger>
       <PopoverContent className="w-[200px] p-0" align="start">
         <Command>
           <CommandInput placeholder={title} />
@@ -98,24 +91,20 @@ export function DataTableFacetedFilter<TData, TValue>({
                         selectedValues.add(option.value);
                       }
                       const filterValues = Array.from(selectedValues);
-                      column?.setFilterValue(
-                        filterValues.length ? filterValues : undefined
-                      );
+                      column?.setFilterValue(filterValues.length ? filterValues : undefined);
                     }}
                   >
                     <div
                       className={cn(
-                        "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                        'mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary',
                         isSelected
-                          ? "bg-primary text-primary-foreground"
-                          : "opacity-50 [&_svg]:invisible"
+                          ? 'bg-primary text-primary-foreground'
+                          : 'opacity-50 [&_svg]:invisible',
                       )}
                     >
-                      <CheckIcon className={cn("h-4 w-4")} />
+                      <CheckIcon className={cn('h-4 w-4')} />
                     </div>
-                    {option.icon && (
-                      <option.icon className="mr-2 h-4 w-4 text-muted-foreground" />
-                    )}
+                    {option.icon && <option.icon className="mr-2 h-4 w-4 text-muted-foreground" />}
                     <span>{option.label}</span>
                     {facets?.get(option.value) && (
                       <span className="ml-auto flex h-4 w-4 items-center justify-center font-mono text-xs">

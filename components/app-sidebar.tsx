@@ -10,11 +10,18 @@ import {
   SidebarRail,
 } from '@core/components/ui/sidebar';
 import { useTranslation } from '@core/hooks/use-translation';
-import { type MenuItem, type MenuItemAction, useMenuGroups, useMenuItems } from '@core/lib/menu-store';
+import {
+  type MenuItem,
+  type MenuItemAction,
+  useMenuGroups,
+  useMenuItems,
+} from '@core/lib/menu-store';
+import { useUIConfig } from '@core/lib/ui-config-store';
 import { useUserStore } from '@core/lib/user-store';
 import type { LucideIcon } from 'lucide-react';
 import { LogIn } from 'lucide-react';
 import type * as React from 'react';
+import type { ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 
 const buildMenuItems = (menuItems: MenuItem[], currentPath: string, prefix: string) => {
@@ -31,6 +38,7 @@ const buildMenuItems = (menuItems: MenuItem[], currentPath: string, prefix: stri
             onClick: item.onClick,
             icon: item.icon as LucideIcon,
             badge: item.badge,
+            badgeVariant: item.badgeVariant,
             action: item.action,
             isActive: item.isActive || item.href === currentPath,
             items: menuItems
@@ -45,6 +53,7 @@ const buildMenuItems = (menuItems: MenuItem[], currentPath: string, prefix: stri
                 url: subItem.href || '#',
                 onClick: subItem.onClick,
                 badge: subItem.badge,
+                badgeVariant: subItem.badgeVariant,
               })),
           });
         }
@@ -56,6 +65,7 @@ const buildMenuItems = (menuItems: MenuItem[], currentPath: string, prefix: stri
         onClick?: () => void;
         icon?: LucideIcon;
         badge?: string | number;
+        badgeVariant?: 'default' | 'action';
         action?: MenuItemAction;
         isActive?: boolean;
         items?: Array<{
@@ -63,6 +73,7 @@ const buildMenuItems = (menuItems: MenuItem[], currentPath: string, prefix: stri
           url: string;
           onClick?: () => void;
           badge?: string | number;
+          badgeVariant?: 'default' | 'action';
         }>;
       }>,
     );
@@ -74,6 +85,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const location = useLocation();
   const { user, teams, activeTeam, setActiveTeam } = useUserStore();
   const { t } = useTranslation();
+  // The product's logo at the top of the sidebar, set by the app through the
+  // `sidebar.logo` UI config. It should follow the sidebar theme.
+  const logo = useUIConfig<ReactNode>('sidebar.logo', null);
 
   // Build the menu hierarchy for main items
   const defaultItems = buildMenuItems(
@@ -124,8 +138,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     : null;
 
   return (
-    <Sidebar collapsible="icon" {...props}>
+    <Sidebar collapsible="icon" variant="inset" {...props}>
       <SidebarHeader>
+        {logo && (
+          <div className="flex h-control items-center px-0.5 group-data-[collapsible=icon]:hidden">
+            {logo}
+          </div>
+        )}
         <TeamSwitcher
           teams={teams}
           activeTeam={activeTeam}
@@ -151,9 +170,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         {userData ? (
           <NavUser user={userData} userMenuItems={userMenuItems} />
         ) : (
-          <div className="p-4">
+          <div>
             <ButtonLink variant="outline" className="w-full" href="/login">
-              <LogIn className="mr-2 h-4 w-4" />
+              <LogIn />
               {t`Login`}
             </ButtonLink>
           </div>

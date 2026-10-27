@@ -49,6 +49,7 @@ Extensions:
 | `disabled` | Text of disabled controls |
 | `overlay` | The backdrop behind dialogs and sheets |
 | `sidebar-muted-foreground` | Group labels and secondary text in the sidebar |
+| `sidebar-border-strong` | Borders of controls in the sidebar, such as the team switcher |
 | `success`, `success-soft`, `success-line` | Success text and icons; the fill and border of a success notice |
 | `warning`, `warning-foreground`, `warning-soft`, `warning-line` | Warning marks and borders (and invalid fields); warning text; the fill and border of a warning notice |
 | `destructive-soft` | The border of a destructive button and the fill of a destructive notice |
@@ -66,10 +67,14 @@ Tailwind spacing tokens, so `h-control`, `w-sidebar` and so on.
 | `control-lg` | 2.25rem | Large buttons; fields in standalone forms |
 | `table-head` | 2.5rem | Table header row |
 | `table-row` | 3rem | Minimum table row height |
+| `table-row-compact` | 2.5rem | Rows of short lists, such as on a dashboard |
 | `topbar` | 3.5rem | The top bar of the app |
 | `sidebar` | 16rem | The sidebar width |
 | `drawer` | 24rem | The width of a sheet used as a drawer |
+| `drawer-head` | 3.5rem | The height of a drawer's head |
 | `card` | 1rem | Padding inside cards |
+| `card-gap` | 1rem | The space between cards |
+| `gutter` | 1.5rem | The padding of the work area and the page |
 | `tabs` | 2.5rem | The height of a row of underlined tabs |
 
 ### Type
@@ -82,6 +87,8 @@ Tailwind spacing tokens, so `h-control`, `w-sidebar` and so on.
 | `--text-micro` | 11 / 16 | Counts, hints and other very small text (`text-micro`) |
 | `--text-table-head` | 14 / 20, 500 | Table header cells (`text-table-head`) |
 | `--table-head-transform` | `none` | `uppercase` to set table heads in capitals |
+| `--text-page-title` | 24 / 32, 600 | The page title (`text-page-title`) |
+| `--text-kpi` | 30 / 36, 600 | Key figures on a dashboard (`text-kpi`) |
 
 Body text uses Tailwind's own scale (`text-sm`, `text-xs`, ...) and
 `--font-sans` and `--font-mono`; a theme may redefine those too.

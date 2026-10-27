@@ -164,6 +164,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@core/components/ui/tooltip';
+import { StatusHero, StatusMessage } from '@recommand/components/status-feedback';
 import {
   ArrowRight,
   ChevronDown,
@@ -731,6 +732,24 @@ function Notices() {
           <AlertTitle>Company verified</AlertTitle>
           <AlertDescription>Invoices can now be received on 0208:0456123987.</AlertDescription>
         </Alert>
+        <StatusMessage
+          tone="error"
+          icon={TriangleAlert}
+          title="Verification failed"
+          description="The register does not list this person as a director."
+        />
+        <StatusMessage
+          tone="success"
+          icon={Info}
+          title="Mandate signed"
+          description="We start the verification now."
+        />
+        <StatusHero
+          tone="success"
+          icon={Info}
+          title="Verification complete"
+          description="The company can now send and receive on the network."
+        />
       </div>
     </Section>
   );

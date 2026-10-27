@@ -51,6 +51,7 @@
   --disabled: oklch(0.708 0 0);
   --overlay: oklch(0 0 0 / 50%);
   --sidebar-muted-foreground: oklch(0.556 0 0);
+  --sidebar-border-strong: oklch(0.87 0 0);
   --success: oklch(0.527 0.154 150.069);
   --success-soft: oklch(0.982 0.018 155.826);
   --success-line: oklch(0.925 0.084 155.995);
@@ -102,6 +103,7 @@
   --disabled: oklch(0.556 0 0);
   --overlay: oklch(0 0 0 / 60%);
   --sidebar-muted-foreground: oklch(0.708 0 0);
+  --sidebar-border-strong: oklch(1 0 0 / 20%);
   --success: oklch(0.792 0.209 151.711);
   --success-soft: oklch(0.266 0.065 152.934);
   --success-line: oklch(0.792 0.209 151.711 / 25%);
@@ -155,6 +157,7 @@
   --color-disabled: var(--disabled);
   --color-overlay: var(--overlay);
   --color-sidebar-muted-foreground: var(--sidebar-muted-foreground);
+  --color-sidebar-border-strong: var(--sidebar-border-strong);
   --color-success: var(--success);
   --color-success-soft: var(--success-soft);
   --color-success-line: var(--success-line);
@@ -182,10 +185,14 @@
   --spacing-control-lg: 2.25rem;
   --spacing-table-head: 2.5rem;
   --spacing-table-row: 3rem;
+  --spacing-table-row-compact: 2.5rem;
   --spacing-topbar: 3.5rem;
   --spacing-sidebar: 16rem;
   --spacing-drawer: 24rem;
+  --spacing-drawer-head: 3.5rem;
   --spacing-card: 1rem;
+  --spacing-card-gap: 1rem;
+  --spacing-gutter: 1.5rem;
   --spacing-tabs: 2.5rem;
 
   --font-weight-button: 500;
@@ -199,6 +206,13 @@
   --text-table-head: 0.875rem;
   --text-table-head--line-height: 1.25rem;
   --text-table-head--font-weight: 500;
+
+  --text-page-title: 1.5rem;
+  --text-page-title--line-height: 2rem;
+  --text-page-title--font-weight: 600;
+  --text-kpi: 1.875rem;
+  --text-kpi--line-height: 2.25rem;
+  --text-kpi--font-weight: 600;
 }
 
 :root {
