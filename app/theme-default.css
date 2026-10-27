@@ -185,8 +185,13 @@
   --spacing-topbar: 3.5rem;
   --spacing-sidebar: 16rem;
   --spacing-drawer: 24rem;
+  --spacing-card: 1rem;
 
   --font-weight-button: 500;
+  --font-weight-title: 500;
+
+  --text-button-sm: 0.8rem;
+  --text-button-sm--line-height: 1rem;
 
   --text-micro: 0.6875rem;
   --text-micro--line-height: 1rem;

@@ -69,12 +69,15 @@ Tailwind spacing tokens, so `h-control`, `w-sidebar` and so on.
 | `topbar` | 3.5rem | The top bar of the app |
 | `sidebar` | 16rem | The sidebar width |
 | `drawer` | 24rem | The width of a sheet used as a drawer |
+| `card` | 1rem | Padding inside cards |
 
 ### Type
 
 | Token | Default | Used for |
 | --- | --- | --- |
 | `--font-weight-button` | 500 | Button labels (`font-button`) |
+| `--font-weight-title` | 500 | Card and dialog titles (`font-title`) |
+| `--text-button-sm` | 12.8 / 16 | Labels of small buttons (`text-button-sm`) |
 | `--text-micro` | 11 / 16 | Counts, hints and other very small text (`text-micro`) |
 | `--text-table-head` | 14 / 20, 500 | Table header cells (`text-table-head`) |
 | `--table-head-transform` | `none` | `uppercase` to set table heads in capitals |

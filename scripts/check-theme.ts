@@ -56,7 +56,7 @@ const FONT_KEYWORDS =
   /^(thin|extralight|light|normal|medium|semibold|bold|extrabold|black|sans|serif|mono|stretch-.*)$/;
 
 const UTILITY =
-  /(?<![\w-])(?:[a-z0-9@*-]+:)*!?(bg|text|border(?:-[xytblrse])?|ring(?:-offset)?|fill|stroke|outline|from|via|to|divide|placeholder|decoration|shadow|caret|accent|h|w|size|min-h|min-w|max-h|max-w|font)-(\[[^\]\s]+\]|[a-z0-9.%/_-]+)/g;
+  /(?<![\w[:-])(?:[a-z0-9@*-]+:)*!?(bg|text|border(?:-[xytblrse])?|ring(?:-offset)?|fill|stroke|outline|from|via|to|divide|placeholder|decoration|shadow|caret|accent|h|w|size|min-h|min-w|max-h|max-w|font)-(\[[^\]\s]+\]|[a-z0-9.%/_-]+)/g;
 
 type Finding = { file: string; line: number; utility: string; reason: string };
 const findings: Finding[] = [];

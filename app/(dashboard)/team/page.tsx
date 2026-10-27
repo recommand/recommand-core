@@ -364,12 +364,11 @@ export default function Page() {
               <Button
                 variant="ghost"
                 size="icon"
-                asChild
+                nativeButton={false}
+                render={<Link to={`/team/member/${userId}`} />}
                 title={t`Manage permissions`}
               >
-                <Link to={`/team/member/${userId}`}>
-                  <Shield className="h-4 w-4" />
-                </Link>
+                <Shield className="h-4 w-4" />
               </Button>
             )}
             {canManageTeam && (
