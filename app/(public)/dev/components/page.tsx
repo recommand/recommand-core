@@ -1,4 +1,11 @@
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@core/components/ui/accordion';
+import { Alert, AlertDescription, AlertTitle } from '@core/components/ui/alert';
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -9,7 +16,16 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@core/components/ui/alert-dialog';
+import { Avatar, AvatarFallback } from '@core/components/ui/avatar';
 import { Badge } from '@core/components/ui/badge';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@core/components/ui/breadcrumb';
 import { Button } from '@core/components/ui/button';
 import {
   Card,
@@ -51,7 +67,9 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@core/components/ui/dropdown-menu';
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@core/components/ui/empty';
 import { Input } from '@core/components/ui/input';
+import { Kbd } from '@core/components/ui/kbd';
 import { Label } from '@core/components/ui/label';
 import {
   Popover,
@@ -61,6 +79,8 @@ import {
   PopoverTitle,
   PopoverTrigger,
 } from '@core/components/ui/popover';
+import { Progress } from '@core/components/ui/progress';
+import { RadioGroup, RadioGroupItem } from '@core/components/ui/radio-group';
 import {
   Select,
   SelectContent,
@@ -77,8 +97,19 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@core/components/ui/sheet';
+import { Skeleton } from '@core/components/ui/skeleton';
 import { toast } from '@core/components/ui/sonner';
+import { Spinner } from '@core/components/ui/spinner';
+import { StatusLabel, StatusPixel } from '@core/components/ui/status-pixel';
 import { Switch } from '@core/components/ui/switch';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@core/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@core/components/ui/tabs';
 import { Textarea } from '@core/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@core/components/ui/toggle-group';
@@ -88,7 +119,16 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@core/components/ui/tooltip';
-import { ArrowRight, ChevronDown, Info, Moon, Plus, Sun, Trash2 } from 'lucide-react';
+import {
+  ArrowRight,
+  ChevronDown,
+  Info,
+  Moon,
+  Plus,
+  Sun,
+  Trash2,
+  TriangleAlert,
+} from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { type ReactNode, useState } from 'react';
 import { Navigate } from 'react-router';
@@ -140,6 +180,10 @@ function Panel() {
       <Choices />
       <Menus />
       <Badges />
+      <Status />
+      <Data />
+      <Notices />
+      <Misc />
       <Cards />
     </div>
   );
@@ -520,6 +564,173 @@ function Menus() {
           </CommandGroup>
         </CommandList>
       </Command>
+    </Section>
+  );
+}
+
+function Status() {
+  return (
+    <Section title="Status">
+      <Row>
+        <StatusLabel shape="outline">Planned</StatusLabel>
+        <StatusLabel shape="half">Sending</StatusLabel>
+        <StatusLabel>Received</StatusLabel>
+        <StatusLabel tone="positive">Delivered</StatusLabel>
+        <StatusLabel tone="attention">Failed</StatusLabel>
+        <StatusLabel shape="unknown">Unknown</StatusLabel>
+      </Row>
+      <Row>
+        <StatusPixel size="xs" tone="positive" />
+        <StatusPixel />
+        <StatusPixel size="lg" shape="half" />
+        <StatusPixel size="xl" tone="positive" />
+      </Row>
+    </Section>
+  );
+}
+
+const rows = [
+  {
+    status: 'positive',
+    label: 'Delivered',
+    number: 'INV-2026-0912',
+    party: 'Atelier Verbeke',
+    amount: '€ 4.120,00',
+  },
+  {
+    status: 'attention',
+    label: 'Failed',
+    number: 'INV-2026-0910',
+    party: 'Hotel Ardennes',
+    amount: '€ 1.980,00',
+  },
+  {
+    status: 'normal',
+    label: 'Received',
+    number: '2026/1187',
+    party: 'Meulemans Staal',
+    amount: '€ 12.940,00',
+  },
+] as const;
+
+function Data() {
+  const [selected, setSelected] = useState('INV-2026-0910');
+  return (
+    <Section title="Table">
+      <div className="rounded-xl border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Status</TableHead>
+              <TableHead>Document</TableHead>
+              <TableHead>Counterparty</TableHead>
+              <TableHead className="text-right">Amount</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.map((row) => (
+              <TableRow
+                key={row.number}
+                data-state={selected === row.number ? 'selected' : undefined}
+                onClick={() => setSelected(row.number)}
+              >
+                <TableCell>
+                  <StatusLabel tone={row.status}>{row.label}</StatusLabel>
+                </TableCell>
+                <TableCell className="font-mono text-xs">{row.number}</TableCell>
+                <TableCell className="font-medium">{row.party}</TableCell>
+                <TableCell className="text-right">{row.amount}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+      <div className="grid max-w-md gap-3">
+        <Progress value={64} />
+        <div className="flex items-center gap-3">
+          <Skeleton className="size-8" />
+          <div className="grid flex-1 gap-2">
+            <Skeleton className="h-3 w-2/3" />
+            <Skeleton className="h-3 w-1/3" />
+          </div>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function Notices() {
+  return (
+    <Section title="Notices">
+      <div className="grid max-w-xl gap-3">
+        <Alert variant="warning">
+          <TriangleAlert />
+          <AlertTitle>Receiver access point unreachable</AlertTitle>
+          <AlertDescription>
+            We retry for 24 hours. After that you can send by email instead.
+          </AlertDescription>
+        </Alert>
+        <Alert variant="info">
+          <Info />
+          <AlertTitle>Playground</AlertTitle>
+          <AlertDescription>Nothing you send here leaves Recommand.</AlertDescription>
+        </Alert>
+        <Alert variant="success">
+          <AlertTitle>Company verified</AlertTitle>
+          <AlertDescription>Invoices can now be received on 0208:0456123987.</AlertDescription>
+        </Alert>
+      </div>
+    </Section>
+  );
+}
+
+function Misc() {
+  return (
+    <Section title="Other">
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink href="#documents">Documents</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>INV-2026-0912</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+      <Row>
+        <Avatar>
+          <AvatarFallback>EV</AvatarFallback>
+        </Avatar>
+        <Kbd>⌘K</Kbd>
+        <Spinner />
+        <RadioGroup defaultValue="director" className="flex w-auto gap-4">
+          <Label>
+            <RadioGroupItem value="director" /> Director
+          </Label>
+          <Label>
+            <RadioGroupItem value="contract" /> By contract
+          </Label>
+        </RadioGroup>
+      </Row>
+      <Accordion className="max-w-md">
+        <AccordionItem value="what">
+          <AccordionTrigger>What does Peppol cost?</AccordionTrigger>
+          <AccordionContent>Sending and receiving are included in every plan.</AccordionContent>
+        </AccordionItem>
+        <AccordionItem value="how">
+          <AccordionTrigger>How long does verification take?</AccordionTrigger>
+          <AccordionContent>
+            Usually a few minutes; manual checks within a working day.
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+      <Empty className="max-w-md border">
+        <EmptyHeader>
+          <EmptyTitle>No documents yet</EmptyTitle>
+          <EmptyDescription>Send your first invoice from the playground.</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     </Section>
   );
 }

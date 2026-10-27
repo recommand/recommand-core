@@ -514,17 +514,14 @@ export default function Page() {
                     </div>
                   </div>
                   <Collapsible>
-                    <CollapsibleTrigger asChild>
-                      <Button
+                    <CollapsibleTrigger render={<Button
                         variant="ghost"
-                        className="w-full font-normal [&[data-state=open]>svg]:rotate-180"
-                      >
+                        className="w-full font-normal [&[data-panel-open]>svg]:rotate-180" />}>
                         <label className="text-sm font-medium">
                           {t`View Authorization Header`}
                         </label>
                         <ChevronDown className="h-4 w-4 transition-transform duration-200" />
-                      </Button>
-                    </CollapsibleTrigger>
+                      </CollapsibleTrigger>
                     <CollapsibleContent>
                       <div className="pt-2">
                         <label className="text-sm font-medium">
@@ -583,17 +580,14 @@ export default function Page() {
                     />
                   </div>
                   <Collapsible>
-                    <CollapsibleTrigger asChild>
-                      <Button
+                    <CollapsibleTrigger render={<Button
                         variant="ghost"
-                        className="w-full font-normal [&[data-state=open]>svg]:rotate-180"
-                      >
+                        className="w-full font-normal [&[data-panel-open]>svg]:rotate-180" />}>
                         <label className="text-sm font-medium">
                           {t`View Authorization Header`}
                         </label>
                         <ChevronDown className="h-4 w-4 transition-transform duration-200" />
-                      </Button>
-                    </CollapsibleTrigger>
+                      </CollapsibleTrigger>
                     <CollapsibleContent>
                       <div className="pt-2">
                         <label className="text-sm font-medium">

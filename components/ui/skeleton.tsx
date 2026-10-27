@@ -1,16 +1,10 @@
-import { cn } from "@core/lib/utils"
+import { cn } from '@core/lib/utils';
+import type * as React from 'react';
 
-function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
-  // bg-muted, not the stock shadcn bg-accent: our theme aliases --accent to
-  // the brand green (--folder), which reads as a broken highlight when a
-  // loading block pulses in it.
+function Skeleton({ className, ...props }: React.ComponentProps<'div'>) {
   return (
-    <div
-      data-slot="skeleton"
-      className={cn("bg-muted animate-pulse rounded-md", className)}
-      {...props}
-    />
-  )
+    <div data-slot="skeleton" className={cn('animate-pulse bg-border', className)} {...props} />
+  );
 }
 
-export { Skeleton }
+export { Skeleton };

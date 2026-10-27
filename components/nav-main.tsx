@@ -102,15 +102,11 @@ export function NavMain({
             return (
               <Collapsible
                 key={item.title}
-                asChild
                 defaultOpen={item.isActive}
-                className="group/collapsible"
-              >
-                <SidebarMenuItem>
+                className="group/collapsible" render={<SidebarMenuItem />}>
                   <div className="flex items-center">
                     {hasNoAction ? (
-                      <CollapsibleTrigger asChild>
-                        <SidebarMenuButton tooltip={item.title} className="flex-1 cursor-pointer">
+                      <CollapsibleTrigger render={<SidebarMenuButton tooltip={item.title} className="flex-1 cursor-pointer" />}>
                           {item.icon && <item.icon />}
                           <span>{item.title}</span>
                           {item.badge != null && state === 'expanded' && (
@@ -118,11 +114,10 @@ export function NavMain({
                           )}
                           {state === 'expanded' && (
                             <ChevronRight
-                              className={`${item.badge != null ? '' : 'ml-auto '}size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90`}
+                              className={`${item.badge != null ? '' : 'ml-auto '}size-4 transition-transform duration-200 group-data-open/collapsible:rotate-90`}
                             />
                           )}
-                        </SidebarMenuButton>
-                      </CollapsibleTrigger>
+                        </CollapsibleTrigger>
                     ) : (
                       <>
                         <SidebarMenuButton
@@ -146,14 +141,11 @@ export function NavMain({
                           )}
                         </SidebarMenuButton>
                         {state === 'expanded' && (
-                          <CollapsibleTrigger asChild>
-                            <button
+                          <CollapsibleTrigger render={<button
                               type="button"
-                              className="p-2 hover:bg-sidebar-accent rounded-md cursor-pointer"
-                            >
-                              <ChevronRight className="size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                            </button>
-                          </CollapsibleTrigger>
+                              className="p-2 hover:bg-sidebar-accent rounded-md cursor-pointer" />}>
+                              <ChevronRight className="size-4 transition-transform duration-200 group-data-open/collapsible:rotate-90" />
+                            </CollapsibleTrigger>
                         )}
                       </>
                     )}
@@ -188,8 +180,7 @@ export function NavMain({
                       </SidebarMenuSub>
                     </CollapsibleContent>
                   )}
-                </SidebarMenuItem>
-              </Collapsible>
+                </Collapsible>
             );
           }
 

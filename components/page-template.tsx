@@ -7,7 +7,7 @@ import {
   BreadcrumbPage,
 } from "@core/components/ui/breadcrumb";
 import { SidebarInset, SidebarTrigger } from "@core/components/ui/sidebar";
-import { Separator } from "@radix-ui/react-separator";
+import { Separator } from "@core/components/ui/separator";
 import { cn } from "@core/lib/utils";
 
 export interface BreadcrumbItem {
