@@ -27,6 +27,7 @@ import {
   BreadcrumbSeparator,
 } from '@core/components/ui/breadcrumb';
 import { Button } from '@core/components/ui/button';
+import { Calendar } from '@core/components/ui/calendar';
 import {
   Card,
   CardAction,
@@ -36,6 +37,14 @@ import {
   CardHeader,
   CardTitle,
 } from '@core/components/ui/card';
+import {
+  type ChartConfig,
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+} from '@core/components/ui/chart';
 import { Checkbox } from '@core/components/ui/checkbox';
 import { Combobox } from '@core/components/ui/combobox';
 import {
@@ -68,9 +77,45 @@ import {
   DropdownMenuTrigger,
 } from '@core/components/ui/dropdown-menu';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@core/components/ui/empty';
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+  FieldTitle,
+} from '@core/components/ui/field';
 import { Input } from '@core/components/ui/input';
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+  InputGroupText,
+} from '@core/components/ui/input-group';
 import { Kbd } from '@core/components/ui/kbd';
 import { Label } from '@core/components/ui/label';
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+  navigationMenuTriggerStyle,
+} from '@core/components/ui/navigation-menu';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@core/components/ui/pagination';
 import {
   Popover,
   PopoverContent,
@@ -122,9 +167,11 @@ import {
 import {
   ArrowRight,
   ChevronDown,
+  Copy,
   Info,
   Moon,
   Plus,
+  Search,
   Sun,
   Trash2,
   TriangleAlert,
@@ -132,6 +179,7 @@ import {
 import { useTheme } from 'next-themes';
 import { type ReactNode, useState } from 'react';
 import { Navigate } from 'react-router';
+import { Bar, BarChart, CartesianGrid, XAxis } from 'recharts';
 
 /**
  * A gallery of the core components, in light and dark side by side, for
@@ -177,6 +225,7 @@ function Panel() {
     <div className="flex flex-col gap-10 p-6">
       <Buttons />
       <Fields />
+      <FieldParts />
       <Choices />
       <Menus />
       <Badges />
@@ -184,6 +233,9 @@ function Panel() {
       <Data />
       <Notices />
       <Misc />
+      <Navigation />
+      <Dates />
+      <Charts />
       <Cards />
     </div>
   );
@@ -731,6 +783,191 @@ function Misc() {
           <EmptyDescription>Send your first invoice from the playground.</EmptyDescription>
         </EmptyHeader>
       </Empty>
+    </Section>
+  );
+}
+
+function FieldParts() {
+  const [method, setMethod] = useState('peppol');
+  return (
+    <Section title="Field and input group">
+      <FieldGroup className="max-w-md">
+        <Field>
+          <FieldLabel htmlFor="g-vat">VAT number</FieldLabel>
+          <Input id="g-vat" defaultValue="BE0456123987" />
+          <FieldDescription>We look the company up in the national register.</FieldDescription>
+        </Field>
+        <Field data-invalid>
+          <FieldLabel htmlFor="g-email">Billing email</FieldLabel>
+          <Input id="g-email" defaultValue="finance@" aria-invalid />
+          <FieldError>Enter a complete email address.</FieldError>
+        </Field>
+        <InputGroup>
+          <InputGroupAddon>
+            <Search />
+          </InputGroupAddon>
+          <InputGroupInput placeholder="Search documents" />
+          <InputGroupAddon align="inline-end">
+            <Kbd>⌘K</Kbd>
+          </InputGroupAddon>
+        </InputGroup>
+        <InputGroup>
+          <InputGroupAddon>
+            <InputGroupText>https://</InputGroupText>
+          </InputGroupAddon>
+          <InputGroupInput defaultValue="erp.example.com/webhooks/peppol" />
+          <InputGroupAddon align="inline-end">
+            <InputGroupButton size="icon-xs" aria-label="Copy">
+              <Copy />
+            </InputGroupButton>
+          </InputGroupAddon>
+        </InputGroup>
+        <FieldSet>
+          <FieldLegend variant="label">Delivery method</FieldLegend>
+          <RadioGroup value={method} onValueChange={(v) => setMethod(v as string)}>
+            <FieldLabel htmlFor="g-peppol">
+              <Field orientation="horizontal">
+                <FieldContent>
+                  <FieldTitle>Peppol</FieldTitle>
+                  <FieldDescription>
+                    Straight into the receiver's accounting software.
+                  </FieldDescription>
+                </FieldContent>
+                <RadioGroupItem value="peppol" id="g-peppol" />
+              </Field>
+            </FieldLabel>
+            <FieldLabel htmlFor="g-mail">
+              <Field orientation="horizontal">
+                <FieldContent>
+                  <FieldTitle>Email</FieldTitle>
+                  <FieldDescription>A PDF with the structured invoice attached.</FieldDescription>
+                </FieldContent>
+                <RadioGroupItem value="email" id="g-mail" />
+              </Field>
+            </FieldLabel>
+          </RadioGroup>
+        </FieldSet>
+      </FieldGroup>
+    </Section>
+  );
+}
+
+function Navigation() {
+  return (
+    <Section title="Navigation">
+      <NavigationMenu>
+        <NavigationMenuList>
+          <NavigationMenuItem>
+            <NavigationMenuTrigger>Product</NavigationMenuTrigger>
+            <NavigationMenuContent>
+              <ul className="grid w-72 gap-1">
+                <li>
+                  <NavigationMenuLink href="#exchange">
+                    <div className="grid gap-0.5">
+                      <span className="font-medium">Exchange</span>
+                      <span className="text-muted-foreground">The Peppol API</span>
+                    </div>
+                  </NavigationMenuLink>
+                </li>
+                <li>
+                  <NavigationMenuLink href="#console">
+                    <div className="grid gap-0.5">
+                      <span className="font-medium">Console</span>
+                      <span className="text-muted-foreground">Send and receive in the browser</span>
+                    </div>
+                  </NavigationMenuLink>
+                </li>
+              </ul>
+            </NavigationMenuContent>
+          </NavigationMenuItem>
+          <NavigationMenuItem>
+            <NavigationMenuLink href="#pricing" className={navigationMenuTriggerStyle()}>
+              Pricing
+            </NavigationMenuLink>
+          </NavigationMenuItem>
+        </NavigationMenuList>
+      </NavigationMenu>
+      <Pagination className="justify-start">
+        <PaginationContent>
+          <PaginationItem>
+            <PaginationPrevious href="#page-1" />
+          </PaginationItem>
+          <PaginationItem>
+            <PaginationLink href="#page-1">1</PaginationLink>
+          </PaginationItem>
+          <PaginationItem>
+            <PaginationLink href="#page-2" isActive>
+              2
+            </PaginationLink>
+          </PaginationItem>
+          <PaginationItem>
+            <PaginationLink href="#page-3">3</PaginationLink>
+          </PaginationItem>
+          <PaginationItem>
+            <PaginationEllipsis />
+          </PaginationItem>
+          <PaginationItem>
+            <PaginationNext href="#page-3" />
+          </PaginationItem>
+        </PaginationContent>
+      </Pagination>
+    </Section>
+  );
+}
+
+function Dates() {
+  const [range, setRange] = useState<{ from: Date | undefined; to?: Date }>({
+    from: new Date(2026, 9, 6),
+    to: new Date(2026, 9, 10),
+  });
+  return (
+    <Section title="Calendar">
+      <Row>
+        <Calendar
+          mode="single"
+          selected={new Date(2026, 9, 14)}
+          defaultMonth={new Date(2026, 9)}
+          className="rounded-xl border"
+        />
+        <Calendar
+          mode="range"
+          selected={range}
+          onSelect={(r) => r && setRange(r)}
+          defaultMonth={new Date(2026, 9)}
+          className="rounded-xl border"
+        />
+      </Row>
+    </Section>
+  );
+}
+
+const volume = [
+  { month: 'May', sent: 1840, failed: 22 },
+  { month: 'Jun', sent: 2210, failed: 31 },
+  { month: 'Jul', sent: 1990, failed: 18 },
+  { month: 'Aug', sent: 1620, failed: 12 },
+  { month: 'Sep', sent: 2480, failed: 40 },
+  { month: 'Oct', sent: 2730, failed: 27 },
+];
+
+const volumeConfig = {
+  sent: { label: 'Delivered', color: 'var(--chart-1)' },
+  failed: { label: 'Failed', color: 'var(--chart-5)' },
+} satisfies ChartConfig;
+
+function Charts() {
+  return (
+    <Section title="Chart">
+      <ChartContainer config={volumeConfig} className="h-56 w-full max-w-xl">
+        <BarChart data={volume} accessibilityLayer>
+          <CartesianGrid vertical={false} />
+          <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} />
+          <ChartTooltip content={<ChartTooltipContent />} />
+          <ChartLegend content={<ChartLegendContent />} />
+          <Bar dataKey="sent" stackId="a" fill="var(--color-sent)" />
+          <Bar dataKey="failed" stackId="a" fill="var(--color-failed)" />
+        </BarChart>
+      </ChartContainer>
     </Section>
   );
 }
