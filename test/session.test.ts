@@ -1,12 +1,21 @@
 import { beforeEach, describe, expect, mock, test } from 'bun:test';
+import type { SQL } from 'drizzle-orm';
+import { PgDialect } from 'drizzle-orm/pg-core';
 import { Hono } from 'hono';
-import { users, teamMembers } from '../db/schema';
+import { setSignedCookie } from 'hono/cookie';
+import { sessions, teamMembers, users } from '../db/schema';
 import type { AuthenticatedUserContext } from '../lib/auth-middleware';
 
 process.env.JWT_SECRET = 'test-only-session-signing-key-not-for-deployment';
 let currentUser: { id: string; isAdmin: boolean; language: string } | null;
 let member = true;
 let keyExists = true;
+type StoredSession = { id: string; userId: string; expiresAt: Date; revokedAt: Date | null };
+let storedSessions: StoredSession[];
+const dialect = new PgDialect();
+// Every session query filters on the session ID, its first parameter.
+const sessionsMatching = (condition: SQL) =>
+  storedSessions.filter((session) => session.id === dialect.sqlToQuery(condition).params[0]);
 const key = {
   id: 'key_test',
   userId: 'user_test',
@@ -18,22 +27,39 @@ mock.module('@recommand/db', () => ({
   db: {
     select: () => ({
       from: (table: unknown) => ({
-        where: () => ({
+        where: (condition: SQL) => ({
           limit: async () =>
-            table === users
-              ? currentUser
-                ? [currentUser]
-                : []
-              : table === teamMembers && member
-                ? [{ userId: 'user_test' }]
-                : [],
+            table === sessions
+              ? sessionsMatching(condition)
+              : table === users
+                ? currentUser
+                  ? [currentUser]
+                  : []
+                : table === teamMembers && member
+                  ? [{ userId: 'user_test' }]
+                  : [],
         }),
       }),
     }),
-    update: () => ({
-      set: (data: { language: string }) => ({
-        where: async () => {
-          if (currentUser) currentUser.language = data.language;
+    insert: () => ({
+      values: (values: Omit<StoredSession, 'id' | 'revokedAt'>) => ({
+        returning: async () => {
+          const session = { ...values, id: `ses_${storedSessions.length + 1}`, revokedAt: null };
+          storedSessions.push(session);
+          return [{ id: session.id }];
+        },
+      }),
+    }),
+    update: (table: unknown) => ({
+      set: (data: { language?: string; revokedAt?: Date }) => ({
+        where: async (condition: SQL) => {
+          if (table === sessions) {
+            for (const session of sessionsMatching(condition)) {
+              session.revokedAt ??= data.revokedAt ?? null;
+            }
+          } else if (currentUser) {
+            currentUser.language = data.language!;
+          }
         },
       }),
     }),
@@ -57,13 +83,23 @@ mock.module('@core/lib/translation-middleware', () => ({
 mock.module('@core/lib/translations-server', () => ({
   toSupportedLanguage: async (value: string) => (['en', 'nl'].includes(value) ? value : null),
 }));
-const { createSession, verifySession } = await import('../lib/session');
+const { createSession, deleteSession, verifySession } = await import('../lib/session');
 const { sign } = await import('../lib/jwt');
 const { requireAdmin, requireTeamAccess } = await import('../lib/auth-middleware');
 const { default: account } = await import('../api/account');
 const app = new Hono<AuthenticatedUserContext>();
 app.get('/login', async (c) => {
-  await createSession(c, { id: 'user_test', isAdmin: true });
+  await createSession(c, { id: 'user_test', isAdmin: true }, 'password');
+  return c.json({ ok: true });
+});
+app.get('/legacy-login', async (c) => {
+  const expires = new Date(Date.now() + 3600_000);
+  const token = await sign({ userId: 'user_test', isAdmin: false, language: 'en', expires }, expires);
+  await setSignedCookie(c, 'session', token, process.env.JWT_SECRET!, { expires });
+  return c.json({ ok: true });
+});
+app.post('/logout', async (c) => {
+  await deleteSession(c);
   return c.json({ ok: true });
 });
 app.get('/admin', requireAdmin(), (c) => c.json({ ok: true }));
@@ -87,8 +123,8 @@ async function bearer(subject = 'user_test') {
     Authorization: `Bearer ${await sign({ sub: subject, jti: key.id, teamId: key.teamId }, key.expiresAt)}`,
   };
 }
-async function cookie() {
-  return (await app.request('/login')).headers.get('set-cookie')!.split(';')[0];
+async function cookie(path = '/login') {
+  return (await app.request(path)).headers.get('set-cookie')!.split(';')[0];
 }
 function profile(headers: Record<string, string>) {
   return app.request('/account/profile', {
@@ -101,6 +137,7 @@ beforeEach(() => {
   currentUser = { id: 'user_test', isAdmin: false, language: 'en' };
   member = true;
   keyExists = true;
+  storedSessions = [];
 });
 
 describe('credential scope and current authorization', () => {
@@ -156,5 +193,35 @@ describe('credential scope and current authorization', () => {
   });
   test('extension identities retain their distinct authentication method', async () => {
     expect(await (await app.request('/extension')).json()).toEqual({ method: 'extension' });
+  });
+});
+
+describe('browser sessions', () => {
+  test('signing out ends the session for every copy of its cookie', async () => {
+    const headers = { Cookie: await cookie() };
+    expect((await app.request('/team_test/data', { headers })).status).toBe(200);
+    await app.request('/logout', { method: 'POST', headers });
+    expect((await app.request('/team_test/data', { headers })).status).toBe(401);
+  });
+  test('a refreshed cookie stays part of the same session', async () => {
+    const headers = { Cookie: await cookie() };
+    const refreshed = (await profile(headers)).headers.get('set-cookie')!.split(';')[0];
+    expect((await app.request('/team_test/data', { headers: { Cookie: refreshed } })).status).toBe(200);
+    await app.request('/logout', { method: 'POST', headers: { Cookie: refreshed } });
+    expect((await app.request('/team_test/data', { headers })).status).toBe(401);
+  });
+  test('a session past its expiry is refused', async () => {
+    const headers = { Cookie: await cookie() };
+    storedSessions[0].expiresAt = new Date(Date.now() - 1_000);
+    expect((await app.request('/team_test/data', { headers })).status).toBe(401);
+  });
+  test('a session that is no longer stored is refused', async () => {
+    const headers = { Cookie: await cookie() };
+    storedSessions = [];
+    expect((await app.request('/team_test/data', { headers })).status).toBe(401);
+  });
+  test('a cookie signed before sessions were stored keeps working', async () => {
+    const headers = { Cookie: await cookie('/legacy-login') };
+    expect((await app.request('/team_test/data', { headers })).status).toBe(200);
   });
 });

@@ -30,6 +30,25 @@ export const users = pgTable("users", {
   updatedAt: autoUpdateTimestamp(),
 });
 
+export const sessions = pgTable(
+  "sessions",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => "ses_" + ulid()),
+    userId: text("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    authMethod: text("auth_method").notNull(),
+    authTime: timestamp("auth_time", { withTimezone: true }).notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: autoUpdateTimestamp(),
+  },
+  (table) => [index("sessions_user_id_idx").on(table.userId)]
+);
+
 export const userPermissions = pgTable("user_permissions", {
   userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
   teamId: text("team_id").references(() => teams.id, { onDelete: "cascade" }).notNull(),

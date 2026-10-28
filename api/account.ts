@@ -9,7 +9,7 @@ import bcrypt from "bcrypt";
 import { requireAuth } from "@core/lib/auth-middleware";
 import { withTranslation } from "@core/lib/translation-middleware";
 import { toSupportedLanguage } from "@core/lib/translations-server";
-import { createSession } from "@core/lib/session";
+import { refreshSession } from "@core/lib/session";
 import { audit } from "@core/lib/audit";
 
 const server = new Server();
@@ -60,7 +60,7 @@ const _updateProfile = server.put(
 
       // Refresh only an existing browser session; API credentials keep their scope.
       if (user[0] && c.get("authenticationMethod") === "cookie") {
-        await createSession(c, user[0]);
+        await refreshSession(c, user[0]);
       }
 
       return c.json(actionSuccess());

@@ -85,7 +85,7 @@ const login = server.post(
       const user = userInfo.user;
 
       // Create session
-      await createSession(c, user);
+      await createSession(c, user, "password");
       await audit(c, {
         action: "authenticate",
         subsystem: "core.auth",
@@ -490,7 +490,7 @@ const confirmEmail = server.post(
       });
 
       // Create session for the user
-      await createSession(c, { id: user.id, isAdmin: false });
+      await createSession(c, { id: user.id, isAdmin: false }, "email_confirmation");
       await audit(c, {
         action: "authenticate",
         subsystem: "core.auth",
