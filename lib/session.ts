@@ -9,7 +9,8 @@ import { verify, sign } from "./jwt";
 import { addMilliseconds } from "date-fns";
 import { db } from "@recommand/db";
 import { sessions, teamMembers, users } from "@core/db/schema";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, ne } from "drizzle-orm";
+import type { Tx } from "@core/data/rules/db";
 
 const cookie = {
   name: "session",
@@ -38,7 +39,7 @@ export const createSession = async (c: Context, user: SessionUser) => {
 /** The stored session behind the current request's cookie, if it has one. */
 type CurrentSession = { expiresAt: Date; id: string };
 
-const getCurrentSession = (c: Context): CurrentSession | null => {
+export const getCurrentSession = (c: Context): CurrentSession | null => {
   return c.get("session") ?? null;
 };
 
@@ -152,6 +153,24 @@ export async function verifySession(c: Context, extensions: SessionVerificationE
 
   return result;
 }
+
+/**
+ * Ends every stored session of a user, except `except` when given, such as the
+ * session that is changing the password.
+ */
+export const revokeUserSessions = async (
+  userId: string,
+  { except, executor = db }: { except?: string | null; executor?: Tx | typeof db } = {}
+) => {
+  await executor
+    .update(sessions)
+    .set({ revokedAt: new Date() })
+    .where(and(
+      eq(sessions.userId, userId),
+      isNull(sessions.revokedAt),
+      except ? ne(sessions.id, except) : undefined,
+    ));
+};
 
 export async function deleteSession(c: Context) {
   const payload = await readSessionCookie(c);
