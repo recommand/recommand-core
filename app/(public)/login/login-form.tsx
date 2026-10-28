@@ -13,7 +13,8 @@ import { toast } from "../../../components/ui/sonner";
 import { type FormEvent, useState } from "react";
 import { cn } from "../../../lib/utils";
 import { useUserStore } from "../../../lib/user-store";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { toLocalPath } from "@core/lib/return-to";
 import { useTranslation } from "@core/hooks/use-translation";
 import { useUIConfig } from "../../../lib/ui-config-store";
 import { usePublicSignupEnabled } from "@core/hooks/use-manifest";
@@ -26,6 +27,7 @@ export function LoginForm({
   const [password, setPassword] = useState("");
   const { login } = useUserStore();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { t } = useTranslation();
   const { publicSignupEnabled } = usePublicSignupEnabled();
   const logoSrc = useUIConfig("auth.logo-src", "/logo.svg");
@@ -36,7 +38,7 @@ export function LoginForm({
     e.preventDefault();
     try {
       await login(email, password);
-      navigate("/");
+      navigate(toLocalPath(searchParams.get("returnTo"), window.location.origin) ?? "/");
     } catch (error) {
       toast.error(t`Login failed`, {
         description:
