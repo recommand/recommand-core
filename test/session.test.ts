@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, mock, test } from 'bun:test';
-import type { SQL } from 'drizzle-orm';
-import { PgDialect } from 'drizzle-orm/pg-core';
+import { Database } from 'bun:sqlite';
+import { drizzle } from 'drizzle-orm/pg-proxy';
 import { Hono } from 'hono';
 import { setSignedCookie } from 'hono/cookie';
 import { sessions, teamMembers, users } from '../db/schema';
@@ -10,12 +10,58 @@ process.env.JWT_SECRET = 'test-only-session-signing-key-not-for-deployment';
 let currentUser: { id: string; isAdmin: boolean; language: string } | null;
 let member = true;
 let keyExists = true;
-type StoredSession = { id: string; userId: string; expiresAt: Date; revokedAt: Date | null };
-let storedSessions: StoredSession[];
-const dialect = new PgDialect();
-// Every session query filters on the session ID, its first parameter.
-const sessionsMatching = (condition: SQL) =>
-  storedSessions.filter((session) => session.id === dialect.sqlToQuery(condition).params[0]);
+// Sessions live in SQLite, so the session queries run as written.
+const sqlite = new Database(':memory:');
+sqlite.exec(
+  'CREATE TABLE sessions (id TEXT PRIMARY KEY, user_id TEXT, auth_method TEXT, auth_time TEXT, expires_at TEXT, revoked_at TEXT, created_at TEXT, updated_at TEXT)',
+);
+const sessionsDb = drizzle(async (query, params) => ({
+  rows: sqlite.prepare(query.replace(/\$\d+/g, '?')).values(...(params as string[])),
+}));
+let sessionCount = 0;
+const db = {
+  select: (fields: Parameters<typeof sessionsDb.select>[0]) => ({
+    from: (table: unknown) =>
+      table === sessions
+        ? sessionsDb.select(fields).from(sessions)
+        : {
+            where: () => ({
+              limit: async () =>
+                table === users
+                  ? currentUser
+                    ? [currentUser]
+                    : []
+                  : table === teamMembers && member
+                    ? [{ userId: 'user_test' }]
+                    : [],
+            }),
+          },
+  }),
+  // SQLite rejects the `default` that drizzle writes for omitted columns.
+  insert: () => ({
+    values: (values: { userId: string; authMethod: string; authTime: Date; expiresAt: Date }) => ({
+      returning: async () => {
+        const id = `ses_${++sessionCount}`;
+        sqlite
+          .prepare('INSERT INTO sessions (id, user_id, auth_method, auth_time, expires_at) VALUES (?, ?, ?, ?, ?)')
+          .run(id, values.userId, values.authMethod, values.authTime.toISOString(), values.expiresAt.toISOString());
+        return [{ id }];
+      },
+    }),
+  }),
+  update: (table: unknown) =>
+    table === sessions
+      ? sessionsDb.update(sessions)
+      : {
+          set: (data: Partial<NonNullable<typeof currentUser>>) => ({
+            where: async () => {
+              if (currentUser) {
+                Object.assign(currentUser, data);
+              }
+            },
+          }),
+        },
+};
 const key = {
   id: 'key_test',
   userId: 'user_test',
@@ -23,48 +69,7 @@ const key = {
   type: 'jwt',
   expiresAt: new Date(Date.now() + 3600_000),
 };
-mock.module('@recommand/db', () => ({
-  db: {
-    select: () => ({
-      from: (table: unknown) => ({
-        where: (condition: SQL) => ({
-          limit: async () =>
-            table === sessions
-              ? sessionsMatching(condition)
-              : table === users
-                ? currentUser
-                  ? [currentUser]
-                  : []
-                : table === teamMembers && member
-                  ? [{ userId: 'user_test' }]
-                  : [],
-        }),
-      }),
-    }),
-    insert: () => ({
-      values: (values: Omit<StoredSession, 'id' | 'revokedAt'>) => ({
-        returning: async () => {
-          const session = { ...values, id: `ses_${storedSessions.length + 1}`, revokedAt: null };
-          storedSessions.push(session);
-          return [{ id: session.id }];
-        },
-      }),
-    }),
-    update: (table: unknown) => ({
-      set: (data: { language?: string; revokedAt?: Date }) => ({
-        where: async (condition: SQL) => {
-          if (table === sessions) {
-            for (const session of sessionsMatching(condition)) {
-              session.revokedAt ??= data.revokedAt ?? null;
-            }
-          } else if (currentUser) {
-            currentUser.language = data.language!;
-          }
-        },
-      }),
-    }),
-  },
-}));
+mock.module('@recommand/db', () => ({ db }));
 mock.module('@core/data/api-keys', () => ({
   getApiKey: async () => (keyExists ? key : null),
   checkApiKey: async () => (keyExists && currentUser ? { user: currentUser, apiKey: key } : null),
@@ -137,7 +142,7 @@ beforeEach(() => {
   currentUser = { id: 'user_test', isAdmin: false, language: 'en' };
   member = true;
   keyExists = true;
-  storedSessions = [];
+  sqlite.exec('DELETE FROM sessions');
 });
 
 describe('credential scope and current authorization', () => {
@@ -212,12 +217,12 @@ describe('browser sessions', () => {
   });
   test('a session past its expiry is refused', async () => {
     const headers = { Cookie: await cookie() };
-    storedSessions[0].expiresAt = new Date(Date.now() - 1_000);
+    sqlite.prepare('UPDATE sessions SET expires_at = ?').run(new Date(Date.now() - 1_000).toISOString());
     expect((await app.request('/team_test/data', { headers })).status).toBe(401);
   });
   test('a session that is no longer stored is refused', async () => {
     const headers = { Cookie: await cookie() };
-    storedSessions = [];
+    sqlite.exec('DELETE FROM sessions');
     expect((await app.request('/team_test/data', { headers })).status).toBe(401);
   });
   test('a cookie signed before sessions were stored keeps working', async () => {
