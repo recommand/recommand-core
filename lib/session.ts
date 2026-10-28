@@ -8,8 +8,8 @@ import { checkApiKey, getApiKey, type ApiKey } from "@core/data/api-keys";
 import { verify, sign } from "./jwt";
 import { addMilliseconds } from "date-fns";
 import { db } from "@recommand/db";
-import { teamMembers, users } from "@core/db/schema";
-import { and, eq } from "drizzle-orm";
+import { sessions, teamMembers, users } from "@core/db/schema";
+import { and, eq, isNull } from "drizzle-orm";
 
 const cookie = {
   name: "session",
@@ -23,19 +23,44 @@ const cookie = {
 };
 
 
-export async function createSession(
-  c: Context,
-  user: { id: string; isAdmin: boolean; language?: string }
-) {
-  const expires = addMilliseconds(new Date(), cookie.duration);
-  const session = await sign({
+export type SessionAuthMethod = "email_confirmation" | "password";
+
+type SessionUser = { id: string; isAdmin: boolean; language?: string };
+
+export async function createSession(c: Context, user: SessionUser, authMethod: SessionAuthMethod) {
+  const authTime = new Date();
+  const expires = addMilliseconds(authTime, cookie.duration);
+  const [session] = await db
+    .insert(sessions)
+    .values({ userId: user.id, authMethod, authTime, expiresAt: expires })
+    .returning({ id: sessions.id });
+
+  await setSessionCookie(c, session.id, user, expires);
+}
+
+/**
+ * Signs the cookie of the current browser session again with fresh user data.
+ * The session itself, and when it expires, stay the same.
+ */
+export async function refreshSession(c: Context, user: SessionUser) {
+  const session: { id: string; expiresAt: Date } | undefined = c.get("session");
+  if (!session) {
+    return;
+  }
+
+  await setSessionCookie(c, session.id, user, session.expiresAt);
+}
+
+async function setSessionCookie(c: Context, sessionId: string, user: SessionUser, expires: Date) {
+  const token = await sign({
+    sid: sessionId,
     userId: user.id,
     isAdmin: user.isAdmin,
     language: user.language ?? "en",
     expires,
   }, expires);
 
-  await setSignedCookie(c, cookie.name, session, process.env.JWT_SECRET!, {
+  await setSignedCookie(c, cookie.name, token, process.env.JWT_SECRET!, {
     ...cookie.options,
     expires,
   });
@@ -125,10 +150,18 @@ export async function verifySession(c: Context, extensions: SessionVerificationE
 }
 
 export async function deleteSession(c: Context) {
+  const payload = await readSessionCookie(c);
+  if (typeof payload?.sid === "string") {
+    await db
+      .update(sessions)
+      .set({ revokedAt: new Date() })
+      .where(and(eq(sessions.id, payload.sid), isNull(sessions.revokedAt)));
+  }
+
   deleteCookie(c, cookie.name, cookie.options);
 }
 
-async function verifySessionCookie(c: Context): Promise<Session | null> {
+async function readSessionCookie(c: Context) {
   const sessionCookie = await getSignedCookie(
     c,
     process.env.JWT_SECRET!,
@@ -139,8 +172,37 @@ async function verifySessionCookie(c: Context): Promise<Session | null> {
     return null;
   }
 
-  const session = await verify(sessionCookie);
+  return verify(sessionCookie);
+}
+
+async function findActiveSession(sessionId: string) {
+  const [session] = await db
+    .select({
+      id: sessions.id,
+      userId: sessions.userId,
+      expiresAt: sessions.expiresAt,
+      revokedAt: sessions.revokedAt,
+    })
+    .from(sessions)
+    .where(eq(sessions.id, sessionId))
+    .limit(1);
+  if (!session || session.revokedAt || session.expiresAt <= new Date()) {
+    return null;
+  }
+
+  return session;
+}
+
+async function verifySessionCookie(c: Context): Promise<Session | null> {
+  const session = await readSessionCookie(c);
   if (!session?.userId) {
+    return null;
+  }
+
+  // A cookie signed before sessions were stored has no `sid`. It stays valid
+  // until it expires, at most 14 days after it was signed.
+  const storedSession = session.sid === undefined ? null : await findActiveSession(session.sid as string);
+  if (session.sid !== undefined && storedSession?.userId !== session.userId) {
     return null;
   }
 
@@ -150,6 +212,10 @@ async function verifySessionCookie(c: Context): Promise<Session | null> {
     .where(eq(users.id, session.userId as string))
     .limit(1);
   if (!user) return null;
+
+  if (storedSession) {
+    c.set("session", { id: storedSession.id, expiresAt: storedSession.expiresAt });
+  }
 
   return {
     userId: user.id,
