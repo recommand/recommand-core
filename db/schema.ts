@@ -41,6 +41,8 @@ export const sessions = pgTable(
       .notNull(),
     authMethod: text("auth_method").notNull(),
     authTime: timestamp("auth_time", { withTimezone: true }).notNull(),
+    userAgent: text("user_agent"),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     revokedAt: timestamp("revoked_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

@@ -9,7 +9,13 @@ import bcrypt from "bcrypt";
 import { requireAuth } from "@core/lib/auth-middleware";
 import { withTranslation } from "@core/lib/translation-middleware";
 import { toSupportedLanguage } from "@core/lib/translations-server";
-import { getCurrentSessionId, refreshSession, revokeUserSessions } from "@core/lib/session";
+import {
+  getCurrentSessionId,
+  listUserSessions,
+  refreshSession,
+  revokeUserSession,
+  revokeUserSessions,
+} from "@core/lib/session";
 import { audit } from "@core/lib/audit";
 
 const server = new Server();
@@ -143,6 +149,94 @@ const _changePassword = server.put(
   }
 );
 
-export type Account = typeof _updateProfile | typeof _changePassword;
+const _getSessions = server.get(
+  "/account/sessions",
+  requireAuth(),
+  withTranslation(),
+  async (c) => {
+    const t = c.get("t");
+    try {
+      const userId = c.get("user")?.id;
+      if (!userId) {
+        return c.json(actionFailure(t`Unauthorized`), 401);
+      }
+
+      const currentSessionId = getCurrentSessionId(c);
+      const sessions = await listUserSessions(userId);
+      return c.json(actionSuccess({
+        sessions: sessions.map((session) => ({ ...session, isCurrent: session.id === currentSessionId })),
+      }));
+    } catch (e) {
+      console.error(e);
+      return c.json(actionFailure(t`Internal server error`), 500);
+    }
+  }
+);
+
+const _revokeSession = server.delete(
+  "/account/sessions/:sessionId",
+  requireAuth(),
+  withTranslation(),
+  async (c) => {
+    const t = c.get("t");
+    try {
+      const userId = c.get("user")?.id;
+      if (!userId) {
+        return c.json(actionFailure(t`Unauthorized`), 401);
+      }
+
+      const sessionId = c.req.param("sessionId");
+      if (!(await revokeUserSession(userId, sessionId))) {
+        return c.json(actionFailure(t`Session not found`), 404);
+      }
+      await audit(c, {
+        action: "revoke_access",
+        subsystem: "core.account",
+        objectType: "core.session",
+        objectId: sessionId,
+      });
+
+      return c.json(actionSuccess());
+    } catch (e) {
+      console.error(e);
+      return c.json(actionFailure(t`Internal server error`), 500);
+    }
+  }
+);
+
+const _revokeOtherSessions = server.delete(
+  "/account/sessions",
+  requireAuth(),
+  withTranslation(),
+  async (c) => {
+    const t = c.get("t");
+    try {
+      const userId = c.get("user")?.id;
+      if (!userId) {
+        return c.json(actionFailure(t`Unauthorized`), 401);
+      }
+
+      await revokeUserSessions(userId, { except: getCurrentSessionId(c) });
+      await audit(c, {
+        action: "revoke_access",
+        subsystem: "core.account",
+        objectType: "core.session",
+        metadata: { scope: "other_sessions" },
+      });
+
+      return c.json(actionSuccess());
+    } catch (e) {
+      console.error(e);
+      return c.json(actionFailure(t`Internal server error`), 500);
+    }
+  }
+);
+
+export type Account =
+  | typeof _updateProfile
+  | typeof _changePassword
+  | typeof _getSessions
+  | typeof _revokeSession
+  | typeof _revokeOtherSessions;
 
 export default server;

@@ -15,7 +15,7 @@ let keyExists = true;
 // Sessions live in SQLite, so the session queries run as written.
 const sqlite = new Database(':memory:');
 sqlite.exec(
-  'CREATE TABLE sessions (id TEXT PRIMARY KEY, user_id TEXT, auth_method TEXT, auth_time TEXT, expires_at TEXT, revoked_at TEXT, created_at TEXT, updated_at TEXT)',
+  'CREATE TABLE sessions (id TEXT PRIMARY KEY, user_id TEXT, auth_method TEXT, auth_time TEXT, user_agent TEXT, last_seen_at TEXT, expires_at TEXT, revoked_at TEXT, created_at TEXT, updated_at TEXT)',
 );
 const sessionsDb = drizzle(async (query, params) => ({
   rows: sqlite.prepare(query.replace(/\$\d+/g, '?')).values(...(params as string[])),
@@ -42,12 +42,29 @@ const db = {
   }),
   // SQLite rejects the `default` that drizzle writes for omitted columns.
   insert: () => ({
-    values: (values: { userId: string; authMethod: string; authTime: Date; expiresAt: Date }) => ({
+    values: (values: {
+      userId: string;
+      authMethod: string;
+      authTime: Date;
+      userAgent: string | null;
+      lastSeenAt: Date;
+      expiresAt: Date;
+    }) => ({
       returning: async () => {
         const id = `ses_${++sessionCount}`;
         sqlite
-          .prepare('INSERT INTO sessions (id, user_id, auth_method, auth_time, expires_at) VALUES (?, ?, ?, ?, ?)')
-          .run(id, values.userId, values.authMethod, values.authTime.toISOString(), values.expiresAt.toISOString());
+          .prepare(
+            'INSERT INTO sessions (id, user_id, auth_method, auth_time, user_agent, last_seen_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          )
+          .run(
+            id,
+            values.userId,
+            values.authMethod,
+            values.authTime.toISOString(),
+            values.userAgent,
+            values.lastSeenAt.toISOString(),
+            values.expiresAt.toISOString(),
+          );
         return [{ id }];
       },
     }),
@@ -141,8 +158,8 @@ async function bearer(subject = 'user_test') {
     Authorization: `Bearer ${await sign({ sub: subject, jti: key.id, teamId: key.teamId }, key.expiresAt)}`,
   };
 }
-async function cookie(path = '/login') {
-  return (await app.request(path)).headers.get('set-cookie')!.split(';')[0];
+async function cookie(path = '/login', headers: Record<string, string> = {}) {
+  return (await app.request(path, { headers })).headers.get('set-cookie')!.split(';')[0];
 }
 function profile(headers: Record<string, string>) {
   return app.request('/account/profile', {
@@ -279,5 +296,52 @@ describe('password changes', () => {
     });
     expect(response.status).toBe(200);
     expect((await app.request('/team_test/data', { headers })).status).toBe(401);
+  });
+});
+
+describe('managing sessions', () => {
+  const chrome = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36';
+  async function listSessions(headers: Record<string, string>) {
+    const json = await (await app.request('/account/sessions', { headers })).json();
+    return json.sessions as Array<{ id: string; userAgent: string | null; isCurrent: boolean; lastSeenAt: string }>;
+  }
+  test('lists the active sessions and marks the current one', async () => {
+    const current = { Cookie: await cookie('/login', { 'User-Agent': chrome }) };
+    const other = { Cookie: await cookie() };
+    await app.request('/logout', { method: 'POST', headers: other });
+    const sessions = await listSessions(current);
+    expect(sessions).toHaveLength(1);
+    expect(sessions[0]).toMatchObject({ userAgent: chrome, isCurrent: true });
+  });
+  test('signing out another session ends only that one', async () => {
+    const current = { Cookie: await cookie() };
+    const other = { Cookie: await cookie() };
+    const otherId = (await listSessions(other)).find((session) => session.isCurrent)!.id;
+    expect((await app.request(`/account/sessions/${otherId}`, { method: 'DELETE', headers: current })).status).toBe(200);
+    expect((await app.request('/team_test/data', { headers: other })).status).toBe(401);
+    expect((await app.request('/team_test/data', { headers: current })).status).toBe(200);
+  });
+  test("another user's session can't be ended", async () => {
+    const current = { Cookie: await cookie() };
+    sqlite
+      .prepare('INSERT INTO sessions (id, user_id, auth_method, auth_time, expires_at) VALUES (?, ?, ?, ?, ?)')
+      .run('ses_someone_else', 'user_other', 'password', new Date().toISOString(), new Date(Date.now() + 3600_000).toISOString());
+    expect((await app.request('/account/sessions/ses_someone_else', { method: 'DELETE', headers: current })).status).toBe(404);
+    expect(sqlite.prepare("SELECT revoked_at FROM sessions WHERE id = 'ses_someone_else'").get()).toEqual({ revoked_at: null });
+  });
+  test('signing out every other session keeps the current one', async () => {
+    const current = { Cookie: await cookie() };
+    const other = { Cookie: await cookie() };
+    expect((await app.request('/account/sessions', { method: 'DELETE', headers: current })).status).toBe(200);
+    expect((await app.request('/team_test/data', { headers: other })).status).toBe(401);
+    expect((await app.request('/team_test/data', { headers: current })).status).toBe(200);
+  });
+  test('last use is recorded once it is more than ten minutes old', async () => {
+    const headers = { Cookie: await cookie() };
+    const longAgo = new Date(Date.now() - 3600_000).toISOString();
+    sqlite.prepare('UPDATE sessions SET last_seen_at = ?').run(longAgo);
+    await app.request('/team_test/data', { headers });
+    const [session] = await listSessions(headers);
+    expect(Date.now() - new Date(session.lastSeenAt).getTime()).toBeLessThan(60_000);
   });
 });
