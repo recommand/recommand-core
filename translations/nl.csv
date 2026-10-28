@@ -416,3 +416,20 @@ Public signup is disabled. Ask an existing user to invite you to their team.,Ope
 Public signup is disabled. Ask an existing user to invite you.,Openbare registratie is uitgeschakeld. Vraag een bestaande gebruiker om je uit te nodigen.
 Delete this team,Dit team verwijderen
 Are you sure you want to delete the team "{0}"? Its setup has not been finished yet. This action cannot be undone.,Weet je zeker dat je het team "{0}" wilt verwijderen? De configuratie ervan is nog niet afgerond. Deze actie kan niet ongedaan worden gemaakt.
+Sessions,Sessies
+Where you're signed in. Sign out of any session you don't recognize.,Waar je bent ingelogd. Log uit bij elke sessie die je niet herkent.
+No active sessions,Geen actieve sessies
+This session,Deze sessie
+Signed in {0},Ingelogd op {0}
+Last active {0},Laatst actief op {0}
+{0} on {1},{0} op {1}
+Unknown device,Onbekend apparaat
+Sign out,Uitloggen
+Sign out all other sessions,Alle andere sessies uitloggen
+Every other browser signed in to your account will be signed out.,Elke andere browser waarin je bent ingelogd\, wordt uitgelogd.
+Session signed out,Sessie uitgelogd
+Other sessions signed out,Andere sessies uitgelogd
+Failed to load sessions,Sessies laden mislukt
+Failed to sign out the session,Sessie uitloggen mislukt
+Failed to sign out the other sessions,Andere sessies uitloggen mislukt
+Session not found,Sessie niet gevonden
