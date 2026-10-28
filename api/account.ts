@@ -9,7 +9,7 @@ import bcrypt from "bcrypt";
 import { requireAuth } from "@core/lib/auth-middleware";
 import { withTranslation } from "@core/lib/translation-middleware";
 import { toSupportedLanguage } from "@core/lib/translations-server";
-import { refreshSession } from "@core/lib/session";
+import { getCurrentSessionId, refreshSession, revokeUserSessions } from "@core/lib/session";
 import { audit } from "@core/lib/audit";
 
 const server = new Server();
@@ -119,10 +119,14 @@ const _changePassword = server.put(
       }
 
       const passwordHash = await bcrypt.hash(newPassword, 10);
-      await db
-        .update(users)
-        .set({ passwordHash })
-        .where(eq(users.id, userId));
+      await db.transaction(async (tx) => {
+        await tx
+          .update(users)
+          .set({ passwordHash })
+          .where(eq(users.id, userId));
+        // Sessions signed in with the old password end, except the one changing it
+        await revokeUserSessions(userId, { except: getCurrentSessionId(c), executor: tx });
+      });
       await audit(c, {
         action: "update",
         subsystem: "core.account",

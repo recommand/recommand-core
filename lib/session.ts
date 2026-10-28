@@ -9,7 +9,8 @@ import { verify, sign } from "./jwt";
 import { addMilliseconds } from "date-fns";
 import { db } from "@recommand/db";
 import { sessions, teamMembers, users } from "@core/db/schema";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, ne } from "drizzle-orm";
+import type { Tx } from "@core/data/rules/db";
 
 const cookie = {
   name: "session",
@@ -147,6 +148,30 @@ export async function verifySession(c: Context, extensions: SessionVerificationE
   }
 
   return result;
+}
+
+/** The stored session the request's cookie belongs to, if it has one. */
+export function getCurrentSessionId(c: Context): string | null {
+  const session: { id: string } | undefined = c.get("session");
+  return session?.id ?? null;
+}
+
+/**
+ * Ends every stored session of a user, except `except` when given, such as the
+ * session that is changing the password.
+ */
+export async function revokeUserSessions(
+  userId: string,
+  { except, executor = db }: { except?: string | null; executor?: Tx | typeof db } = {}
+) {
+  await executor
+    .update(sessions)
+    .set({ revokedAt: new Date() })
+    .where(and(
+      eq(sessions.userId, userId),
+      isNull(sessions.revokedAt),
+      except ? ne(sessions.id, except) : undefined,
+    ));
 }
 
 export async function deleteSession(c: Context) {

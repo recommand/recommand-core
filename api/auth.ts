@@ -1,7 +1,7 @@
 import { zodValidator } from "@recommand/lib/zod-validator";
 import { z } from "zod";
 import { checkBasicAuth, createUser, getCurrentUser, getUsers, type UserWithoutPassword } from "@core/data/users";
-import { createSession, deleteSession } from "@core/lib/session";
+import { createSession, deleteSession, revokeUserSessions } from "@core/lib/session";
 import { actionFailure, actionSuccess } from "@recommand/lib/utils";
 import { Server } from "@recommand/lib/api";
 import { db } from "@recommand/db";
@@ -627,17 +627,21 @@ const resetPassword = server.post(
       const passwordHash = await bcrypt.hash(password, 10);
 
       // Update password and clear reset token, also set emailVerified to true and clear emailVerificationToken and emailVerificationExpires
-      await db
-        .update(users)
-        .set({
-          passwordHash,
-          resetToken: null,
-          resetTokenExpires: null,
-          emailVerified: true,
-          emailVerificationToken: null,
-          emailVerificationExpires: null,
-        })
-        .where(eq(users.id, user.id));
+      await db.transaction(async (tx) => {
+        await tx
+          .update(users)
+          .set({
+            passwordHash,
+            resetToken: null,
+            resetTokenExpires: null,
+            emailVerified: true,
+            emailVerificationToken: null,
+            emailVerificationExpires: null,
+          })
+          .where(eq(users.id, user.id));
+        // Whoever reset the password may not be whoever was signed in, so every session ends
+        await revokeUserSessions(user.id, { executor: tx });
+      });
       await audit(c, {
         action: "update",
         subsystem: "core.auth",

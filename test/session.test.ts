@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, mock, test } from 'bun:test';
 import { Database } from 'bun:sqlite';
+import bcrypt from 'bcrypt';
 import { drizzle } from 'drizzle-orm/pg-proxy';
 import { Hono } from 'hono';
 import { setSignedCookie } from 'hono/cookie';
@@ -7,7 +8,8 @@ import { sessions, teamMembers, users } from '../db/schema';
 import type { AuthenticatedUserContext } from '../lib/auth-middleware';
 
 process.env.JWT_SECRET = 'test-only-session-signing-key-not-for-deployment';
-let currentUser: { id: string; isAdmin: boolean; language: string } | null;
+const passwordHash = await bcrypt.hash('old-password', 4);
+let currentUser: { id: string; isAdmin: boolean; language: string; passwordHash: string } | null;
 let member = true;
 let keyExists = true;
 // Sessions live in SQLite, so the session queries run as written.
@@ -25,16 +27,17 @@ const db = {
       table === sessions
         ? sessionsDb.select(fields).from(sessions)
         : {
-            where: () => ({
-              limit: async () =>
+            where: () => {
+              const rows =
                 table === users
                   ? currentUser
                     ? [currentUser]
                     : []
                   : table === teamMembers && member
                     ? [{ userId: 'user_test' }]
-                    : [],
-            }),
+                    : [];
+              return Object.assign(Promise.resolve(rows), { limit: async () => rows });
+            },
           },
   }),
   // SQLite rejects the `default` that drizzle writes for omitted columns.
@@ -61,6 +64,7 @@ const db = {
             },
           }),
         },
+  transaction: async (run: (tx: unknown) => Promise<unknown>) => run(db),
 };
 const key = {
   id: 'key_test',
@@ -75,10 +79,15 @@ mock.module('@core/data/api-keys', () => ({
   checkApiKey: async () => (keyExists && currentUser ? { user: currentUser, apiKey: key } : null),
 }));
 mock.module('@core/data/teams', () => ({
+  createTeam: async () => {},
+  deleteTeam: async () => {},
   getTeam: async (id: string) => ({ id }),
+  getUserTeams: async () => [],
   isMember: async () => member,
+  resolveTeamLogoUrl: () => null,
+  updateTeam: async () => {},
 }));
-mock.module('@core/lib/audit', () => ({ audit: async () => {} }));
+mock.module('@core/lib/audit', () => ({ audit: async () => {}, hashAuditIdentifier: () => '' }));
 mock.module('@core/lib/translation-middleware', () => ({
   withTranslation: () => async (c: any, next: () => Promise<void>) => {
     c.set('t', (parts: TemplateStringsArray) => parts.join(''));
@@ -86,12 +95,15 @@ mock.module('@core/lib/translation-middleware', () => ({
   },
 }));
 mock.module('@core/lib/translations-server', () => ({
+  createServerT: async () => (parts: TemplateStringsArray) => parts.join(''),
+  resolveSupportedLanguage: async () => 'en',
   toSupportedLanguage: async (value: string) => (['en', 'nl'].includes(value) ? value : null),
 }));
 const { createSession, deleteSession, verifySession } = await import('../lib/session');
 const { sign } = await import('../lib/jwt');
 const { requireAdmin, requireTeamAccess } = await import('../lib/auth-middleware');
 const { default: account } = await import('../api/account');
+const { default: auth } = await import('../api/auth');
 const app = new Hono<AuthenticatedUserContext>();
 app.get('/login', async (c) => {
   await createSession(c, { id: 'user_test', isAdmin: true }, 'password');
@@ -110,6 +122,7 @@ app.post('/logout', async (c) => {
 app.get('/admin', requireAdmin(), (c) => c.json({ ok: true }));
 app.get('/:teamId/data', requireTeamAccess(), (c) => c.json({ ok: true }));
 app.route('/', account);
+app.route('/', auth);
 app.get('/extension', async (c) => {
   await verifySession(c, [
     async () => ({
@@ -139,7 +152,7 @@ function profile(headers: Record<string, string>) {
   });
 }
 beforeEach(() => {
-  currentUser = { id: 'user_test', isAdmin: false, language: 'en' };
+  currentUser = { id: 'user_test', isAdmin: false, language: 'en', passwordHash };
   member = true;
   keyExists = true;
   sqlite.exec('DELETE FROM sessions');
@@ -228,5 +241,43 @@ describe('browser sessions', () => {
   test('a cookie signed before sessions were stored keeps working', async () => {
     const headers = { Cookie: await cookie('/legacy-login') };
     expect((await app.request('/team_test/data', { headers })).status).toBe(200);
+  });
+});
+
+describe('password changes', () => {
+  function changePassword(headers: Record<string, string>, currentPassword: string) {
+    return app.request('/account/password', {
+      method: 'PUT',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentPassword, newPassword: 'new-password' }),
+    });
+  }
+  test('changing the password ends the other sessions, not the one changing it', async () => {
+    const current = { Cookie: await cookie() };
+    const other = { Cookie: await cookie() };
+    expect((await changePassword(current, 'old-password')).status).toBe(200);
+    expect((await app.request('/team_test/data', { headers: current })).status).toBe(200);
+    expect((await app.request('/team_test/data', { headers: other })).status).toBe(401);
+  });
+  test('a wrong current password ends no session', async () => {
+    const current = { Cookie: await cookie() };
+    const other = { Cookie: await cookie() };
+    expect((await changePassword(current, 'wrong-password')).status).toBe(400);
+    expect((await app.request('/team_test/data', { headers: other })).status).toBe(200);
+  });
+  test('changing the password with an API key ends every browser session', async () => {
+    const headers = { Cookie: await cookie() };
+    expect((await changePassword(basic, 'old-password')).status).toBe(200);
+    expect((await app.request('/team_test/data', { headers })).status).toBe(401);
+  });
+  test('resetting the password ends every session', async () => {
+    const headers = { Cookie: await cookie() };
+    const response = await app.request('/auth/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: 'reset-token', password: 'new-password' }),
+    });
+    expect(response.status).toBe(200);
+    expect((await app.request('/team_test/data', { headers })).status).toBe(401);
   });
 });
