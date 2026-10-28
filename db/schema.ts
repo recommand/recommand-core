@@ -37,7 +37,9 @@ export const sessions = pgTable(
       .primaryKey()
       .$defaultFn(() => "ses_" + ulid()),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
     revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    userAgent: text("user_agent"),
 
     userId: text("user_id")
       .references(() => users.id, { onDelete: "cascade" })
