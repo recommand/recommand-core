@@ -75,15 +75,12 @@ export default function FramePreviewPage() {
     });
     setUIConfig(
       'topbar.actions',
-      <>
-        <InputGroup className="w-64 border-transparent bg-muted">
-          <InputGroupInput placeholder="Search documents and IDs" />
-          <InputGroupAddon align="inline-end">
-            <Kbd>⌘K</Kbd>
-          </InputGroupAddon>
-        </InputGroup>
-        <Button>Send document</Button>
-      </>,
+      <InputGroup className="w-64 border-transparent bg-muted">
+        <InputGroupInput placeholder="Search documents and IDs" />
+        <InputGroupAddon align="inline-end">
+          <Kbd>⌘K</Kbd>
+        </InputGroupAddon>
+      </InputGroup>,
     );
   }, [setUIConfig]);
 
@@ -96,14 +93,17 @@ export default function FramePreviewPage() {
         <PageTemplate
           breadcrumbs={[{ label: 'Overview' }]}
           description="24 companies on the network through your integration."
-          buttons={[
-            <Button key="companies" variant="outline">
-              All companies <ChevronDown />
-            </Button>,
-            <Button key="period" variant="outline">
-              Last 30 days <ChevronDown />
-            </Button>,
-          ]}
+          buttons={[<Button key="send">Send document</Button>]}
+          controls={
+            <>
+              <Button variant="outline">
+                All companies <ChevronDown />
+              </Button>
+              <Button variant="outline">
+                Last 30 days <ChevronDown />
+              </Button>
+            </>
+          }
         >
           <StatTileGrid>
             <StatTile label="Sent · 30 days" value="3,812" detail="+12% vs previous 30" />
