@@ -95,6 +95,38 @@ export const apiKeys = pgTable(
   (table) => [index("api_keys_secret_hash_idx").using("hash", table.secretHash)]
 );
 
+export const principalTypes = pgEnum("principal_types", ["api_key", "installation"]);
+
+export const principalPermissions = pgTable(
+  "principal_permissions",
+  {
+    principalType: principalTypes("principal_type").notNull(),
+    principalId: text("principal_id").notNull(),
+    teamId: text("team_id")
+      .references(() => teams.id, { onDelete: "cascade" })
+      .notNull(),
+    permissionId: text("permission_id").notNull(),
+    grantedByUserId: text("granted_by_user_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: autoUpdateTimestamp(),
+  },
+  (table) => [
+    primaryKey({
+      columns: [
+        table.principalType,
+        table.principalId,
+        table.teamId,
+        table.permissionId,
+      ],
+    }),
+    index("principal_permissions_principal_idx").on(
+      table.principalType,
+      table.principalId,
+      table.teamId
+    ),
+  ]
+);
+
 export const auditEvents = pgTable("audit_events", {
   id: text("id")
     .primaryKey()

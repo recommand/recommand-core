@@ -1,7 +1,8 @@
 import { createMiddleware } from "hono/factory";
 import type { AuthenticatedUserContext } from "../auth-middleware";
 import { actionFailure } from "@recommand/lib/utils";
-import { hasGlobalPermission, hasPermission } from "@core/data/permissions";
+import { hasGlobalPermission } from "@core/data/permissions";
+import { hasPrincipalPermission } from "@core/data/principal-permissions";
 import { verifySession } from "../session";
 import { audit } from "@core/lib/audit";
 
@@ -32,7 +33,11 @@ export function requirePermission(permissionId: string) {
       return c.json(actionFailure("Unauthorized"), 401);
     }
 
-    if (!(await hasPermission(user.id, teamId, permissionId))) {
+    const apiKey = c.get("apiKey");
+    const principal = apiKey
+      ? { type: "api_key" as const, apiKeyId: apiKey.id, ownerUserId: user.id }
+      : { type: "user" as const, userId: user.id };
+    if (!(await hasPrincipalPermission(principal, teamId, permissionId))) {
       await audit(c, {
         action: "authorize",
         subsystem: "core.permissions",

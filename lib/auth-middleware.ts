@@ -13,6 +13,10 @@ export type AuthenticatedUserContext = {
     };
     team: Team | null;
     teamId: string | null;
+    apiKey: {
+      id: string;
+      teamId: string;
+    } | null;
     authenticationMethod: AuthenticationMethod;
   };
 };
