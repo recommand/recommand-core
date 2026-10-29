@@ -6,13 +6,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@core/components/ui/select";
+import { useTranslation } from "@core/hooks/use-translation";
 import { Plus, Trash2 } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
-import { useTranslation } from "@core/hooks/use-translation";
 import type { EventFieldOperator } from "../../lib/rules/types";
 import type { ConditionPickerOptions } from "./condition-fields/types";
 import { ConditionValueRenderer } from "./condition-fields/value-input";
-import { normalizeConditionValueForOperator } from "./rule-helpers";
+import { getConditionOperatorLabel, normalizeConditionValueForOperator } from "./rule-helpers";
 import type { EventTypeDto, RuleEditorDraft } from "./types";
 
 type RuleConditionEditorProps = {
@@ -36,22 +36,7 @@ export function RuleConditionEditor({
 }: RuleConditionEditorProps) {
   const { t } = useTranslation();
 
-  const getOperatorLabel = (operator: EventFieldOperator) => {
-    switch (operator) {
-      case "eq":
-        return t`Equals`;
-      case "neq":
-        return t`Doesn't equal`;
-      case "in":
-        return t`Is one of`;
-      case "notIn":
-        return t`Is not one of`;
-      case "contains":
-        return t`Contains`;
-      case "exists":
-        return t`Exists`;
-    }
-  };
+  const getOperatorLabel = (operator: EventFieldOperator) => getConditionOperatorLabel(operator, t);
 
   return (
     <div className="space-y-3 rounded-md border p-4">

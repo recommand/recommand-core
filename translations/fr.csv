@@ -422,3 +422,7 @@ Türkçe,Turc
 日本語,Japonais
 Delete this team,Supprimer cette équipe
 Are you sure you want to delete the team "{0}"? Its setup has not been finished yet. This action cannot be undone.,Êtes-vous sûr de vouloir supprimer l'équipe « {0} » ? Sa configuration n'est pas encore terminée. Cette action est irréversible.
+Is more than,Est supérieur à
+Is at least,Est au moins
+Is less than,Est inférieur à
+Is at most,Est au plus

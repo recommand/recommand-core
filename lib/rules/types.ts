@@ -7,6 +7,10 @@ export const conditionOperatorSchema = z.object({
   notIn: z.array(z.unknown()).optional(),
   contains: z.unknown().optional(),
   exists: z.boolean().optional(),
+  gt: z.union([z.number(), z.string()]).optional(),
+  gte: z.union([z.number(), z.string()]).optional(),
+  lt: z.union([z.number(), z.string()]).optional(),
+  lte: z.union([z.number(), z.string()]).optional(),
 }).refine(
   (value) =>
     value.eq !== undefined ||
@@ -14,7 +18,11 @@ export const conditionOperatorSchema = z.object({
     value.in !== undefined ||
     value.notIn !== undefined ||
     value.contains !== undefined ||
-    value.exists !== undefined,
+    value.exists !== undefined ||
+    value.gt !== undefined ||
+    value.gte !== undefined ||
+    value.lt !== undefined ||
+    value.lte !== undefined,
   "At least one operator is required"
 );
 
@@ -135,7 +143,11 @@ export type EventFieldOperator =
   | "in"
   | "notIn"
   | "contains"
-  | "exists";
+  | "exists"
+  | "gt"
+  | "gte"
+  | "lt"
+  | "lte";
 
 export type EventFieldValueType =
   | "string"

@@ -1,3 +1,4 @@
+import type { TranslationFunction } from "@core/lib/translations";
 import type {
   EventFieldOperator,
   VersionedAction,
@@ -5,12 +6,11 @@ import type {
 } from "../../lib/rules/types";
 import { wildcardEventType } from "./rule-constants";
 import type {
+  EventTypeDto,
   RuleConditionRow,
   RuleDeliveryDto,
   RuleDto,
-  EventTypeDto,
 } from "./types";
-import type { TranslationFunction } from "@core/lib/translations";
 
 export function formatTimestamp(
   value: string | null,
@@ -191,4 +191,29 @@ export function buildRecipientInputs(actions: VersionedAction[]) {
       action.type === "email" ? action.config.to.join(", ") : "",
     ])
   ) as Record<number, string>;
+}
+
+export function getConditionOperatorLabel(operator: EventFieldOperator, t: TranslationFunction) {
+  switch (operator) {
+    case "eq":
+      return t`Equals`;
+    case "neq":
+      return t`Doesn't equal`;
+    case "in":
+      return t`Is one of`;
+    case "notIn":
+      return t`Is not one of`;
+    case "contains":
+      return t`Contains`;
+    case "exists":
+      return t`Exists`;
+    case "gt":
+      return t`Is more than`;
+    case "gte":
+      return t`Is at least`;
+    case "lt":
+      return t`Is less than`;
+    case "lte":
+      return t`Is at most`;
+  }
 }

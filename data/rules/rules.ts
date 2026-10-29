@@ -18,19 +18,9 @@ import {
   type VersionedCondition,
 } from "../../lib/rules/types";
 import type { Tx } from "./db";
+import { matchesCondition } from "../../lib/rules/conditions";
 
-function getValueAtPath(source: unknown, path: string): unknown {
-  return path.split(".").reduce<unknown>((acc, part) => {
-    if (acc && typeof acc === "object" && part in acc) {
-      return (acc as Record<string, unknown>)[part];
-    }
-    return undefined;
-  }, source);
-}
-
-function valuesEqual(left: unknown, right: unknown) {
-  return JSON.stringify(left) === JSON.stringify(right);
-}
+export { matchesCondition };
 
 export function validateConditionForRule(
   eventType: string,
@@ -92,56 +82,6 @@ export function validateConditionForRule(
       }
     }
   }
-}
-
-export function matchesCondition(
-  condition: VersionedCondition | null,
-  event: EventEnvelope
-) {
-  if (!condition) {
-    return true;
-  }
-
-  const parsedCondition = versionedConditionSchema.parse(condition);
-  return Object.entries(parsedCondition.match).every(([path, operators]) => {
-    const value = getValueAtPath(event, path);
-
-    if (operators.eq !== undefined && !valuesEqual(value, operators.eq)) {
-      return false;
-    }
-    if (operators.neq !== undefined && valuesEqual(value, operators.neq)) {
-      return false;
-    }
-    if (operators.in !== undefined) {
-      const match = operators.in.some((entry) => valuesEqual(value, entry));
-      if (!match) {
-        return false;
-      }
-    }
-    if (operators.notIn !== undefined) {
-      const match = operators.notIn.some((entry) => valuesEqual(value, entry));
-      if (match) {
-        return false;
-      }
-    }
-    if (operators.contains !== undefined) {
-      if (!Array.isArray(value)) {
-        return false;
-      }
-      const match = value.some((entry) => valuesEqual(entry, operators.contains));
-      if (!match) {
-        return false;
-      }
-    }
-    if (operators.exists !== undefined) {
-      const exists = value !== undefined && value !== null;
-      if (exists !== operators.exists) {
-        return false;
-      }
-    }
-
-    return true;
-  });
 }
 
 function parseRuleRow(row: typeof rules.$inferSelect): Rule {

@@ -422,3 +422,7 @@ Public signup is disabled. Ask an existing user to invite you to their team.,Ope
 Public signup is disabled. Ask an existing user to invite you.,Openbare registratie is uitgeschakeld. Vraag een bestaande gebruiker om je uit te nodigen.
 Delete this team,Dit team verwijderen
 Are you sure you want to delete the team "{0}"? Its setup has not been finished yet. This action cannot be undone.,Weet je zeker dat je het team "{0}" wilt verwijderen? De configuratie ervan is nog niet afgerond. Deze actie kan niet ongedaan worden gemaakt.
+Is more than,Is meer dan
+Is at least,Is minstens
+Is less than,Is minder dan
+Is at most,Is hoogstens
