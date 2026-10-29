@@ -23,7 +23,7 @@ import type { LucideIcon } from 'lucide-react';
 import { LogIn } from 'lucide-react';
 import type * as React from 'react';
 import type { ReactNode } from 'react';
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 const buildMenuItems = (menuItems: MenuItem[], currentPath: string, prefix: string) => {
   return menuItems
@@ -178,7 +178,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <NavUser user={userData} userMenuItems={userMenuItems} />
         ) : (
           <div>
-            <ButtonLink variant="outline" className="w-full" href="/login">
+            <ButtonLink variant="outline" className="w-full" render={<Link to="/login" />}>
               <LogIn />
               {t`Login`}
             </ButtonLink>
