@@ -133,6 +133,8 @@ export async function verifySession(c: Context, extensions: SessionVerificationE
       id: result.apiKey.id,
       teamId: result.apiKey.teamId,
     });
+  } else {
+    c.set("apiKey", null);
   }
 
   if (result.installation) {

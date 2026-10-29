@@ -5,11 +5,13 @@ import bcrypt from "bcrypt";
 import { addSeconds } from "date-fns";
 import { sign } from "@core/lib/jwt";
 import { ulid } from "ulid";
-import { listOwnerTeamPermissionIds } from "./permissions";
+import { listOwnerTeamPermissionIds, NotAuthorizedError } from "./permissions";
 import {
+  hasPrincipalPermission,
   listPrincipalPermissionIds,
   listPrincipalPermissionsForIds,
   setPrincipalPermissions,
+  type PermissionWriter,
 } from "./principal-permissions";
 
 export type ApiKey = typeof apiKeys.$inferSelect;
@@ -67,10 +69,13 @@ async function attachApiKeyPermissions(input: {
     teamId: string;
     userId: string;
     permissionIds?: string[];
-}) {
-    const permissionIds =
-        input.permissionIds ??
-        (await listOwnerTeamPermissionIds(input.userId, input.teamId));
+    actorApiKeyId?: string;
+}, executor: PermissionWriter) {
+    const ownerIds = await listOwnerTeamPermissionIds(input.userId, input.teamId);
+    const actorKeyIds = input.actorApiKeyId
+        ? await listPrincipalPermissionIds("api_key", input.actorApiKeyId, input.teamId)
+        : null;
+    const permissionIds = input.permissionIds ?? ownerIds.filter((id) => !actorKeyIds || actorKeyIds.includes(id));
     await setPrincipalPermissions({
         principalType: "api_key",
         principalId: input.apiKeyId,
@@ -78,8 +83,9 @@ async function attachApiKeyPermissions(input: {
         permissionIds,
         actorUserId: input.userId,
         ownerUserId: input.userId,
-    });
-    return permissionIds;
+        actorApiKeyId: input.actorApiKeyId,
+    }, executor);
+    return [...new Set(permissionIds)];
 }
 
 export async function setApiKeyPermissions(input: {
@@ -87,10 +93,19 @@ export async function setApiKeyPermissions(input: {
     teamId: string;
     actorUserId: string;
     permissionIds: string[];
+    actorApiKeyId?: string;
 }) {
     const apiKey = await getApiKey(input.apiKeyId);
     if (!apiKey || apiKey.teamId !== input.teamId) {
         return null;
+    }
+    if (apiKey.userId !== input.actorUserId) {
+        const principal = input.actorApiKeyId
+            ? { type: "api_key" as const, apiKeyId: input.actorApiKeyId, ownerUserId: input.actorUserId }
+            : { type: "user" as const, userId: input.actorUserId };
+        if (!(await hasPrincipalPermission(principal, input.teamId, "core.team.manage"))) {
+            throw new NotAuthorizedError("You don't have permission to manage this API key");
+        }
     }
     const permissionIds = await setPrincipalPermissions({
         principalType: "api_key",
@@ -99,6 +114,7 @@ export async function setApiKeyPermissions(input: {
         permissionIds: input.permissionIds,
         actorUserId: input.actorUserId,
         ownerUserId: apiKey.userId,
+        actorApiKeyId: input.actorApiKeyId,
     });
     return { ...apiKey, permissionIds };
 }
@@ -114,6 +130,7 @@ export async function createApiKey({
     type,
     expiresInSeconds,
     permissionIds,
+    actorApiKeyId,
 }: {
     user: { id: string; isAdmin: boolean },
     teamId: string,
@@ -121,6 +138,7 @@ export async function createApiKey({
     type: "basic" | "jwt",
     expiresInSeconds?: number,
     permissionIds?: string[],
+    actorApiKeyId?: string,
 }) {
 
     // First check if client assertion is enabled for the team, then we won't allow creating API keys
@@ -136,9 +154,10 @@ export async function createApiKey({
           expiresInSeconds,
           name,
           permissionIds,
+          actorApiKeyId,
         });
     } else {
-        return await createBasicApiKey(user.id, teamId, name, permissionIds);
+        return await createBasicApiKey(user.id, teamId, name, permissionIds, actorApiKeyId);
     }
 }
 
@@ -146,39 +165,44 @@ export async function createBasicApiKey(
     userId: string,
     teamId: string,
     name: string,
-    permissionIds?: string[]
+    permissionIds?: string[],
+    actorApiKeyId?: string
 ) {
     const secret = crypto.randomUUID();
     const readableSecret = "secret_" + secret.replace(/-/g, "");
     const secretHash = await bcrypt.hash(readableSecret, 10);
 
-    const res = await db
-        .insert(apiKeys)
-        .values({ userId, teamId, name, type: "basic", secretHash })
-        .returning();
+    return db.transaction(async (tx) => {
+        const res = await tx
+            .insert(apiKeys)
+            .values({ userId, teamId, name, type: "basic", secretHash })
+            .returning();
 
-    const attached = await attachApiKeyPermissions({
-        apiKeyId: res[0].id,
-        teamId,
-        userId,
-        permissionIds,
+        const attached = await attachApiKeyPermissions({
+            apiKeyId: res[0].id,
+            teamId,
+            userId,
+            permissionIds,
+            actorApiKeyId,
+        }, tx);
+
+        return {
+            ...res[0],
+            secret: readableSecret,
+            permissionIds: attached,
+        };
     });
-
-    return {
-        ...res[0],
-        secret: readableSecret,
-        permissionIds: attached,
-    };
     
 }
 
-export async function createJwtApiKey({user, teamId, expiresInSeconds, expirationDate, name, permissionIds}: {
+export async function createJwtApiKey({user, teamId, expiresInSeconds, expirationDate, name, permissionIds, actorApiKeyId}: {
     user: { id: string; isAdmin: boolean },
     teamId: string,
     expiresInSeconds?: number,
     expirationDate?: Date,
     name: string,
     permissionIds?: string[],
+    actorApiKeyId?: string,
 }) {
     if(!expiresInSeconds && !expirationDate){
         throw new Error("expiresInSeconds or expirationDate must be provided to createJwtApiKey");
@@ -192,21 +216,24 @@ export async function createJwtApiKey({user, teamId, expiresInSeconds, expiratio
         isAdmin: user.isAdmin,
         teamId,
     }, expires);
-    const res = await db
-        .insert(apiKeys)
-        .values({ id, userId: user.id, teamId, name, type: "jwt", secretHash: "", expiresAt: expires })
-        .returning();
-    const attached = await attachApiKeyPermissions({
-        apiKeyId: res[0].id,
-        teamId,
-        userId: user.id,
-        permissionIds,
+    return db.transaction(async (tx) => {
+        const res = await tx
+            .insert(apiKeys)
+            .values({ id, userId: user.id, teamId, name, type: "jwt", secretHash: "", expiresAt: expires })
+            .returning();
+        const attached = await attachApiKeyPermissions({
+            apiKeyId: res[0].id,
+            teamId,
+            userId: user.id,
+            permissionIds,
+            actorApiKeyId,
+        }, tx);
+        return {
+            ...res[0],
+            jwt,
+            permissionIds: attached,
+        };
     });
-    return {
-        ...res[0],
-        jwt,
-        permissionIds: attached,
-    };
 }
 
 export async function checkApiKey(apiKeyId: string, secret: string) {

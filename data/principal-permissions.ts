@@ -31,6 +31,9 @@ export async function hasPrincipalPermission(
   }
 
   if (principal.type === "api_key") {
+    if (getRegisteredPermission(permissionId)?.scope !== "team") {
+      return false;
+    }
     const granted = await hasStoredPrincipalPermission(
       "api_key",
       principal.apiKeyId,
@@ -139,6 +142,8 @@ export async function hasStoredPrincipalPermission(
   return Boolean(row);
 }
 
+export type PermissionWriter = Pick<typeof db, "delete" | "insert">;
+
 export async function setPrincipalPermissions(input: {
   principalType: PrincipalType;
   principalId: string;
@@ -147,12 +152,17 @@ export async function setPrincipalPermissions(input: {
   actorUserId: string;
   ownerUserId?: string;
   expectedScope?: PermissionScope;
-}): Promise<string[]> {
+  actorApiKeyId?: string;
+}, executor?: PermissionWriter): Promise<string[]> {
   const uniqueIds = [...new Set(input.permissionIds)];
   const grantable = await getGrantablePermissions(input.actorUserId, input.teamId);
   const grantableIds = new Set(grantable.map((permission) => permission.id));
   const ownerIds = input.ownerUserId
     ? new Set(await listOwnerTeamPermissionIds(input.ownerUserId, input.teamId))
+    : null;
+
+  const actorKeyIds = input.actorApiKeyId
+    ? new Set(await listPrincipalPermissionIds("api_key", input.actorApiKeyId, input.teamId))
     : null;
 
   for (const permissionId of uniqueIds) {
@@ -167,6 +177,9 @@ export async function setPrincipalPermissions(input: {
         permission.scope ?? "team"
       );
     }
+    if (actorKeyIds && !actorKeyIds.has(permissionId)) {
+      throw new NotAuthorizedError("API keys cannot grant permissions they do not have");
+    }
     if (!grantableIds.has(permissionId)) {
       throw new NotAuthorizedError(
         "You don't have permission to grant this permission"
@@ -179,7 +192,7 @@ export async function setPrincipalPermissions(input: {
     }
   }
 
-  return await db.transaction(async (tx) => {
+  const write = async (tx: PermissionWriter) => {
     await tx
       .delete(principalPermissions)
       .where(
@@ -205,5 +218,6 @@ export async function setPrincipalPermissions(input: {
     );
 
     return uniqueIds;
-  });
+  };
+  return executor ? write(executor) : db.transaction(write);
 }

@@ -20,6 +20,10 @@ export type AuthenticatedUserContext = {
     service: {
       id: string;
     } | null;
+    apiKey: {
+      id: string;
+      teamId: string;
+    } | null;
     authenticationMethod: AuthenticationMethod;
   };
 };

@@ -63,6 +63,7 @@ const _createApiKey = server.post(
         type: c.req.valid("json").type,
         expiresInSeconds: c.req.valid("json").expiresInSeconds,
         permissionIds: c.req.valid("json").permissionIds,
+        actorApiKeyId: c.get("apiKey")?.id,
       });
       await audit(c, {
         action: "create",
@@ -132,6 +133,7 @@ const _setApiKeyPermissions = server.put(
         teamId: c.var.team.id,
         actorUserId: c.var.user.id,
         permissionIds: c.req.valid("json").permissionIds,
+        actorApiKeyId: c.get("apiKey")?.id,
       });
       if (!updated) {
         return c.json(actionFailure("API key not found"), 404);

@@ -365,6 +365,7 @@ export default function Page() {
             <Button
               variant="ghost"
               size="icon"
+              aria-label={t`API key permissions`}
               onClick={() => setEditingKey(row.original)}
             >
               <Shield className="h-4 w-4" />
@@ -451,7 +452,7 @@ export default function Page() {
                           <Checkbox
                             id={`key-${editingKey.id}-${permission.id}`}
                             checked={has}
-                            disabled={isPending}
+                            disabled={pendingPermissionId !== null}
                             onCheckedChange={() =>
                               handleKeyPermissionToggle(editingKey, permission.id, has)
                             }
