@@ -77,6 +77,8 @@ app.get('/extension', async (c) => {
       language: 'en',
       apiKey: null,
       teamId: 'team_test',
+      installation: null,
+      service: null,
     }),
   ]);
   return c.json({ method: c.get('authenticationMethod') });
