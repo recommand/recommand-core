@@ -40,7 +40,7 @@ export function NavUser({
             render={
               <SidebarMenuButton
                 size="lg"
-                className="-mx-1.5 w-[calc(100%+(--spacing(3)))] px-1.5 data-popup-open:bg-sidebar-accent data-popup-open:text-sidebar-accent-foreground"
+                className="-mx-1.5 w-[calc(100%+(--spacing(3)))] px-1.5 group-data-[collapsible=icon]:mx-0 data-popup-open:bg-sidebar-accent data-popup-open:text-sidebar-accent-foreground"
               />
             }
           >
