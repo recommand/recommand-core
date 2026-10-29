@@ -1,15 +1,14 @@
 import { AppSidebar } from '@core/components/app-sidebar';
 import { SidebarInset, SidebarProvider } from '@core/components/ui/sidebar';
+import { useSidebarOpen } from '@core/hooks/use-sidebar-open';
 import { useUser } from '@core/hooks/user';
 import { useUncompletedOnboardingSteps } from '@core/lib/onboarding-store';
 import { useUIConfig } from '@core/lib/ui-config-store';
-import { useState } from 'react';
 import { Outlet } from 'react-router';
 import Onboarding from './onboarding';
 
 export default function Layout() {
-  const defaultOpen = localStorage.getItem('sidebar_state') !== 'closed';
-  const [open, setOpen] = useState(defaultOpen);
+  const sidebarOpen = useSidebarOpen();
   const user = useUser();
   const onboardingSteps = useUncompletedOnboardingSteps();
   // One of the theme's sidebar themes, set by the app through the
@@ -21,15 +20,7 @@ export default function Layout() {
   }
 
   return (
-    <SidebarProvider
-      defaultOpen={defaultOpen}
-      open={open}
-      theme={sidebarTheme}
-      onOpenChange={(open) => {
-        localStorage.setItem('sidebar_state', open ? 'open' : 'closed');
-        setOpen(open);
-      }}
-    >
+    <SidebarProvider {...sidebarOpen} theme={sidebarTheme}>
       <AppSidebar />
       <SidebarInset>
         <Outlet />
