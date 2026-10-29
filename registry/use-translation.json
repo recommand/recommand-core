@@ -1,0 +1,13 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "use-translation",
+  "type": "registry:hook",
+  "description": "Returns the English text the components carry; replace it with an adapter to your i18n library.",
+  "files": [
+    {
+      "path": "hooks/use-translation.ts",
+      "type": "registry:hook",
+      "content": "/**\n * The translation hook the registry's components call, for projects outside\n * the Recommand framework. It returns the English source text and the page's\n * language; replace it with an adapter to your own i18n library to translate\n * the few labels the components carry (mostly screen reader text).\n */\n\ntype TranslationFunction = {\n  (strings: TemplateStringsArray, ...values: unknown[]): string;\n  (text: string): string;\n};\n\nconst t = ((text: string | TemplateStringsArray, ...values: unknown[]) =>\n  typeof text === 'string'\n    ? text\n    : text.reduce(\n        (result, part, index) =>\n          result + part + (index < values.length ? String(values[index]) : ''),\n        '',\n      )) as TranslationFunction;\n\nfunction pageLanguage(): string {\n  const tag = typeof document === 'undefined' ? '' : document.documentElement.lang;\n  const base = tag.split('-')[0]?.toLowerCase() ?? '';\n  return /^[a-z]{2}$/.test(base) ? base : 'en';\n}\n\nexport function useTranslation() {\n  return { t, language: pageLanguage(), isLoaded: true };\n}\n"
+    }
+  ]
+}

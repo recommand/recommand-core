@@ -32,13 +32,13 @@ export function SectionCard({
   contentClassName,
 }: SectionCardProps) {
   return (
-    <Card className={cn('overflow-hidden', className)}>
-      <div className="flex flex-col gap-3 border-b px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+    <Card className={cn('gap-0 overflow-hidden py-0', className)}>
+      <div className="flex flex-col gap-3 px-5 pt-4 pb-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2.5">
-          {Icon && <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />}
+          {Icon && <Icon className="size-4 shrink-0 text-muted-foreground" />}
           <div>
-            <h3 className="text-sm font-semibold">{title}</h3>
-            {description && <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>}
+            <h3 className="text-base font-title">{title}</h3>
+            {description && <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>}
           </div>
         </div>
         {action}

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "checkbox",
+  "type": "registry:ui",
+  "dependencies": [
+    "@base-ui/react@^1.9.0",
+    "lucide-react@^0.577.0"
+  ],
+  "registryDependencies": [
+    "@recommand/theme",
+    "@recommand/utils"
+  ],
+  "files": [
+    {
+      "path": "ui/checkbox.tsx",
+      "type": "registry:ui",
+      "content": "import { Checkbox as CheckboxPrimitive } from '@base-ui/react/checkbox';\nimport { cn } from '@/lib/utils';\nimport { CheckIcon, MinusIcon } from 'lucide-react';\n\n/** A checkbox. Pass `indeterminate` for a partly selected group. */\nfunction Checkbox({ className, ...props }: CheckboxPrimitive.Root.Props) {\n  return (\n    <CheckboxPrimitive.Root\n      data-slot=\"checkbox\"\n      className={cn(\n        'peer group/checkbox relative flex size-4 shrink-0 items-center justify-center rounded-sm border border-input bg-background transition-colors outline-none after:absolute after:-inset-x-3 after:-inset-y-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-warning data-checked:border-primary data-checked:bg-primary data-checked:text-primary-foreground data-indeterminate:border-primary data-indeterminate:bg-primary data-indeterminate:text-primary-foreground',\n        className,\n      )}\n      {...props}\n    >\n      <CheckboxPrimitive.Indicator\n        data-slot=\"checkbox-indicator\"\n        className=\"grid place-content-center text-current transition-none [&>svg]:size-3.5\"\n      >\n        <CheckIcon className=\"group-data-indeterminate/checkbox:hidden\" />\n        <MinusIcon className=\"hidden group-data-indeterminate/checkbox:block\" />\n      </CheckboxPrimitive.Indicator>\n    </CheckboxPrimitive.Root>\n  );\n}\n\nexport { Checkbox };\n"
+    }
+  ]
+}

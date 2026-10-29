@@ -1,0 +1,16 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "skeleton",
+  "type": "registry:ui",
+  "registryDependencies": [
+    "@recommand/theme",
+    "@recommand/utils"
+  ],
+  "files": [
+    {
+      "path": "ui/skeleton.tsx",
+      "type": "registry:ui",
+      "content": "import { cn } from '@/lib/utils';\nimport type * as React from 'react';\n\nfunction Skeleton({ className, ...props }: React.ComponentProps<'div'>) {\n  return (\n    <div data-slot=\"skeleton\" className={cn('animate-pulse bg-border', className)} {...props} />\n  );\n}\n\nexport { Skeleton };\n"
+    }
+  ]
+}

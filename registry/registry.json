@@ -1,0 +1,844 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "name": "recommand",
+  "homepage": "https://github.com/recommand/recommand-core",
+  "items": [
+    {
+      "name": "theme",
+      "type": "registry:theme",
+      "description": "The theme contract with neutral defaults, and the state variants the components use. Import both after Tailwind and tw-animate-css, then your theme.",
+      "dependencies": [
+        "tw-animate-css@^1.4.0"
+      ],
+      "files": [
+        {
+          "path": "styles/theme-default.css",
+          "type": "registry:file",
+          "target": "styles/recommand-ui/theme-default.css"
+        },
+        {
+          "path": "styles/variants.css",
+          "type": "registry:file",
+          "target": "styles/recommand-ui/variants.css"
+        }
+      ]
+    },
+    {
+      "name": "utils",
+      "type": "registry:lib",
+      "dependencies": [
+        "clsx@2.1.1",
+        "tailwind-merge@^3.7.0"
+      ],
+      "files": [
+        {
+          "path": "lib/utils.ts",
+          "type": "registry:lib"
+        }
+      ]
+    },
+    {
+      "name": "use-mobile",
+      "type": "registry:hook",
+      "files": [
+        {
+          "path": "hooks/use-mobile.ts",
+          "type": "registry:hook"
+        }
+      ]
+    },
+    {
+      "name": "use-translation",
+      "type": "registry:hook",
+      "description": "Returns the English text the components carry; replace it with an adapter to your i18n library.",
+      "files": [
+        {
+          "path": "hooks/use-translation.ts",
+          "type": "registry:hook"
+        }
+      ]
+    },
+    {
+      "name": "accordion",
+      "type": "registry:ui",
+      "dependencies": [
+        "@base-ui/react@^1.9.0",
+        "lucide-react@^0.577.0"
+      ],
+      "registryDependencies": [
+        "@recommand/theme",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/accordion.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "alert-dialog",
+      "type": "registry:ui",
+      "dependencies": [
+        "@base-ui/react@^1.9.0"
+      ],
+      "registryDependencies": [
+        "@recommand/button",
+        "@recommand/theme",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/alert-dialog.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "alert",
+      "type": "registry:ui",
+      "dependencies": [
+        "class-variance-authority@^0.7.1"
+      ],
+      "registryDependencies": [
+        "@recommand/theme",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/alert.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "avatar",
+      "type": "registry:ui",
+      "dependencies": [
+        "@base-ui/react@^1.9.0"
+      ],
+      "registryDependencies": [
+        "@recommand/theme",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/avatar.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "badge",
+      "type": "registry:ui",
+      "dependencies": [
+        "@base-ui/react@^1.9.0",
+        "class-variance-authority@^0.7.1"
+      ],
+      "registryDependencies": [
+        "@recommand/theme",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/badge.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "breadcrumb",
+      "type": "registry:ui",
+      "dependencies": [
+        "@base-ui/react@^1.9.0",
+        "lucide-react@^0.577.0"
+      ],
+      "registryDependencies": [
+        "@recommand/theme",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/breadcrumb.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "button",
+      "type": "registry:ui",
+      "dependencies": [
+        "@base-ui/react@^1.9.0",
+        "class-variance-authority@^0.7.1"
+      ],
+      "registryDependencies": [
+        "@recommand/theme",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/button.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "calendar",
+      "type": "registry:ui",
+      "dependencies": [
+        "date-fns@^4.4.0",
+        "lucide-react@^0.577.0",
+        "react-day-picker@^9.14.0"
+      ],
+      "registryDependencies": [
+        "@recommand/button",
+        "@recommand/theme",
+        "@recommand/use-translation",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/calendar.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "card",
+      "type": "registry:ui",
+      "registryDependencies": [
+        "@recommand/theme",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/card.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "chart",
+      "type": "registry:ui",
+      "dependencies": [
+        "recharts@^3.8.0"
+      ],
+      "registryDependencies": [
+        "@recommand/theme",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/chart.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "checkbox",
+      "type": "registry:ui",
+      "dependencies": [
+        "@base-ui/react@^1.9.0",
+        "lucide-react@^0.577.0"
+      ],
+      "registryDependencies": [
+        "@recommand/theme",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/checkbox.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "collapsible",
+      "type": "registry:ui",
+      "dependencies": [
+        "@base-ui/react@^1.9.0"
+      ],
+      "registryDependencies": [
+        "@recommand/theme"
+      ],
+      "files": [
+        {
+          "path": "ui/collapsible.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "combobox",
+      "type": "registry:ui",
+      "dependencies": [
+        "lucide-react@^0.577.0"
+      ],
+      "registryDependencies": [
+        "@recommand/command",
+        "@recommand/popover",
+        "@recommand/theme",
+        "@recommand/use-translation",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/combobox.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "command",
+      "type": "registry:ui",
+      "dependencies": [
+        "cmdk@^1.1.1",
+        "lucide-react@^0.577.0"
+      ],
+      "registryDependencies": [
+        "@recommand/dialog",
+        "@recommand/theme",
+        "@recommand/use-translation",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/command.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "date-picker",
+      "type": "registry:ui",
+      "dependencies": [
+        "lucide-react@^0.577.0"
+      ],
+      "registryDependencies": [
+        "@recommand/button",
+        "@recommand/calendar",
+        "@recommand/popover",
+        "@recommand/theme",
+        "@recommand/use-translation",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/date-picker.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "dialog",
+      "type": "registry:ui",
+      "dependencies": [
+        "@base-ui/react@^1.9.0",
+        "lucide-react@^0.577.0"
+      ],
+      "registryDependencies": [
+        "@recommand/button",
+        "@recommand/theme",
+        "@recommand/use-translation",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/dialog.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "dropdown-menu",
+      "type": "registry:ui",
+      "dependencies": [
+        "@base-ui/react@^1.9.0",
+        "lucide-react@^0.577.0"
+      ],
+      "registryDependencies": [
+        "@recommand/theme",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/dropdown-menu.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "empty",
+      "type": "registry:ui",
+      "dependencies": [
+        "class-variance-authority@^0.7.1"
+      ],
+      "registryDependencies": [
+        "@recommand/theme",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/empty.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "field",
+      "type": "registry:ui",
+      "dependencies": [
+        "class-variance-authority@^0.7.1"
+      ],
+      "registryDependencies": [
+        "@recommand/label",
+        "@recommand/separator",
+        "@recommand/theme",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/field.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "input-group",
+      "type": "registry:ui",
+      "dependencies": [
+        "class-variance-authority@^0.7.1"
+      ],
+      "registryDependencies": [
+        "@recommand/button",
+        "@recommand/input",
+        "@recommand/textarea",
+        "@recommand/theme",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/input-group.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "input",
+      "type": "registry:ui",
+      "dependencies": [
+        "@base-ui/react@^1.9.0"
+      ],
+      "registryDependencies": [
+        "@recommand/theme",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/input.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "kbd",
+      "type": "registry:ui",
+      "registryDependencies": [
+        "@recommand/theme",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/kbd.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "label",
+      "type": "registry:ui",
+      "registryDependencies": [
+        "@recommand/theme",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/label.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "navigation-menu",
+      "type": "registry:ui",
+      "dependencies": [
+        "@base-ui/react@^1.9.0",
+        "class-variance-authority@^0.7.1",
+        "lucide-react@^0.577.0"
+      ],
+      "registryDependencies": [
+        "@recommand/theme",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/navigation-menu.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "pagination",
+      "type": "registry:ui",
+      "dependencies": [
+        "lucide-react@^0.577.0"
+      ],
+      "registryDependencies": [
+        "@recommand/button",
+        "@recommand/theme",
+        "@recommand/use-translation",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/pagination.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "popover",
+      "type": "registry:ui",
+      "dependencies": [
+        "@base-ui/react@^1.9.0"
+      ],
+      "registryDependencies": [
+        "@recommand/theme",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/popover.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "progress",
+      "type": "registry:ui",
+      "dependencies": [
+        "@base-ui/react@^1.9.0"
+      ],
+      "registryDependencies": [
+        "@recommand/theme",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/progress.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "radio-group",
+      "type": "registry:ui",
+      "dependencies": [
+        "@base-ui/react@^1.9.0"
+      ],
+      "registryDependencies": [
+        "@recommand/theme",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/radio-group.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "scroll-area",
+      "type": "registry:ui",
+      "dependencies": [
+        "@base-ui/react@^1.9.0"
+      ],
+      "registryDependencies": [
+        "@recommand/theme",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/scroll-area.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "select",
+      "type": "registry:ui",
+      "dependencies": [
+        "@base-ui/react@^1.9.0",
+        "lucide-react@^0.577.0"
+      ],
+      "registryDependencies": [
+        "@recommand/theme",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/select.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "separator",
+      "type": "registry:ui",
+      "dependencies": [
+        "@base-ui/react@^1.9.0"
+      ],
+      "registryDependencies": [
+        "@recommand/theme",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/separator.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "sheet",
+      "type": "registry:ui",
+      "dependencies": [
+        "@base-ui/react@^1.9.0",
+        "lucide-react@^0.577.0"
+      ],
+      "registryDependencies": [
+        "@recommand/button",
+        "@recommand/theme",
+        "@recommand/use-translation",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/sheet.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "sidebar",
+      "type": "registry:ui",
+      "dependencies": [
+        "@base-ui/react@^1.9.0",
+        "class-variance-authority@^0.7.1",
+        "lucide-react@^0.577.0"
+      ],
+      "registryDependencies": [
+        "@recommand/button",
+        "@recommand/input",
+        "@recommand/separator",
+        "@recommand/sheet",
+        "@recommand/skeleton",
+        "@recommand/theme",
+        "@recommand/tooltip",
+        "@recommand/use-mobile",
+        "@recommand/use-translation",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/sidebar.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "skeleton",
+      "type": "registry:ui",
+      "registryDependencies": [
+        "@recommand/theme",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/skeleton.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "sonner",
+      "type": "registry:ui",
+      "dependencies": [
+        "lucide-react@^0.577.0",
+        "next-themes@^0.4.6",
+        "sonner@^2.0.8"
+      ],
+      "registryDependencies": [
+        "@recommand/theme"
+      ],
+      "files": [
+        {
+          "path": "ui/sonner.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "spinner",
+      "type": "registry:ui",
+      "dependencies": [
+        "lucide-react@^0.577.0"
+      ],
+      "registryDependencies": [
+        "@recommand/theme",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/spinner.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "status-pixel",
+      "type": "registry:ui",
+      "dependencies": [
+        "class-variance-authority@^0.7.1"
+      ],
+      "registryDependencies": [
+        "@recommand/theme",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/status-pixel.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "switch",
+      "type": "registry:ui",
+      "dependencies": [
+        "@base-ui/react@^1.9.0"
+      ],
+      "registryDependencies": [
+        "@recommand/theme",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/switch.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "table",
+      "type": "registry:ui",
+      "registryDependencies": [
+        "@recommand/theme",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/table.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "tabs",
+      "type": "registry:ui",
+      "dependencies": [
+        "@base-ui/react@^1.9.0",
+        "class-variance-authority@^0.7.1"
+      ],
+      "registryDependencies": [
+        "@recommand/theme",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/tabs.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "textarea",
+      "type": "registry:ui",
+      "registryDependencies": [
+        "@recommand/input",
+        "@recommand/theme",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/textarea.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "toggle-group",
+      "type": "registry:ui",
+      "dependencies": [
+        "@base-ui/react@^1.9.0",
+        "class-variance-authority@^0.7.1"
+      ],
+      "registryDependencies": [
+        "@recommand/theme",
+        "@recommand/toggle",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/toggle-group.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "toggle",
+      "type": "registry:ui",
+      "dependencies": [
+        "@base-ui/react@^1.9.0",
+        "class-variance-authority@^0.7.1"
+      ],
+      "registryDependencies": [
+        "@recommand/theme",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/toggle.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "tooltip",
+      "type": "registry:ui",
+      "dependencies": [
+        "@base-ui/react@^1.9.0"
+      ],
+      "registryDependencies": [
+        "@recommand/theme",
+        "@recommand/utils"
+      ],
+      "files": [
+        {
+          "path": "ui/tooltip.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    }
+  ]
+}

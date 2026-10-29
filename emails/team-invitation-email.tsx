@@ -1,4 +1,5 @@
 import { Section, Text } from "@react-email/components";
+import { getAppIdentity } from "@recommand/lib/app-identity";
 import {
   Button,
   EmailLayout,
@@ -21,11 +22,11 @@ export const TeamInvitationEmail = ({
   resetPasswordLink = "https://example.com/reset-password/token",
   t = fallbackT,
 }: TeamInvitationEmailProps) => (
-  <EmailLayout preview={t`You've been invited to join ${teamName} on Recommand`} t={t}>
+  <EmailLayout preview={t`You've been invited to join ${teamName} on ${getAppIdentity().name}`} t={t}>
     <EmailHeading>{t`You're invited`}</EmailHeading>
     <Text className="mb-4">{firstName ? t`Hello ${firstName},` : t`Hello,`}</Text>
     <Text className="mb-4">
-      {t`You've been invited to join ${teamName} on Recommand. We've created an account for you.`}
+      {t`You've been invited to join ${teamName} on ${getAppIdentity().name}. We've created an account for you.`}
     </Text>
     <Section className="my-6 text-center">
       <Button variant="primary" href={resetPasswordLink}>
@@ -53,5 +54,5 @@ export default TeamInvitationEmail;
 
 export const subject = (props: { teamName: string; t?: TranslationFunction }) => {
   const t = props.t ?? fallbackT;
-  return t`You've been invited to join ${props.teamName} on Recommand`;
+  return t`You've been invited to join ${props.teamName} on ${getAppIdentity().name}`;
 };

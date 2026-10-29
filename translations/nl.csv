@@ -25,16 +25,16 @@ Reset password,Wachtwoord herstellen
 Send reset link,Resetlink verzenden
 Confirm your email,Bevestig je e-mail
 Hello {0}\,,Hallo {0}\,
-Thank you for signing up for Recommand. Please confirm your email address to get started.,Bedankt voor je registratie bij Recommand. Bevestig je e-mailadres om te beginnen.
+Thank you for signing up for {0}. Please confirm your email address to get started.,Bedankt voor je registratie bij {0}. Bevestig je e-mailadres om te beginnen.
 Confirm email address,E-mailadres bevestigen
 If you didn't create an account\, you can safely ignore this email.,Als je geen account hebt aangemaakt\, kun je deze e-mail negeren.
-Reset your Recommand password,Herstel je Recommand wachtwoord
-We received a request to reset your password for your Recommand account.,We hebben een verzoek ontvangen om je wachtwoord voor je Recommand account te herstellen.
+Reset your {0} password,Herstel je {0}-wachtwoord
+We received a request to reset your password for your {0} account.,We hebben een verzoek ontvangen om het wachtwoord van je {0}-account te herstellen.
 This link will expire in 1 hour for security reasons.,Deze link verloopt na 1 uur om veiligheidsredenen.
 If you didn't request this\, you can safely ignore this email.,Als je dit niet hebt aangevraagd\, kun je deze e-mail negeren.
-You've been invited to join {0} on Recommand,Je bent uitgenodigd om lid te worden van {0} op Recommand
+You've been invited to join {0} on {1},Je bent uitgenodigd om lid te worden van {0} op {1}
 You're invited,Je bent uitgenodigd
-You've been invited to join {0} on Recommand. We've created an account for you.,Je bent uitgenodigd om lid te worden van {0} op Recommand. We hebben een account voor je aangemaakt.
+You've been invited to join {0} on {1}. We've created an account for you.,Je bent uitgenodigd om lid te worden van {0} op {1}. We hebben een account voor je aangemaakt.
 Set your password,Stel je wachtwoord in
 This invitation will expire in 7 days.,Deze uitnodiging verloopt na 7 dagen.
 After that\, ask your team administrator to resend the invitation.,Vraag daarna je teambeheerder om de uitnodiging opnieuw te verzenden.
@@ -204,7 +204,7 @@ Password changed successfully,Wachtwoord succesvol gewijzigd
 Failed to change password,Wachtwoord wijzigen mislukt
 Current password is incorrect,Huidig wachtwoord is onjuist
 Best regards\,,Met vriendelijke groet\,
-The Recommand Team,Het Recommand Team
+The {0} team,Het {0}-team
 Team name updated,Teamnaam bijgewerkt
 Team Logo,Teamlogo
 Upload Logo,Logo uploaden

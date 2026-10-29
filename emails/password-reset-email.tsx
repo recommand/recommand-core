@@ -1,4 +1,5 @@
 import { Section, Text } from "@react-email/components";
+import { getAppIdentity } from "@recommand/lib/app-identity";
 import {
   Button,
   EmailLayout,
@@ -19,11 +20,11 @@ export const PasswordResetEmail = ({
   resetPasswordLink,
   t = fallbackT,
 }: PasswordResetEmailProps) => (
-  <EmailLayout preview={t`Reset your Recommand password`} t={t}>
+  <EmailLayout preview={t`Reset your ${getAppIdentity().name} password`} t={t}>
     <EmailHeading>{t`Reset your password`}</EmailHeading>
     <Text className="mb-4">{firstName ? t`Hello ${firstName},` : t`Hello,`}</Text>
     <Text className="mb-4">
-      {t`We received a request to reset your password for your Recommand account.`}
+      {t`We received a request to reset your password for your ${getAppIdentity().name} account.`}
     </Text>
     <Section className="my-6 text-center">
       <Button variant="primary" href={resetPasswordLink}>
@@ -50,5 +51,5 @@ export default PasswordResetEmail;
 
 export const subject = (props: { t?: TranslationFunction }) => {
   const t = props.t ?? fallbackT;
-  return t`Reset your Recommand password`;
+  return t`Reset your ${getAppIdentity().name} password`;
 };

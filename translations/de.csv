@@ -286,7 +286,7 @@ Reset link sent,Link zum Zurücksetzen gesendet
 Reset password,Passwort zurücksetzen
 Reset Password,Passwort zurücksetzen
 Reset your password,Setzen Sie Ihr Passwort zurück
-Reset your Recommand password,Setzen Sie Ihr Recommand-Passwort zurück
+Reset your {0} password,Setzen Sie Ihr {0}-Passwort zurück
 Resetting...,Wird zurückgesetzt...
 Retry,Wiederholen
 Retry scheduled,Erneuter Versuch geplant
@@ -340,9 +340,9 @@ Team name updated,Teamname aktualisiert
 Team name updated successfully,Teamname erfolgreich aktualisiert
 Team permissions,Teamberechtigungen
 Terms of Use,Nutzungsbedingungen
-Thank you for signing up for Recommand. Please confirm your email address to get started.,Vielen Dank für Ihre Registrierung bei Recommand. Bestätigen Sie Ihre E-Mail-Adresse, um loszulegen.
+Thank you for signing up for {0}. Please confirm your email address to get started.,Vielen Dank für Ihre Registrierung bei {0}. Bestätigen Sie Ihre E-Mail-Adresse, um loszulegen.
 The confirmation link appears to be invalid or missing.,Der Bestätigungslink scheint ungültig zu sein oder zu fehlen.
-The Recommand Team,Das Recommand-Team
+The {0} team,Das {0}-Team
 The selected team could not be found. Try switching teams or contact support if the problem persists.,Das ausgewählte Team wurde nicht gefunden. Wechseln Sie das Team oder wenden Sie sich an den Support, wenn das Problem weiterhin besteht.
 These permissions apply to this user across all teams. Only administrators can manage them.,Diese Berechtigungen gelten für diesen Benutzer in allen Teams. Nur Administratoren können sie verwalten.
 This invitation will expire in 7 days.,Diese Einladung läuft in 7 Tagen ab.
@@ -380,7 +380,7 @@ Columns,Spalten
 View Authorization Header,Authorization-Header anzeigen
 View deliveries,Zustellungen anzeigen
 We could not determine whether API key creation is available for this team. Please refresh the page or contact support if the problem persists.,Wir konnten nicht feststellen, ob die Erstellung von API-Schlüsseln für dieses Team verfügbar ist. Aktualisieren Sie die Seite oder wenden Sie sich an den Support, wenn das Problem weiterhin besteht.
-We received a request to reset your password for your Recommand account.,Wir haben eine Anfrage zum Zurücksetzen des Passworts für Ihr Recommand-Konto erhalten.
+We received a request to reset your password for your {0} account.,Wir haben eine Anfrage zum Zurücksetzen des Passworts für Ihr {0}-Konto erhalten.
 We've sent a confirmation link to,Wir haben einen Bestätigungslink gesendet an
 Webhook,Webhook
 Webhook action,Webhook-Aktion
@@ -388,8 +388,8 @@ Webhooks and rules,Webhooks und Regeln
 You must accept the terms to continue,Sie müssen den Bedingungen zustimmen, um fortzufahren
 You must be in a team to complete this step,Sie müssen Mitglied eines Teams sein, um diesen Schritt abzuschließen
 You're invited,Sie wurden eingeladen
-You've been invited to join {0} on Recommand,Sie wurden eingeladen, {0} auf Recommand beizutreten
-You've been invited to join {0} on Recommand. We've created an account for you.,Sie wurden eingeladen, {0} auf Recommand beizutreten. Wir haben ein Konto für Sie erstellt.
+You've been invited to join {0} on {1},Sie wurden eingeladen, {0} auf {1} beizutreten
+You've been invited to join {0} on {1}. We've created an account for you.,Sie wurden eingeladen, {0} auf {1} beizutreten. Wir haben ein Konto für Sie erstellt.
 Your confirmation link may have expired or been used already.,Ihr Bestätigungslink ist möglicherweise abgelaufen oder wurde bereits verwendet.
 Your email has been successfully confirmed. You are now logged in and will be redirected to the dashboard.,Ihre E-Mail-Adresse wurde erfolgreich bestätigt. Sie sind jetzt angemeldet und werden zum Dashboard weitergeleitet.
 Your personal information,Ihre persönlichen Daten

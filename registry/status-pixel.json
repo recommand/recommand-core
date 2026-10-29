@@ -1,0 +1,19 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "status-pixel",
+  "type": "registry:ui",
+  "dependencies": [
+    "class-variance-authority@^0.7.1"
+  ],
+  "registryDependencies": [
+    "@recommand/theme",
+    "@recommand/utils"
+  ],
+  "files": [
+    {
+      "path": "ui/status-pixel.tsx",
+      "type": "registry:ui",
+      "content": "import { cn } from '@/lib/utils';\nimport { cva, type VariantProps } from 'class-variance-authority';\nimport type * as React from 'react';\n\n/**\n * A square that shows the state of something. The shape says how far it is,\n * the tone whether it is in order:\n *\n * - shape: `filled` (done), `half` (under way or waiting), `outline` (not\n *   started), `unknown` (unknown or not applicable, always neutral);\n * - tone: `normal` (in order), `positive` (the outcome the user is after),\n *   `attention` (needs attention).\n *\n * The pixel never carries meaning alone: put a label next to it.\n */\nconst statusPixelVariants = cva('inline-block shrink-0 border-[1.5px] border-current', {\n  variants: {\n    shape: {\n      filled: 'bg-current',\n      half: 'bg-[linear-gradient(90deg,currentColor_50%,transparent_50%)]',\n      outline: 'bg-transparent',\n      unknown: 'border-dashed bg-transparent text-muted-foreground',\n    },\n    tone: {\n      normal: 'text-status-normal',\n      positive: 'text-status-positive',\n      attention: 'text-status-attention',\n    },\n    size: {\n      xs: 'size-1.5',\n      default: 'size-[9px]',\n      lg: 'size-3',\n      xl: 'size-4',\n    },\n  },\n  compoundVariants: [{ shape: 'unknown', className: 'text-muted-foreground' }],\n  defaultVariants: { shape: 'filled', tone: 'normal', size: 'default' },\n});\n\nfunction StatusPixel({\n  className,\n  shape,\n  tone,\n  size,\n  ...props\n}: React.ComponentProps<'span'> & VariantProps<typeof statusPixelVariants>) {\n  return (\n    <span\n      data-slot=\"status-pixel\"\n      aria-hidden=\"true\"\n      className={cn(statusPixelVariants({ shape, tone, size }), className)}\n      {...props}\n    />\n  );\n}\n\n/** A status pixel with its label. */\nfunction StatusLabel({\n  className,\n  children,\n  shape,\n  tone,\n  size,\n  ...props\n}: React.ComponentProps<'span'> & VariantProps<typeof statusPixelVariants>) {\n  return (\n    <span\n      data-slot=\"status-label\"\n      className={cn(\n        'inline-flex items-center gap-2 text-xs font-medium text-foreground',\n        tone === 'attention' && 'text-warning-foreground',\n        className,\n      )}\n      {...props}\n    >\n      <StatusPixel shape={shape} tone={tone} size={size} />\n      {children}\n    </span>\n  );\n}\n\nexport { StatusLabel, StatusPixel, statusPixelVariants };\n"
+    }
+  ]
+}

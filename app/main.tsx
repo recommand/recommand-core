@@ -80,7 +80,7 @@ export default function Main({ children }: { children: React.ReactNode }) {
     return <BrowserRouter>
         {children}
         <RouterInner />
-        <Toaster richColors />
+        <Toaster />
     </BrowserRouter>;
 }
 

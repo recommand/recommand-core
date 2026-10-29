@@ -1,87 +1,67 @@
-import * as React from "react";
-import { Slot } from "@radix-ui/react-slot";
-import { cva, type VariantProps } from "class-variance-authority";
-
-import { cn } from "@core/lib/utils";
+import { Button as ButtonPrimitive } from '@base-ui/react/button';
+import { cn } from '@core/lib/utils';
+import { cva, type VariantProps } from 'class-variance-authority';
+import type * as React from 'react';
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+  "group/button inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-transparent bg-clip-padding text-sm font-button transition-colors outline-none select-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-warning [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
-        default:
-          "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90",
-        destructive:
-          "bg-destructive text-destructive-foreground shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40",
+        default: 'bg-primary text-primary-foreground hover:bg-primary/90',
         outline:
-          "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
+          'border-input bg-background text-foreground hover:bg-accent hover:text-accent-foreground aria-expanded:bg-accent',
         secondary:
-          "bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80",
+          'bg-secondary text-secondary-foreground hover:bg-secondary/80 aria-expanded:bg-secondary',
         ghost:
-          "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
-        "ghost-destructive":
-          "text-destructive hover:bg-destructive hover:text-destructive-foreground dark:hover:bg-destructive",
-        link: "text-primary underline-offset-4 hover:underline",
+          'text-foreground hover:bg-accent hover:text-accent-foreground aria-expanded:bg-accent',
+        destructive:
+          'border-destructive-soft bg-background text-destructive hover:bg-destructive-soft',
+        'destructive-solid': 'bg-destructive text-background hover:bg-destructive/90',
+        'ghost-destructive': 'text-destructive hover:bg-destructive-soft',
+        link: 'border-0 text-primary underline decoration-1 [text-underline-position:from-font]',
       },
       size: {
-        default: "h-9 px-4 py-2 has-[>svg]:px-3",
-        sm: "h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5",
-        lg: "h-10 rounded-md px-6 has-[>svg]:px-4",
-        icon: "size-9",
+        default: 'h-control px-4 has-[>svg]:px-3',
+        sm: 'h-control-sm gap-1 px-3 text-button-sm has-[>svg]:px-2.5',
+        lg: 'h-control-lg px-6 has-[>svg]:px-4',
+        icon: 'size-control',
+        'icon-sm': 'size-control-sm',
+        'icon-lg': 'size-control-lg',
       },
     },
+    compoundVariants: [{ variant: 'link', className: 'h-auto px-0 has-[>svg]:px-0' }],
     defaultVariants: {
-      variant: "default",
-      size: "default",
+      variant: 'default',
+      size: 'default',
     },
   },
 );
 
-type ButtonBaseProps = VariantProps<typeof buttonVariants> & {
-  asChild?: boolean;
-  className?: string;
-};
+type ButtonProps = ButtonPrimitive.Props & VariantProps<typeof buttonVariants>;
 
-type ButtonProps = ButtonBaseProps &
-  React.ButtonHTMLAttributes<HTMLButtonElement>;
-
-type ButtonLinkProps = ButtonBaseProps &
-  React.AnchorHTMLAttributes<HTMLAnchorElement>;
-
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button";
-    return (
-      <Comp
-        ref={ref}
-        data-slot="button"
-        className={cn(buttonVariants({ variant, size, className }))}
-        {...props}
-      />
-    );
-  },
-);
-Button.displayName = "Button";
-
-function ButtonLink({
-  className,
-  variant,
-  size,
-  asChild = false,
-  ...props
-}: ButtonLinkProps) {
-  const Comp = asChild ? Slot : "a";
+/**
+ * A button. To render it as another element, such as a link, pass that
+ * element as `render` (and `nativeButton={false}` when it is not a button).
+ */
+function Button({ className, variant, size, ...props }: ButtonProps) {
   return (
-    <Comp
+    <ButtonPrimitive
       data-slot="button"
-      className={cn(
-        buttonVariants({ variant, size, className }),
-        "cursor-default",
-      )}
+      className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     />
   );
 }
 
-export { Button, ButtonLink, buttonVariants };
+type ButtonLinkProps = React.ComponentProps<'a'> & VariantProps<typeof buttonVariants>;
+
+/** A link styled as a button. */
+function ButtonLink({ className, variant, size, ...props }: ButtonLinkProps) {
+  return (
+    <a data-slot="button" className={cn(buttonVariants({ variant, size, className }))} {...props} />
+  );
+}
+
 export type { ButtonProps };
+export { Button, ButtonLink, buttonVariants };

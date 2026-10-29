@@ -1,6 +1,4 @@
-import React, { useState } from "react";
-import { type ColumnDef, flexRender } from "@tanstack/react-table";
-
+import { Input } from '@core/components/ui/input';
 import {
   Table,
   TableBody,
@@ -8,12 +6,11 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@core/components/ui/table";
-import { Input } from "@core/components/ui/input";
-import { type Table as TanstackTable } from "@tanstack/react-table";
-import { TableContainer } from "../table-container";
-import { useTranslation } from "@core/hooks/use-translation";
-import { cn } from "@core/lib/utils";
+} from '@core/components/ui/table';
+import { useTranslation } from '@core/hooks/use-translation';
+import { cn } from '@core/lib/utils';
+import { type ColumnDef, flexRender, type Table as TanstackTable } from '@tanstack/react-table';
+import React, { useState } from 'react';
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -30,7 +27,26 @@ interface DataTableProps<TData, TValue> {
   autoFocusGlobalFilter?: boolean;
   rowClassName?: (row: any) => string | undefined;
   rowProps?: (row: any) => React.HTMLAttributes<HTMLTableRowElement>;
+  /**
+   * How the list sits on the page:
+   * - `contained` (the default): in a bordered box with rounded corners;
+   * - `gutter`: inside the page gutter without a box, for working through
+   *   items one by one with the detail beside the list; a selected row is
+   *   rounded;
+   * - `edge`: running to the edges of the work area, for scanning many items
+   *   with many columns, with the detail in a drawer; a selected row is
+   *   square. Place it directly in the page's content, whose gutter it
+   *   cancels.
+   */
+  arrangement?: 'contained' | 'gutter' | 'edge';
 }
+
+const arrangementClasses = {
+  contained: 'overflow-hidden rounded-xl border',
+  gutter:
+    '[&_tr[data-state=selected]]:bg-transparent [&_tr[data-state=selected]>td]:bg-active [&_tr[data-state=selected]>td:first-child]:rounded-l-lg [&_tr[data-state=selected]>td:last-child]:rounded-r-lg',
+  edge: '-mx-gutter [&_tr>*:first-child]:pl-gutter [&_tr>*:last-child]:pr-gutter',
+};
 
 export function DataTable<TData, TValue>({
   columns,
@@ -39,37 +55,34 @@ export function DataTable<TData, TValue>({
   summaryRow,
   renderSubComponent,
   enableGlobalFilter = false,
-  globalFilterPlaceholder = "Zoeken...",
+  globalFilterPlaceholder = 'Zoeken...',
   autoFocusGlobalFilter = true,
   rowClassName,
   rowProps,
+  arrangement = 'contained',
 }: DataTableProps<TData, TValue>) {
-  const [globalFilter, setGlobalFilter] = useState("");
+  const [globalFilter, setGlobalFilter] = useState('');
   const isGlobalFilterEnabled = enableGlobalFilter && table.getState().globalFilter !== undefined;
   const { t } = useTranslation();
   const getColumnStyle = (column: any) => {
     const widthPercent = column.columnDef.meta?.widthPercent;
 
-    if (typeof widthPercent === "number") {
+    if (typeof widthPercent === 'number') {
       return { width: `${widthPercent}%` };
     }
 
-    return column.columnDef.size &&
-      column.columnDef.size !== table._getDefaultColumnDef().size
+    return column.columnDef.size && column.columnDef.size !== table._getDefaultColumnDef().size
       ? { width: `${column.columnDef.size}px` }
       : undefined;
   };
   const getCellClassName = (cell: any) => {
     const cellClassName = cell.column.columnDef.meta?.cellClassName;
 
-    return typeof cellClassName === "function"
-      ? cellClassName(cell)
-      : cellClassName;
+    return typeof cellClassName === 'function' ? cellClassName(cell) : cellClassName;
   };
   const getCellStyle = (cell: any) => {
     const cellStyle = cell.column.columnDef.meta?.cellStyle;
-    const resolvedCellStyle =
-      typeof cellStyle === "function" ? cellStyle(cell) : cellStyle;
+    const resolvedCellStyle = typeof cellStyle === 'function' ? cellStyle(cell) : cellStyle;
 
     return {
       ...getColumnStyle(cell.column),
@@ -91,23 +104,17 @@ export function DataTable<TData, TValue>({
           className="max-w-sm"
         />
       )}
-      <TableContainer>
+      <div className={arrangementClasses[arrangement]}>
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead
-                      key={header.id}
-                      style={getColumnStyle(header.column)}
-                    >
+                    <TableHead key={header.id} style={getColumnStyle(header.column)}>
                       {header.isPlaceholder
                         ? null
-                        : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
+                        : flexRender(header.column.columnDef.header, header.getContext())}
                     </TableHead>
                   );
                 })}
@@ -125,7 +132,7 @@ export function DataTable<TData, TValue>({
                     <React.Fragment key={row.id}>
                       <TableRow
                         {...resolvedRowProps}
-                        data-state={row.getIsSelected() && "selected"}
+                        data-state={row.getIsSelected() && 'selected'}
                         className={cn(rowClassName?.(row), resolvedRowProps?.className)}
                       >
                         {row.getVisibleCells().map((cell) => (
@@ -138,9 +145,7 @@ export function DataTable<TData, TValue>({
                           </TableCell>
                         ))}
                       </TableRow>
-                      {row.getIsExpanded() && renderSubComponent && (
-                        renderSubComponent({ row })
-                      )}
+                      {row.getIsExpanded() && renderSubComponent && renderSubComponent({ row })}
                     </React.Fragment>
                   );
                 })}
@@ -148,14 +153,17 @@ export function DataTable<TData, TValue>({
               </>
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center text-muted-foreground"
+                >
                   {t`No results.`}
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
-      </TableContainer>
+      </div>
     </div>
   );
 }

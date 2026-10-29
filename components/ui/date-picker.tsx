@@ -42,19 +42,16 @@ export function DatePicker({
         if (nextOpen) setMonth(date);
       }}
     >
-      <PopoverTrigger asChild>
-        <Button
+      <PopoverTrigger render={<Button
           variant={"outline"}
           className={cn(
             "w-full justify-start text-left font-normal",
             !date && "text-muted-foreground"
           )}
-          disabled={disabled}
-        >
+          disabled={disabled} />}>
           <CalendarIcon className="mr-2 h-4 w-4" />
           {date ? dateFormatter.format(date) : <span>{resolvedPlaceholder}</span>}
-        </Button>
-      </PopoverTrigger>
+        </PopoverTrigger>
       <PopoverContent className="w-auto p-0">
         <Calendar
           mode="single"

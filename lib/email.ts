@@ -1,4 +1,5 @@
 import { render } from "@react-email/render";
+import { getAppIdentity } from "@recommand/lib/app-identity";
 import type { ReactElement } from "react";
 import { Attachment, ServerClient } from "postmark";
 import "dotenv/config";
@@ -42,8 +43,13 @@ export async function sendEmail({
   const postmarkClient = new ServerClient(process.env.POSTMARK_API_KEY);
   const emailHtml = typeof email === "string" ? email : await render(email);
 
+  const sender = from || process.env.EMAIL_FROM || getAppIdentity().supportEmail;
+  if (!sender) {
+    throw new Error("No sender: set EMAIL_FROM or recommand.app.supportEmail");
+  }
+
   const options = {
-    From: from || process.env.EMAIL_FROM || "support@recommand.eu",
+    From: sender,
     To: to,
     Cc: cc,
     Subject: subject,

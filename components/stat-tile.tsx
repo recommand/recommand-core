@@ -4,22 +4,24 @@ import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 /**
- * The HQ KPI tile: one number, its label, and optionally a line of context and
+ * A key figure: one number, its label, and optionally a line of context and
  * an icon. Use it anywhere a page opens with a row of counts.
  *
- * Tone accents the value and icon only - the card chrome stays neutral, so a
- * row of tiles reads as one row rather than as competing panels. Reach for a
- * tone when the number carries a state (failures are bad, deliveries are
- * good); leave it neutral when it is just a count.
+ * Tone colours the value and icon only; the card stays neutral, so a row of
+ * tiles reads as one row rather than as competing panels. Use a tone when the
+ * number carries a state (`success` for the outcome people are after,
+ * `danger` for something that needs attention, shown in the warning colour);
+ * leave it neutral when it is just a count. `progress` and `data` are kept
+ * for existing callers and render neutral.
  */
 export type StatTone = 'neutral' | 'progress' | 'success' | 'danger' | 'data';
 
 const toneClasses: Record<StatTone, string> = {
   neutral: '',
-  progress: 'text-progress-dark',
-  success: 'text-folder-dark',
-  danger: 'text-danger-dark',
-  data: 'text-data-dark',
+  progress: '',
+  success: 'text-success',
+  danger: 'text-warning-foreground',
+  data: '',
 };
 
 export interface StatTileProps {
@@ -41,22 +43,20 @@ export function StatTile({
   className,
 }: StatTileProps) {
   return (
-    <Card className={className}>
-      <CardContent className="p-4">
+    <Card className={cn('gap-0 py-0', className)}>
+      <CardContent className="px-5 py-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <div className="text-table-head text-muted-foreground [text-transform:var(--table-head-transform)]">
               {label}
             </div>
-            <div className={cn('mt-1 text-2xl font-semibold tabular-nums', toneClasses[tone])}>
-              {value}
-            </div>
-            {detail && <div className="mt-1 text-xs text-muted-foreground">{detail}</div>}
+            <div className={cn('mt-2 text-kpi', toneClasses[tone])}>{value}</div>
+            {detail && <div className="mt-1.5 text-xs text-muted-foreground">{detail}</div>}
           </div>
           {Icon && (
             <Icon
               className={cn(
-                'h-4 w-4 shrink-0',
+                'size-4 shrink-0',
                 tone === 'neutral' ? 'text-muted-foreground' : toneClasses[tone],
               )}
             />
@@ -69,5 +69,7 @@ export function StatTile({
 
 /** Standard responsive row for StatTile. Two up on mobile, four up from md. */
 export function StatTileGrid({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn('grid grid-cols-2 gap-4 md:grid-cols-4', className)}>{children}</div>;
+  return (
+    <div className={cn('grid grid-cols-2 gap-card-gap md:grid-cols-4', className)}>{children}</div>
+  );
 }

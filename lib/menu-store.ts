@@ -27,6 +27,9 @@ export interface MenuItem {
   // Small trailing count/label ("6", "new"). Re-register the item with a new
   // value to update it live; omit (or pass undefined) to clear it.
   badge?: string | number;
+  // `action` when what the badge counts needs action: it then takes the
+  // warning colour. Neutral otherwise.
+  badgeVariant?: 'default' | 'action';
   // Re-register the item to update or clear the action, like `badge`.
   action?: MenuItemAction;
   isActive?: boolean;

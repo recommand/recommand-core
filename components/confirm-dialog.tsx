@@ -1,5 +1,3 @@
-import { useState } from "react";
-import { Loader2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,9 +8,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@core/components/ui/alert-dialog";
-import type { ReactNode } from "react";
-import { useTranslation } from "@core/hooks/use-translation";
+} from '@core/components/ui/alert-dialog';
+import { useTranslation } from '@core/hooks/use-translation';
+import { Loader2 } from 'lucide-react';
+import type { ReactElement, ReactNode } from 'react';
+import { useState } from 'react';
 
 interface ConfirmDialogProps {
   title: string;
@@ -20,8 +20,8 @@ interface ConfirmDialogProps {
   confirmButtonText: string;
   onConfirm: () => void | Promise<void>;
   isLoading?: boolean;
-  trigger: ReactNode;
-  variant?: "default" | "destructive";
+  trigger: ReactElement;
+  variant?: 'default' | 'destructive';
   cancelButtonText?: string;
 }
 
@@ -32,7 +32,7 @@ export function ConfirmDialog({
   onConfirm,
   isLoading = false,
   trigger,
-  variant = "destructive",
+  variant = 'destructive',
   cancelButtonText,
 }: ConfirmDialogProps) {
   const [open, setOpen] = useState(false);
@@ -51,7 +51,7 @@ export function ConfirmDialog({
 
   return (
     <AlertDialog open={open} onOpenChange={handleOpenChange}>
-      <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>
+      <AlertDialogTrigger render={trigger} />
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
@@ -64,11 +64,7 @@ export function ConfirmDialog({
           <AlertDialogAction
             onClick={handleConfirm}
             disabled={isLoading}
-            className={
-              variant === "destructive"
-                ? "bg-destructive text-destructive-foreground shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40"
-                : undefined
-            }
+            variant={variant === 'destructive' ? 'destructive-solid' : 'default'}
           >
             {isLoading ? (
               <>

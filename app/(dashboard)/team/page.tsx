@@ -1,4 +1,5 @@
 import { PageTemplate } from "@core/components/page-template";
+import { StatusLabel } from "@core/components/ui/status-pixel";
 import { rc } from "@recommand/lib/client";
 import type { TeamMembers } from "api/team-members";
 import type { Auth } from "api/auth";
@@ -332,9 +333,9 @@ export default function Page() {
       cell: ({ row }) => (
         <div className="flex items-center">
           {row.original.user.emailVerified ? (
-            <span className="text-folder">{t`Verified`}</span>
+            <StatusLabel tone="positive">{t`Verified`}</StatusLabel>
           ) : (
-            <span className="text-warning">{t`Unverified`}</span>
+            <StatusLabel tone="attention" shape="outline">{t`Unverified`}</StatusLabel>
           )}
         </div>
       ),
@@ -364,12 +365,11 @@ export default function Page() {
               <Button
                 variant="ghost"
                 size="icon"
-                asChild
+                nativeButton={false}
+                render={<Link to={`/team/member/${userId}`} />}
                 title={t`Manage permissions`}
               >
-                <Link to={`/team/member/${userId}`}>
-                  <Shield className="h-4 w-4" />
-                </Link>
+                <Shield className="h-4 w-4" />
               </Button>
             )}
             {canManageTeam && (
@@ -490,12 +490,21 @@ export default function Page() {
             <div>
               <label className="text-sm font-medium">{t`Team Logo`}</label>
               <div className="flex items-center gap-4 mt-2">
-                <div className="flex size-16 items-center justify-center rounded-lg border bg-sheet-light p-2 overflow-hidden">
-                  <img
-                    src={activeTeam?.logoUrl || "/icon.svg"}
-                    alt={activeTeam?.name ?? ""}
-                    className="size-full object-contain"
-                  />
+                <div className="flex size-16 items-center justify-center overflow-hidden rounded-lg border bg-background p-2 text-sm font-medium">
+                  {activeTeam?.logoUrl ? (
+                    <img
+                      src={activeTeam.logoUrl}
+                      alt={activeTeam.name}
+                      className="size-full object-contain"
+                    />
+                  ) : (
+                    activeTeam?.name
+                      .split(/\s+/)
+                      .slice(0, 2)
+                      .map((word) => word[0])
+                      .join("")
+                      .toUpperCase()
+                  )}
                 </div>
                 {canManageTeam && (
                 <div className="flex gap-2">

@@ -1,12 +1,12 @@
-import { type Table } from "@tanstack/react-table";
-import { X } from "lucide-react";
-import { Button } from "@core/components/ui/button";
-import { Input } from "@core/components/ui/input";
-import { DataTableViewOptions } from "./view-options";
-import { DataTableFacetedFilter } from "./faceted-filter";
-import React from "react";
-import { useThrottledInput } from "./use-throttled-input";
-import { useTranslation } from "@core/hooks/use-translation";
+import { Button } from '@core/components/ui/button';
+import { Input } from '@core/components/ui/input';
+import { useTranslation } from '@core/hooks/use-translation';
+import type { Table } from '@tanstack/react-table';
+import { X } from 'lucide-react';
+import React from 'react';
+import { DataTableFacetedFilter } from './faceted-filter';
+import { useThrottledInput } from './use-throttled-input';
+import { DataTableViewOptions } from './view-options';
 
 // Define the structure for filter configurations
 export interface FilterConfig<TData> {
@@ -39,7 +39,7 @@ export function DataTableToolbar<TData>({
 }: DataTableToolbarProps<TData>) {
   const { t } = useTranslation();
   const resolvedSearchPlaceholder = searchPlaceholder ?? t`Search...`;
-  const globalFilter = (table.getState().globalFilter as string) ?? "";
+  const globalFilter = (table.getState().globalFilter as string) ?? '';
   const throttledGlobalSearch = useThrottledInput({
     enabled: Boolean(enableGlobalSearch && throttleGlobalSearch),
     value: globalFilter,
@@ -47,26 +47,19 @@ export function DataTableToolbar<TData>({
   });
 
   const isFiltered =
-    table.getState().columnFilters.length > 0 ||
-    Boolean(table.getState().globalFilter);
+    table.getState().columnFilters.length > 0 || Boolean(table.getState().globalFilter);
 
   return (
     <div className="flex items-center justify-between">
-      <div className="flex flex-1 items-center space-x-2">
+      <div className="flex flex-1 flex-wrap items-center gap-2">
         {searchColumn && !enableGlobalSearch && (
           <Input
             placeholder={resolvedSearchPlaceholder}
-            value={
-              (table
-                .getColumn(searchColumn as string)
-                ?.getFilterValue() as string) ?? ""
-            }
+            value={(table.getColumn(searchColumn as string)?.getFilterValue() as string) ?? ''}
             onChange={(event) =>
-              table
-                .getColumn(searchColumn as string)
-                ?.setFilterValue(event.target.value)
+              table.getColumn(searchColumn as string)?.setFilterValue(event.target.value)
             }
-            className="h-8 w-[150px] lg:w-[250px]"
+            className="w-[150px] lg:w-[250px]"
           />
         )}
         {enableGlobalSearch && (
@@ -83,7 +76,7 @@ export function DataTableToolbar<TData>({
 
               table.setGlobalFilter(value);
             }}
-            className="h-8 w-[150px] lg:w-[250px]"
+            className="w-[150px] lg:w-[250px]"
           />
         )}
         {filterColumns?.map((filterConfig) => {
@@ -116,15 +109,15 @@ export function DataTableToolbar<TData>({
                   throttledGlobalSearch.clear();
                   return;
                 }
-                table.setGlobalFilter("");
+                table.setGlobalFilter('');
               } else if (searchColumn) {
-                table.getColumn(searchColumn as string)?.setFilterValue("");
+                table.getColumn(searchColumn as string)?.setFilterValue('');
               }
             }}
-            className="h-8 px-2 lg:px-3"
+            className="px-2 lg:px-3"
           >
             {t`Reset`}
-            <X className="ml-2 h-4 w-4" />
+            <X />
           </Button>
         )}
       </div>

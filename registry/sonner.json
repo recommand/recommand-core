@@ -1,0 +1,20 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "sonner",
+  "type": "registry:ui",
+  "dependencies": [
+    "lucide-react@^0.577.0",
+    "next-themes@^0.4.6",
+    "sonner@^2.0.8"
+  ],
+  "files": [
+    {
+      "path": "ui/sonner.tsx",
+      "type": "registry:ui",
+      "content": "import { CircleCheckIcon, InfoIcon, Loader2Icon, TriangleAlertIcon } from 'lucide-react';\nimport { useTheme } from 'next-themes';\nimport type * as React from 'react';\nimport { Toaster as Sonner, type ToasterProps, toast } from 'sonner';\n\n/**\n * Toasts on the popover surface with a 12px radius. Errors use the warning\n * icon: a failure is a status, and red is kept for destructive actions.\n */\nconst Toaster = ({ ...props }: ToasterProps) => {\n  const { theme = 'system' } = useTheme();\n\n  return (\n    <Sonner\n      theme={theme as ToasterProps['theme']}\n      position=\"top-center\"\n      className=\"toaster group\"\n      icons={{\n        success: <CircleCheckIcon className=\"size-4 text-success\" />,\n        info: <InfoIcon className=\"size-4\" />,\n        warning: <TriangleAlertIcon className=\"size-4 text-warning-foreground\" />,\n        error: <TriangleAlertIcon className=\"size-4 text-warning-foreground\" />,\n        loading: <Loader2Icon className=\"size-4 animate-spin\" />,\n      }}\n      style={\n        {\n          '--normal-bg': 'var(--popover)',\n          '--normal-text': 'var(--popover-foreground)',\n          '--normal-border': 'var(--border)',\n          '--border-radius': 'var(--radius-xl)',\n        } as React.CSSProperties\n      }\n      toastOptions={{\n        classNames: {\n          toast: 'shadow-lg',\n          description: 'text-muted-foreground!',\n        },\n      }}\n      {...props}\n    />\n  );\n};\n\nexport { Toaster, toast };\n"
+    }
+  ],
+  "registryDependencies": [
+    "@recommand/theme"
+  ]
+}

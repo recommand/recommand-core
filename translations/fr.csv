@@ -25,16 +25,16 @@ Reset password,Réinitialiser le mot de passe
 Send reset link,Envoyer le lien
 Confirm your email,Confirmez votre e-mail
 Hello {0}\,,Bonjour {0}\,
-Thank you for signing up for Recommand. Please confirm your email address to get started.,Merci de vous être inscrit sur Recommand. Veuillez confirmer votre adresse e-mail pour commencer.
+Thank you for signing up for {0}. Please confirm your email address to get started.,Merci de vous être inscrit sur {0}. Veuillez confirmer votre adresse e-mail pour commencer.
 Confirm email address,Confirmer l'adresse e-mail
 If you didn't create an account\, you can safely ignore this email.,Si vous n'avez pas créé de compte\, vous pouvez ignorer cet e-mail.
-Reset your Recommand password,Réinitialisez votre mot de passe Recommand
-We received a request to reset your password for your Recommand account.,Nous avons reçu une demande de réinitialisation de votre mot de passe Recommand.
+Reset your {0} password,Réinitialisez votre mot de passe {0}
+We received a request to reset your password for your {0} account.,Nous avons reçu une demande de réinitialisation de votre mot de passe {0}.
 This link will expire in 1 hour for security reasons.,Ce lien expirera dans 1 heure pour des raisons de sécurité.
 If you didn't request this\, you can safely ignore this email.,Si vous n'avez pas fait cette demande\, vous pouvez ignorer cet e-mail.
-You've been invited to join {0} on Recommand,Vous avez été invité à rejoindre {0} sur Recommand
+You've been invited to join {0} on {1},Vous avez été invité à rejoindre {0} sur {1}
 You're invited,Vous êtes invité
-You've been invited to join {0} on Recommand. We've created an account for you.,Vous avez été invité à rejoindre {0} sur Recommand. Nous avons créé un compte pour vous.
+You've been invited to join {0} on {1}. We've created an account for you.,Vous avez été invité à rejoindre {0} sur {1}. Nous avons créé un compte pour vous.
 Set your password,Définissez votre mot de passe
 This invitation will expire in 7 days.,Cette invitation expirera dans 7 jours.
 After that\, ask your team administrator to resend the invitation.,Après cela\, demandez à votre administrateur d'équipe de renvoyer l'invitation.
@@ -205,7 +205,7 @@ Password changed successfully,Mot de passe modifié avec succès
 Failed to change password,Échec du changement de mot de passe
 Current password is incorrect,Le mot de passe actuel est incorrect
 Best regards\,,Cordialement\,
-The Recommand Team,L'équipe Recommand
+The {0} team,L'équipe {0}
 Team name updated,Nom de l'équipe mis à jour
 Team Logo,Logo de l'équipe
 Upload Logo,Télécharger le logo
