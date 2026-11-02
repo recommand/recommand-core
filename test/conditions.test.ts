@@ -47,3 +47,25 @@ describe('ordering operators', () => {
     ).toBe(true);
   });
 });
+
+describe('includes', () => {
+  test('matches text that contains the value, ignoring case', () => {
+    expect(matches({ 'payload.name': { includes: 'acm' } })).toBe(true);
+    expect(matches({ 'payload.name': { includes: 'ACME' } })).toBe(true);
+    expect(matches({ 'payload.name': { includes: 'steel' } })).toBe(false);
+  });
+
+  test('never matches a value that is not text', () => {
+    expect(matches({ 'payload.count': { includes: '3' } })).toBe(false);
+    expect(matches({ 'payload.missing': { includes: 'a' } })).toBe(false);
+  });
+
+  test('the schema refuses empty text', () => {
+    expect(
+      versionedConditionSchema.safeParse({ version: 1, match: { a: { includes: '' } } }).success,
+    ).toBe(false);
+    expect(
+      versionedConditionSchema.safeParse({ version: 1, match: { a: { includes: 'x' } } }).success,
+    ).toBe(true);
+  });
+});

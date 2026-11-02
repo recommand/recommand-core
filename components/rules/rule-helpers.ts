@@ -215,5 +215,7 @@ export function getConditionOperatorLabel(operator: EventFieldOperator, t: Trans
       return t`Is less than`;
     case "lte":
       return t`Is at most`;
+    case "includes":
+      return t`Includes`;
   }
 }

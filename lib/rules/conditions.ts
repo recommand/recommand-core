@@ -106,8 +106,17 @@ export function matchesValues(condition: VersionedCondition | null, source: unkn
       return false;
     }
 
+    if (operators.includes !== undefined && !includesText(value, operators.includes)) {
+      return false;
+    }
+
     return true;
   });
+}
+
+// Case-insensitive "contains text". A value that is not text never matches.
+function includesText(value: unknown, text: string) {
+  return typeof value === 'string' && value.toLowerCase().includes(text.toLowerCase());
 }
 
 export function matchesCondition(condition: VersionedCondition | null, event: EventEnvelope) {

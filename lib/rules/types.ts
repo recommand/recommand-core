@@ -11,6 +11,7 @@ export const conditionOperatorSchema = z.object({
   gte: z.union([z.number(), z.string()]).optional(),
   lt: z.union([z.number(), z.string()]).optional(),
   lte: z.union([z.number(), z.string()]).optional(),
+  includes: z.string().min(1).optional(),
 }).refine(
   (value) =>
     value.eq !== undefined ||
@@ -22,7 +23,8 @@ export const conditionOperatorSchema = z.object({
     value.gt !== undefined ||
     value.gte !== undefined ||
     value.lt !== undefined ||
-    value.lte !== undefined,
+    value.lte !== undefined ||
+    value.includes !== undefined,
   "At least one operator is required"
 );
 
@@ -147,7 +149,8 @@ export type EventFieldOperator =
   | "gt"
   | "gte"
   | "lt"
-  | "lte";
+  | "lte"
+  | "includes";
 
 export type EventFieldValueType =
   | "string"
