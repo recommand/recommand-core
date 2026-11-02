@@ -14,7 +14,7 @@ import { toast } from "../../../components/ui/sonner";
 import { type FormEvent, useState } from "react";
 import { cn } from "../../../lib/utils";
 import { useUserStore } from "../../../lib/user-store";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "@core/hooks/use-translation";
 import { useUIConfig } from "../../../lib/ui-config-store";
 import { usePublicSignupEnabled } from "@core/hooks/use-manifest";
@@ -27,6 +27,7 @@ export function LoginForm({
   const [password, setPassword] = useState("");
   const { login } = useUserStore();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { t } = useTranslation();
   const { publicSignupEnabled } = usePublicSignupEnabled();
   const logoSrc = useUIConfig<string | undefined>("auth.logo-src", undefined);
@@ -37,7 +38,10 @@ export function LoginForm({
     e.preventDefault();
     try {
       await login(email, password);
-      navigate("/");
+      // Back to the page that sent the user here, for example an action link.
+      // Only a path on this site, never another site.
+      const redirect = searchParams.get("redirect");
+      navigate(redirect && /^\/(?![\/\\])/.test(redirect) ? redirect : "/");
     } catch (error) {
       toast.error(t`Login failed`, {
         description:

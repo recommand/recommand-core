@@ -5,6 +5,7 @@
   "scripts": {
     "db:generate": "drizzle-kit generate",
     "test": "bun test ./test/*.test.ts",
+    "test:db": "for f in ./test/db/*.db.test.ts; do bun test $f || exit 1; done",
     "email:dev": "email dev --port 3002",
     "check:theme": "bun run scripts/check-theme.ts",
     "registry:build": "bun run scripts/build-registry.ts",

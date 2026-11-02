@@ -426,3 +426,36 @@ Is more than,Est supérieur à
 Is at least,Est au moins
 Is less than,Est inférieur à
 Is at most,Est au plus
+Change which messages you get,Choisissez les messages que vous recevez
+The button opens a page where you confirm\, so opening this email changes nothing. It works once\, only for you.,Le bouton ouvre une page où vous confirmez : ouvrir cet e-mail ne change donc rien. Il fonctionne une seule fois\, uniquement pour vous.
+The buttons open a page where you confirm\, so opening this email changes nothing. They work once\, only for you.,Les boutons ouvrent une page où vous confirmez : ouvrir cet e-mail ne change donc rien. Ils fonctionnent une seule fois\, uniquement pour vous.
+Sign in to continue,Connectez-vous pour continuer
+This link is for another user,Ce lien est destiné à un autre utilisateur
+This link does not exist,Ce lien n'existe pas
+This link expired,Ce lien a expiré
+Could not take the action,L'action n'a pas pu être effectuée
+Unknown action,Action inconnue
+A reason is required,Une raison est obligatoire
+Unknown notification kind,Type de notification inconnu
+Could not load notification preferences,Les préférences de notification n'ont pas pu être chargées
+Could not save the notification preference,La préférence de notification n'a pas pu être enregistrée
+Done,Terminé
+Your choice is recorded. You can close this page.,Votre choix est enregistré. Vous pouvez fermer cette page.
+Already handled,Déjà traité
+This request was handled already\, or it is no longer needed. Nothing changed.,Cette demande a déjà été traitée ou n'est plus nécessaire. Rien n'a changé.
+Not allowed,Non autorisé
+You can no longer act on this request. Nothing changed.,Vous ne pouvez plus agir sur cette demande. Rien n'a changé.
+Links in notifications work for 72 hours. Open the request in the app instead.,Les liens des notifications fonctionnent pendant 72 heures. Ouvrez plutôt la demande dans l'application.
+Unknown link,Lien inconnu
+This link does not exist. Check that you copied all of it.,Ce lien n'existe pas. Vérifiez que vous l'avez copié en entier.
+Sign in with the account that received the email.,Connectez-vous avec le compte qui a reçu l'e-mail.
+Something went wrong,Une erreur s'est produite
+Try again in a moment.,Réessayez dans un instant.
+Sign in,Se connecter
+Open the app,Ouvrir l'application
+Reason,Raison
+Comment\, optional,Commentaire\, facultatif
+{0} instead,Plutôt {0}
+Signing as {0},Vous signez en tant que {0}
+Notifications,Notifications
+Choose how you hear about what needs your attention.,Choisissez comment vous êtes informé de ce qui demande votre attention.

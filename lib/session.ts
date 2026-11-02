@@ -70,7 +70,12 @@ export type Session = {
 export type SessionVerificationExtension = (c: Context) => Promise<Session | null>;
 export type AuthenticationMethod = "cookie" | "apiKey" | "extension";
 
-export async function verifySession(c: Context, extensions: SessionVerificationExtension[] = []): Promise<{
+/** `allowedMethods` limits the ways that count, for example to a browser session only. */
+export async function verifySession(
+  c: Context,
+  extensions: SessionVerificationExtension[] = [],
+  allowedMethods?: AuthenticationMethod[]
+): Promise<{
   userId: string | null;
   isAdmin: boolean;
   apiKey: ApiKey | null;
@@ -80,12 +85,13 @@ export async function verifySession(c: Context, extensions: SessionVerificationE
     throw new Error("JWT_SECRET is not set");
   }
 
-  const verificationMethods: Array<[SessionVerificationExtension, AuthenticationMethod]> = [
+  const allMethods: Array<[SessionVerificationExtension, AuthenticationMethod]> = [
     [verifySessionCookie, "cookie"],
     [verifyJwtAuth, "apiKey"],
     [verifyBasicAuth, "apiKey"],
     ...extensions.map((extension) => [extension, "extension"] as [SessionVerificationExtension, AuthenticationMethod]),
-  ]
+  ];
+  const verificationMethods = allMethods.filter(([, label]) => !allowedMethods || allowedMethods.includes(label));
 
   let authenticated: { result: Session; method: AuthenticationMethod } | null = null;
 

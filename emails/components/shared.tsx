@@ -34,6 +34,8 @@ const colors = {
   background: '#FFFFFF',
   accent: identity.emailAccent ?? '#171717',
   accentForeground: identity.emailAccentForeground ?? '#FFFFFF',
+  /** Marks something that waits for the reader, such as a notification's eyebrow. */
+  attention: '#D08A2E',
 };
 
 export const Head = () => (
@@ -47,17 +49,19 @@ export const Button = ({
   children,
   variant = 'primary',
   href,
+  className,
 }: {
   children: React.ReactNode;
   href: string;
   variant?: 'primary' | 'secondary';
+  className?: string;
 }) => {
   const buttonVariants = cva(
     'cursor-pointer whitespace-nowrap rounded-lg px-4 py-2.5 text-sm font-semibold',
     {
       variants: {
         variant: {
-          primary: `bg-[${colors.accent}] text-[${colors.accentForeground}]`,
+          primary: `border border-solid border-[${colors.accent}] bg-[${colors.accent}] text-[${colors.accentForeground}]`,
           secondary: `border border-solid border-[${colors.border}] bg-[${colors.background}] text-[${colors.foreground}]`,
         },
       },
@@ -65,7 +69,7 @@ export const Button = ({
   );
 
   return (
-    <ReactEmailButton href={href} className={buttonVariants({ variant })}>
+    <ReactEmailButton href={href} className={buttonVariants({ variant, className })}>
       {children}
     </ReactEmailButton>
   );
@@ -75,9 +79,13 @@ interface EmailLayoutProps {
   preview: string;
   children: React.ReactNode;
   t?: TranslationFunction;
+  /** Ends the message with "Best regards". Off for messages that are not a letter. */
+  signOff?: boolean;
+  /** Small print below the message, for example why the user gets it. */
+  footer?: React.ReactNode;
 }
 
-export function EmailLayout({ preview, children, t = fallbackT }: EmailLayoutProps) {
+export function EmailLayout({ preview, children, t = fallbackT, signOff = true, footer }: EmailLayoutProps) {
   const { name, emailLogoUrl, website, supportEmail } = identity;
 
   return (
@@ -95,11 +103,13 @@ export function EmailLayout({ preview, children, t = fallbackT }: EmailLayoutPro
               <Text className="mt-0 mb-6 text-lg font-semibold">{name}</Text>
             )}
             {children}
-            <Text className={`mt-6 mb-0 text-[${colors.foreground}]`}>
-              {t`Best regards,`}
-              <br />
-              {t`The ${name} team`}
-            </Text>
+            {signOff && (
+              <Text className={`mt-6 mb-0 text-[${colors.foreground}]`}>
+                {t`Best regards,`}
+                <br />
+                {t`The ${name} team`}
+              </Text>
+            )}
             {(website || supportEmail) && (
               <>
                 <Hr className={`mt-6 mb-4 border-[${colors.border}]`} />
@@ -124,6 +134,11 @@ export function EmailLayout({ preview, children, t = fallbackT }: EmailLayoutPro
               </>
             )}
           </Container>
+          {footer && (
+            <Section className="mx-auto max-w-xl px-6">
+              <Text className={`my-1 text-xs text-[${colors.muted}]`}>{footer}</Text>
+            </Section>
+          )}
         </Body>
       </Tailwind>
     </Html>
@@ -165,4 +180,4 @@ export function InfoSection({ children }: InfoSectionProps) {
   );
 }
 
-export { Heading, Hr, Link, Section, Text };
+export { colors as emailColors, Heading, Hr, Link, Section, Text };
