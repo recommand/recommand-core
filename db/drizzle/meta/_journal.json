@@ -218,6 +218,13 @@
       "when": 1793282290242,
       "tag": "20261029135810_nebulous_iron_monger",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1793319283283,
+      "tag": "20261030001443_goofy_paibok",
+      "breakpoints": true
     }
   ]
 }

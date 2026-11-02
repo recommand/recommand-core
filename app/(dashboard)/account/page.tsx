@@ -5,6 +5,7 @@ import { Label } from "@core/components/ui/label";
 import { Input } from "@core/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@core/components/ui/select";
 import { PasswordInput } from "@core/components/form/password-input";
+import { NotificationPreferencesCard } from "@core/components/notifications/notification-preferences-card";
 import { AsyncButton } from "@core/components/async-button";
 import { toast } from "@core/components/ui/sonner";
 import { useTranslation } from "@core/hooks/use-translation";
@@ -183,6 +184,7 @@ export default function AccountPage() {
             </AsyncButton>
           </CardContent>
         </Card>
+        <NotificationPreferencesCard />
       </div>
     </PageTemplate>
   );

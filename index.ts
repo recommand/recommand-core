@@ -15,8 +15,10 @@ import manifest from "./api/manifest";
 import rules from "./api/rules";
 import installations from "./api/installations";
 import events from "./api/events";
+import notifications from "./api/notifications";
 import { initializeEventDataOffloadCronJobs } from "./data/event-data-offload";
 import { initializeRuleCronJobs } from "./data/rules/cron";
+import { initializeNotificationCronJobs } from "./data/notifications/cron";
 
 let logger: Logger;
 
@@ -27,6 +29,7 @@ export async function init(app: RecommandApp, server: Server) {
   logger.info("Initializing core app");
   await initializeRuleCronJobs(logger);
   await initializeEventDataOffloadCronJobs(logger);
+  initializeNotificationCronJobs(logger);
 }
 
 server.route("/", auth);
@@ -43,5 +46,6 @@ server.route("/", manifest);
 server.route("/", rules);
 server.route("/", installations);
 server.route("/", events);
+server.route("/", notifications);
 
 export default server;

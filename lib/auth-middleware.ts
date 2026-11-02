@@ -38,6 +38,26 @@ export type AuthOptions = {
   extensions?: SessionVerificationExtension[];
 };
 
+export type OptionalUserContext = {
+  Variables: {
+    // Not set without a session.
+    user: { id: string; isAdmin: boolean } | undefined;
+    authenticationMethod: AuthenticationMethod | undefined;
+  };
+};
+
+/**
+ * Reads the session when there is one, and lets the request through without
+ * one: for public pages that show more to a signed-in user. With
+ * `cookieOnly`, only a browser session counts; an API key never does.
+ */
+export function optionalAuth(options: AuthOptions & { cookieOnly?: boolean } = {}) {
+  return createMiddleware<OptionalUserContext>(async (c, next) => {
+    await verifySession(c, options.extensions, options.cookieOnly ? ["cookie"] : undefined);
+    await next();
+  });
+}
+
 export function requireAuth(options: AuthOptions = {}) {
   return createMiddleware<AuthenticatedUserContext>(async (c, next) => {
     // Verify user's session
