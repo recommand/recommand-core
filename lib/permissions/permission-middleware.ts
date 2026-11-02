@@ -9,7 +9,7 @@ import {
 import { verifySession } from "../session";
 import { audit } from "@core/lib/audit";
 
-function getActor(c: {
+export function getActorPrincipal(c: {
   var: AuthenticatedUserContext["Variables"];
   get: (key: string) => unknown;
 }): ActorPrincipal | null {
@@ -45,7 +45,7 @@ function getActor(c: {
 
 export function requirePermission(permissionId: string) {
   return createMiddleware<AuthenticatedUserContext>(async (c, next) => {
-    const actor = getActor(c);
+    const actor = getActorPrincipal(c);
     if (!actor) {
       await audit(c, {
         action: "authorize",
