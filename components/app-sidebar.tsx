@@ -95,6 +95,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     (appIdentity.sidebarLogo ? (
       <img src={appIdentity.sidebarLogo} alt={appIdentity.name} className="h-5.5 w-auto" />
     ) : null);
+  // Content above the user menu at the bottom of the sidebar, such as a
+  // notice about the active team, set by the app through the
+  // `sidebar.footer` UI config. It should follow the sidebar theme.
+  const footer = useUIConfig<ReactNode>('sidebar.footer', null);
 
   // Build the menu hierarchy for main items
   const defaultItems = buildMenuItems(
@@ -174,6 +178,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         ))}
       </SidebarContent>
       <SidebarFooter>
+        {footer}
         {userData ? (
           <NavUser user={userData} userMenuItems={userMenuItems} />
         ) : (
