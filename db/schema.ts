@@ -150,7 +150,9 @@ export const ruleDeliveryStatusEnum = pgEnum("rule_delivery_status", [
 ]);
 
 export const rules = pgTable("rules", {
-  id: text("id").primaryKey(),
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => "rul_" + ulid()),
   teamId: text("team_id")
     .references(() => teams.id, { onDelete: "cascade" })
     .notNull(),
