@@ -376,7 +376,6 @@ export async function dispatchRulesForEvent(
     }
 
     const deliveries = parsedRule.actions.map((action, actionIndex) => ({
-      id: "rad_" + ulid(),
       ruleId: parsedRule.id,
       actionIndex,
       actionType: action.type,
