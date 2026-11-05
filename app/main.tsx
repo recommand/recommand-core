@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react'
+import React, { useEffect, useMemo, useRef } from 'react'
 import { toast, Toaster } from '../components/ui/sonner';
 import { BrowserRouter, Route, Routes, useLocation, useNavigate } from 'react-router'
 import { routes } from 'virtual:recommand-file-based-router'
@@ -115,12 +115,19 @@ const RouterInner = () => {
         fetchUser();
     }, [])
 
+    const hasBeenSignedIn = useRef(false);
+    if (user) {
+        hasBeenSignedIn.current = true;
+    }
+
     useEffect(() => {
         if (!isLoading && !user) {
             // If not on a public route, redirect to login
             if (!publicPaths.some(route => location.pathname.startsWith(route))) {
                 console.log("Redirecting to login");
-                navigate("/login");
+                const returnTo = `${location.pathname}${location.search}${location.hash}`;
+                // After signing out, the next person to sign in starts at the dashboard
+                navigate(hasBeenSignedIn.current || returnTo === "/" ? "/login" : `/login?${new URLSearchParams({ returnTo })}`);
             }
         }
     }, [user, isLoading]);
