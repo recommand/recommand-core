@@ -1,9 +1,9 @@
 import { createHash, randomBytes } from "node:crypto";
-import { oauthAccessTokens, oauthGrants, oauthRefreshTokens } from "@core/db/schema";
+import { oauthAccessTokens, oauthClients, oauthGrants, oauthRefreshTokens } from "@core/db/schema";
 import { db } from "@recommand/db";
-import { and, eq, isNull, lt } from "drizzle-orm";
+import { and, eq, gt, isNull, lt } from "drizzle-orm";
 import type { OAuthGrant } from "./oauth-grants";
-import { deleteGrant, findGrant } from "./oauth-grants";
+import { deleteGrant, findGrant, listGrantPermissionIds } from "./oauth-grants";
 
 export const ACCESS_TOKEN_LIFETIME_SECONDS = 60 * 60;
 const REFRESH_TOKEN_LIFETIME = 30 * 24 * 60 * 60 * 1_000;
@@ -64,6 +64,44 @@ export const issueTokens = async (input: {
   });
 
   return issued ? { accessToken, refreshToken } : null;
+};
+
+export const isOAuthAccessToken = (token: string) => token.startsWith(ACCESS_TOKEN_PREFIX);
+
+export type VerifiedAccessToken = {
+  grant: OAuthGrant;
+  permissionIdsByTeam: Map<string, string[]>;
+  resources: string[];
+};
+
+/**
+ * The grant an access token was issued for, with its permissions per team, or
+ * `null` when the token is unknown, expired or its grant was deleted.
+ */
+export const verifyAccessToken = async (token: string): Promise<VerifiedAccessToken | null> => {
+  if (!isOAuthAccessToken(token)) {
+    return null;
+  }
+
+  const [stored] = await db
+    .select({ grant: oauthGrants, resources: oauthAccessTokens.resources })
+    .from(oauthAccessTokens)
+    .innerJoin(oauthGrants, eq(oauthGrants.id, oauthAccessTokens.grantId))
+    // A disabled client's tokens stop working at once
+    .leftJoin(oauthClients, eq(oauthClients.id, oauthGrants.clientId))
+    .where(
+      and(
+        eq(oauthAccessTokens.tokenHash, hashToken(token)),
+        gt(oauthAccessTokens.expiresAt, new Date()),
+        isNull(oauthClients.disabledAt)
+      )
+    )
+    .limit(1);
+  if (!stored) {
+    return null;
+  }
+
+  return { grant: stored.grant, permissionIdsByTeam: await listGrantPermissionIds(stored.grant.id), resources: stored.resources };
 };
 
 export type RefreshResult =

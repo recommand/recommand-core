@@ -11,6 +11,8 @@ import { db } from "@recommand/db";
 import { sessions, teamMembers, users } from "@core/db/schema";
 import { and, eq, isNull, ne } from "drizzle-orm";
 import type { Tx } from "@core/data/rules/db";
+import type { RequestGrant } from "./oauth/bearer";
+import { verifyOAuthAccessToken } from "./oauth/bearer";
 
 const cookie = {
   name: "session",
@@ -77,9 +79,10 @@ export type Session = {
   language: string;
   apiKey: ApiKey | null;
   teamId: string | null;
+  grant?: RequestGrant | null;
 }
 export type SessionVerificationExtension = (c: Context) => Promise<Session | null>;
-export type AuthenticationMethod = "cookie" | "apiKey" | "extension";
+export type AuthenticationMethod = "cookie" | "apiKey" | "extension" | "oauth";
 
 export async function verifySession(c: Context, extensions: SessionVerificationExtension[] = []): Promise<{
   userId: string | null;
@@ -96,6 +99,8 @@ export async function verifySession(c: Context, extensions: SessionVerificationE
     [verifyJwtAuth, "apiKey"],
     [verifyBasicAuth, "apiKey"],
     ...extensions.map((extension) => [extension, "extension"] as [SessionVerificationExtension, AuthenticationMethod]),
+    // After the existing methods, which it leaves as they are
+    [verifyOAuthAccessToken, "oauth"],
   ]
 
   let authenticated: { result: Session; method: AuthenticationMethod } | null = null;
@@ -152,6 +157,8 @@ export async function verifySession(c: Context, extensions: SessionVerificationE
   if (result.teamId) {
     c.set("teamId", result.teamId);
   }
+
+  c.set("grant", result.grant ?? null);
 
   return result;
 }

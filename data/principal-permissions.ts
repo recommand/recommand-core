@@ -16,7 +16,8 @@ import {
 export type ActorPrincipal =
   | { type: "user"; userId: string }
   | { type: "api_key"; apiKeyId: string; ownerUserId: string }
-  | { type: "oauth_grant"; grantId: string; userId: string };
+  // `permissionIds`: what the grant holds in the team, when the request already loaded it
+  | { type: "oauth_grant"; grantId: string; permissionIds?: string[]; userId: string };
 
 export const hasPrincipalPermission = async (
   principal: ActorPrincipal,
@@ -48,12 +49,9 @@ export const hasPrincipalPermission = async (
     if (!getDelegablePermission(permissionId)) {
       return false;
     }
-    const granted = await hasStoredPrincipalPermission(
-      "oauth_grant",
-      principal.grantId,
-      teamId,
-      permissionId
-    );
+    const granted = principal.permissionIds
+      ? principal.permissionIds.includes(permissionId)
+      : await hasStoredPrincipalPermission("oauth_grant", principal.grantId, teamId, permissionId);
     if (!granted) {
       return false;
     }
