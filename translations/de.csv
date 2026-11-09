@@ -200,6 +200,8 @@ Logo,Logo
 Logo removed successfully,Logo erfolgreich entfernt
 Logo uploaded successfully,Logo erfolgreich hochgeladen
 Logout,Abmelden
+API key permissions,API-Schlüssel-Berechtigungen
+This key can only receive permissions its creator has.,Dieser Schlüssel kann nur Berechtigungen erhalten\, die sein Ersteller hat.
 Manage permissions,Berechtigungen verwalten
 Manage Team,Team verwalten
 Manage the team and its members,Team und seine Mitglieder verwalten
