@@ -1,8 +1,9 @@
 import { listMemberTeamPermissionIds } from "@core/data/permissions";
-import { oauthGrants, principalPermissions, teamMembers } from "@core/db/schema";
+import { oauthClients, oauthGrants, principalPermissions, teamMembers, teams } from "@core/db/schema";
 import { getDelegablePermission } from "@core/lib/permissions";
 import { db } from "@recommand/db";
-import { and, eq, inArray, notExists } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
+import { and, desc, eq, inArray, notExists } from "drizzle-orm";
 import type { OAuthClient } from "./oauth-clients";
 
 export type OAuthGrant = typeof oauthGrants.$inferSelect;
@@ -17,6 +18,9 @@ const lockMemberships = (executor: Pick<typeof db, "select">, userId: string, te
     .from(teamMembers)
     .where(and(eq(teamMembers.userId, userId), inArray(teamMembers.teamId, teamIds)))
     .for("share");
+
+// How stale a grant's `lastUsedAt` may get, so most requests don't write it
+const LAST_USED_INTERVAL_MS = 10 * 60 * 1_000;
 
 /**
  * Records a user's consent for a client: the requested permissions in each team
@@ -101,17 +105,93 @@ export const listGrantPermissionIds = async (grantId: string): Promise<Map<strin
   );
 };
 
+export type ConnectedApp = {
+  client: OAuthClient;
+  connectedAt: Date;
+  lastUsedAt: Date | null;
+  teams: { id: string; name: string; permissionIds: string[] }[];
+};
+
 /**
- * Deletes a grant and its permissions, which have no foreign key to the grant.
- * Returns `false` when there was no such grant.
+ * The apps a user connected, most recently connected first. Connecting an app
+ * again makes another grant; its grants show as one app, holding what they hold
+ * together, connected when the first was made and last used when any was.
  */
-export const deleteGrant = async (grantId: string): Promise<boolean> => db.transaction(async (tx) => {
+export const listConnectedApps = async (userId: string): Promise<ConnectedApp[]> => {
+  const grants = await db
+    .select({ client: oauthClients, createdAt: oauthGrants.createdAt, id: oauthGrants.id, lastUsedAt: oauthGrants.lastUsedAt })
+    .from(oauthGrants)
+    .innerJoin(oauthClients, eq(oauthClients.id, oauthGrants.clientId))
+    .where(eq(oauthGrants.userId, userId))
+    .orderBy(desc(oauthGrants.createdAt));
+  if (grants.length === 0) {
+    return [];
+  }
+
+  const rows = await db
+    .select({
+      grantId: principalPermissions.principalId,
+      permissionId: principalPermissions.permissionId,
+      teamId: teams.id,
+      teamName: teams.name,
+    })
+    .from(principalPermissions)
+    .innerJoin(teams, eq(teams.id, principalPermissions.teamId))
+    .where(
+      and(
+        eq(principalPermissions.principalType, "oauth_grant"),
+        inArray(principalPermissions.principalId, grants.map((grant) => grant.id))
+      )
+    )
+    .orderBy(teams.name, principalPermissions.permissionId);
+
+  return [...Map.groupBy(grants, (grant) => grant.client.id).values()].map((clientGrants) => {
+    const grantIds = new Set(clientGrants.map((grant) => grant.id));
+    const clientRows = rows.filter((row) => grantIds.has(row.grantId));
+    return {
+      client: clientGrants[0].client,
+      connectedAt: clientGrants.at(-1)!.createdAt,
+      lastUsedAt: clientGrants.flatMap((grant) => grant.lastUsedAt ?? []).toSorted((a, b) => b.getTime() - a.getTime())[0] ?? null,
+      teams: [...Map.groupBy(clientRows, (row) => row.teamId)].map(([teamId, teamRows]) => ({
+        id: teamId,
+        name: teamRows[0].teamName,
+        permissionIds: [...new Set(teamRows.map((row) => row.permissionId))],
+      })),
+    };
+  });
+};
+
+export const recordGrantUse = async (grant: OAuthGrant): Promise<void> => {
+  if (grant.lastUsedAt && Date.now() - grant.lastUsedAt.getTime() < LAST_USED_INTERVAL_MS) {
+    return;
+  }
+  await db.update(oauthGrants).set({ lastUsedAt: new Date() }).where(eq(oauthGrants.id, grant.id));
+};
+
+// Deletes the grants and their permissions, which have no foreign key to the
+// grant; their tokens and codes go with them. Returns the deleted grants' IDs.
+const deleteGrantsWhere = async (condition: SQL): Promise<string[]> => db.transaction(async (tx) => {
+  const grantIds = (await tx.select({ id: oauthGrants.id }).from(oauthGrants).where(condition)).map(({ id }) => id);
+  if (grantIds.length === 0) {
+    return [];
+  }
   await tx
     .delete(principalPermissions)
-    .where(and(eq(principalPermissions.principalType, "oauth_grant"), eq(principalPermissions.principalId, grantId)));
-  const deleted = await tx.delete(oauthGrants).where(eq(oauthGrants.id, grantId)).returning({ id: oauthGrants.id });
-  return deleted.length > 0;
+    .where(and(eq(principalPermissions.principalType, "oauth_grant"), inArray(principalPermissions.principalId, grantIds)));
+  await tx.delete(oauthGrants).where(inArray(oauthGrants.id, grantIds));
+  return grantIds;
 });
+
+/** Deletes a grant, so its tokens stop working. Returns `false` when there was no such grant. */
+export const deleteGrant = async (grantId: string): Promise<boolean> =>
+  (await deleteGrantsWhere(eq(oauthGrants.id, grantId))).length > 0;
+
+/**
+ * Disconnects one of the user's apps: every grant they gave it is deleted.
+ * Returns the deleted grants' IDs, none when the user hasn't connected the app.
+ */
+export const disconnectApp = async (userId: string, clientId: string): Promise<string[]> =>
+  deleteGrantsWhere(and(eq(oauthGrants.userId, userId), eq(oauthGrants.clientId, clientId))!);
 
 export type GrantWriter = Pick<typeof db, "delete" | "select">;
 

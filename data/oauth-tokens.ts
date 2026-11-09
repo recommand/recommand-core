@@ -3,7 +3,7 @@ import { oauthAccessTokens, oauthClients, oauthGrants, oauthRefreshTokens } from
 import { db } from "@recommand/db";
 import { and, eq, gt, isNull, lt } from "drizzle-orm";
 import type { OAuthGrant } from "./oauth-grants";
-import { deleteGrant, findGrant, listGrantPermissionIds } from "./oauth-grants";
+import { deleteGrant, findGrant, listGrantPermissionIds, recordGrantUse } from "./oauth-grants";
 
 export const ACCESS_TOKEN_LIFETIME_SECONDS = 60 * 60;
 const REFRESH_TOKEN_LIFETIME = 30 * 24 * 60 * 60 * 1_000;
@@ -143,6 +143,7 @@ export const rotateRefreshToken = async (refreshToken: string, clientId: string)
   if (!tokens) {
     return { type: "invalid" };
   }
+  await recordGrantUse(grant);
   return { grant, tokens, type: "rotated" };
 };
 

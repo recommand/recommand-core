@@ -442,7 +442,19 @@ Other,Autres
 Permissions updated,Autorisations mises à jour
 Allow,Autoriser
 An app,Une application
+App disconnected,Application déconnectée
+Apps you allowed to access your teams. Disconnect any app you no longer use.,Les applications que vous avez autorisées à accéder à vos équipes. Déconnectez celles que vous n'utilisez plus.
+Connected app not found,Application connectée introuvable
+Connected apps,Applications connectées
+Connected {0},Connectée le {0}
+Disconnect,Déconnecter
+Disconnect {0},Déconnecter {0}
+Failed to disconnect the app,Impossible de déconnecter l'application
+Failed to load connected apps,Impossible de charger les applications connectées
 Identified by {0},Identifiée par {0}
+Last used {0},Utilisée pour la dernière fois le {0}
+No connected apps,Aucune application connectée
+Not used yet,Pas encore utilisée
 Nothing can be granted in this team,Rien ne peut être accordé dans cette équipe
 Only continue if you started this yourself,Ne continuez que si vous avez lancé cette demande vous-même
 Sign in again to continue,Reconnectez-vous pour continuer
@@ -456,3 +468,4 @@ You're not a member of any team.,Vous n'êtes membre d'aucune équipe.
 {0} wants access to a team,{0} souhaite accéder à une équipe
 Choose what {0} can do,Choisissez ce que {0} peut faire
 Choose at least one permission,Choisissez au moins une autorisation
+{0} will lose access to your teams right away.,{0} perdra immédiatement l'accès à vos équipes.

@@ -207,6 +207,8 @@ export const oauthGrants = pgTable("oauth_grants", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => "grt_" + ulid()),
+  // When the client last used the grant, written at most every ten minutes
+  lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
   principalType: oauthGrantPrincipalTypes("principal_type").notNull(),
 
   clientId: text("client_id")

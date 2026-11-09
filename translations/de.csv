@@ -442,7 +442,19 @@ Other,Sonstige
 Permissions updated,Berechtigungen aktualisiert
 Allow,Zulassen
 An app,Eine App
+App disconnected,App getrennt
+Apps you allowed to access your teams. Disconnect any app you no longer use.,Apps\, denen Sie Zugriff auf Ihre Teams gewährt haben. Trennen Sie Apps\, die Sie nicht mehr verwenden.
+Connected app not found,Verbundene App nicht gefunden
+Connected apps,Verbundene Apps
+Connected {0},Verbunden am {0}
+Disconnect,Trennen
+Disconnect {0},{0} trennen
+Failed to disconnect the app,Die App konnte nicht getrennt werden
+Failed to load connected apps,Verbundene Apps konnten nicht geladen werden
 Identified by {0},Identifiziert durch {0}
+Last used {0},Zuletzt verwendet am {0}
+No connected apps,Keine verbundenen Apps
+Not used yet,Noch nicht verwendet
 Nothing can be granted in this team,In diesem Team kann nichts gewährt werden
 Only continue if you started this yourself,Fahren Sie nur fort\, wenn Sie dies selbst gestartet haben
 Sign in again to continue,Melden Sie sich erneut an\, um fortzufahren
@@ -456,3 +468,4 @@ You're not a member of any team.,Sie sind kein Mitglied eines Teams.
 {0} wants access to a team,{0} möchte auf ein Team zugreifen
 Choose what {0} can do,Wählen Sie aus\, was {0} tun darf
 Choose at least one permission,Wählen Sie mindestens eine Berechtigung
+{0} will lose access to your teams right away.,{0} verliert sofort den Zugriff auf Ihre Teams.

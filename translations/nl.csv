@@ -442,7 +442,19 @@ Other,Overige
 Permissions updated,Rechten bijgewerkt
 Allow,Toestaan
 An app,Een app
+App disconnected,App losgekoppeld
+Apps you allowed to access your teams. Disconnect any app you no longer use.,Apps die je toegang hebt gegeven tot je teams. Koppel apps los die je niet meer gebruikt.
+Connected app not found,Gekoppelde app niet gevonden
+Connected apps,Gekoppelde apps
+Connected {0},Gekoppeld op {0}
+Disconnect,Loskoppelen
+Disconnect {0},{0} loskoppelen
+Failed to disconnect the app,Kon de app niet loskoppelen
+Failed to load connected apps,Kon de gekoppelde apps niet laden
 Identified by {0},Geïdentificeerd door {0}
+Last used {0},Laatst gebruikt op {0}
+No connected apps,Geen gekoppelde apps
+Not used yet,Nog niet gebruikt
 Nothing can be granted in this team,In dit team kan niets worden toegekend
 Only continue if you started this yourself,Ga alleen verder als je dit zelf hebt gestart
 Sign in again to continue,Log opnieuw in om verder te gaan
@@ -456,3 +468,4 @@ You're not a member of any team.,Je bent geen lid van een team.
 {0} wants access to a team,{0} wil toegang tot een team
 Choose what {0} can do,Kies wat {0} mag doen
 Choose at least one permission,Kies minstens één machtiging
+{0} will lose access to your teams right away.,{0} verliest meteen de toegang tot je teams.
