@@ -31,6 +31,7 @@ function serializePermissions(
     id: permission.id,
     name: permission.name,
     description: permission.description,
+    resource: permission.resource,
   }));
 }
 

@@ -384,6 +384,7 @@ Suomi,Fins
 Svenska,Zweeds
 Target URL,Doel-URL
 Team permissions,Teamrechten
+This member manages the team\, so they can give themselves any of these permissions.,Dit lid beheert het team en kan zichzelf dus elk van deze rechten geven.
 These permissions apply to this user across all teams. Only administrators can manage them.,Deze rechten gelden voor deze gebruiker in alle teams. Alleen beheerders kunnen ze beheren.
 this team,dit team
 Toggle columns,Kolommen tonen of verbergen
@@ -437,6 +438,8 @@ Failed to load sessions,Sessies laden mislukt
 Failed to sign out the session,Sessie uitloggen mislukt
 Failed to sign out the other sessions,Andere sessies uitloggen mislukt
 Session not found,Sessie niet gevonden
+Select all,Alles selecteren
+Select none,Niets selecteren
 Delete API keys,API-sleutels verwijderen
 Read API keys,API-sleutels bekijken
 See API keys and the permissions they hold,API-sleutels en hun rechten bekijken
@@ -454,3 +457,5 @@ Delete automation rules\, so they no longer react to events,Automatiseringsregel
 API keys,API-sleutels
 Members,Teamleden
 Rules,Regels
+Other,Overige
+Permissions updated,Rechten bijgewerkt
