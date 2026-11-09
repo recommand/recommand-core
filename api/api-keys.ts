@@ -1,5 +1,7 @@
 import { zodValidator } from "@recommand/lib/zod-validator";
+import { describeRoute } from "hono-openapi";
 import { z } from "zod";
+import "zod-openapi/extend";
 import { actionFailure, actionSuccess } from "@recommand/lib/utils";
 import { Server } from "@recommand/lib/api";
 import { createApiKey, deleteApiKey, getApiKeys, getApiKeyCreationStatus, setApiKeyPermissions } from "@core/data/api-keys";
@@ -9,6 +11,7 @@ import {
   PermissionNotRegisteredError,
 } from "@core/data/permissions";
 import { requireTeamAccess } from "@core/lib/auth-middleware";
+import { describeErrorResponse, describeSuccessResponse } from "@core/lib/api-docs";
 import { audit } from "@core/lib/audit";
 
 const server = new Server();
@@ -23,6 +26,15 @@ const permissionErrorStatus = (error: unknown) => {
   }
   return null;
 };
+
+const permissionIdsSchema = z.array(z.string()).openapi({ description: "The ids of the team permissions the key holds." });
+
+const apiKeyPermissionsSchema = z
+  .object({
+    id: z.string().openapi({ description: "The API key's id." }),
+    permissionIds: permissionIdsSchema,
+  })
+  .openapi({ ref: "ApiKeyPermissions" });
 
 const _getApiKeys = server.get(
   "/:teamId/api-keys",
@@ -119,6 +131,20 @@ const _isApiKeyCreationEnabled = server.get(
 const _setApiKeyPermissions = server.put(
   "/:teamId/api-keys/:apiKeyId/permissions",
   requireTeamAccess(),
+  describeRoute({
+    description: "Replace the team permissions of an API key. The key's owner must hold each of them; changing someone else's key also needs `core.team.manage`.",
+    hide: true,
+    operationId: "setApiKeyPermissions",
+    responses: {
+      ...describeSuccessResponse("The key's permissions were replaced", z.object({ apiKey: apiKeyPermissionsSchema })),
+      ...describeErrorResponse(400, "A permission is unknown or not a team permission"),
+      ...describeErrorResponse(403, "The caller can't give the key one of these permissions"),
+      ...describeErrorResponse(404, "The API key was not found"),
+      ...describeErrorResponse(500, "Failed to set the permissions"),
+    },
+    summary: "Set API Key Permissions",
+    tags: ["API Keys"],
+  }),
   zodValidator(
     "param",
     z.object({
@@ -153,7 +179,7 @@ const _setApiKeyPermissions = server.put(
         objectType: "core.api_key",
         subsystem: "core.api_keys",
       });
-      return c.json(actionSuccess({ apiKey: updated }));
+      return c.json(actionSuccess({ apiKey: { id: updated.id, permissionIds: updated.permissionIds } }));
     } catch (error) {
       const status = permissionErrorStatus(error);
       if (status) {

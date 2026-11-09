@@ -12,15 +12,18 @@ CREATE TABLE "principal_permissions" (
 --> statement-breakpoint
 ALTER TABLE "principal_permissions" ADD CONSTRAINT "principal_permissions_team_id_teams_id_fk" FOREIGN KEY ("team_id") REFERENCES "public"."teams"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "principal_permissions_principal_idx" ON "principal_permissions" USING btree ("principal_type","principal_id","team_id");--> statement-breakpoint
+-- Existing keys get their owner's team permissions, so they keep working as before.
 INSERT INTO "principal_permissions" ("principal_type", "principal_id", "team_id", "permission_id", "granted_by_user_id")
 SELECT 'api_key', keys."id", keys."team_id", permissions."permission_id", keys."user_id"
 FROM "api_keys" AS keys
 INNER JOIN "user_permissions" AS permissions
 ON permissions."user_id" = keys."user_id" AND permissions."team_id" = keys."team_id"
 ON CONFLICT DO NOTHING;--> statement-breakpoint
+-- Admins hold every team permission without rows, so their keys get them explicitly.
 INSERT INTO "principal_permissions" ("principal_type", "principal_id", "team_id", "permission_id", "granted_by_user_id")
-SELECT 'api_key', keys."id", keys."team_id", 'core.team.manage', keys."user_id"
+SELECT 'api_key', keys."id", keys."team_id", permissions."permission_id", keys."user_id"
 FROM "api_keys" AS keys
 INNER JOIN "users" ON "users"."id" = keys."user_id"
+CROSS JOIN (VALUES ('core.team.manage')) AS permissions("permission_id")
 WHERE "users"."is_admin" = true
 ON CONFLICT DO NOTHING;

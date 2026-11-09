@@ -132,8 +132,10 @@ export const setPrincipalPermissions = async (input: {
   actorApiKeyId?: string;
 }, executor?: PermissionWriter): Promise<string[]> => {
   const uniqueIds = [...new Set(input.permissionIds)];
-  const grantable = await getGrantablePermissions(input.actorUserId, input.teamId);
-  const grantableIds = new Set(grantable.map((permission) => permission.id));
+  // Holding a permission is enough to put it on your own key; giving it to someone else's needs the right to grant it
+  const grantableIds = input.ownerUserId === input.actorUserId
+    ? null
+    : new Set((await getGrantablePermissions(input.actorUserId, input.teamId)).map((permission) => permission.id));
   const ownerIds = input.ownerUserId
     ? new Set(await listOwnerTeamPermissionIds(input.ownerUserId, input.teamId))
     : null;
@@ -158,7 +160,7 @@ export const setPrincipalPermissions = async (input: {
     if (actorKeyIds && !actorKeyIds.has(permissionId)) {
       throw new NotAuthorizedError("API keys cannot grant permissions they do not have");
     }
-    if (!grantableIds.has(permissionId)) {
+    if (grantableIds && !grantableIds.has(permissionId)) {
       throw new NotAuthorizedError(
         "You don't have permission to grant this permission"
       );

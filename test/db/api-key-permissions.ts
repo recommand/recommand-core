@@ -26,8 +26,9 @@ const { requirePermission } = await import("../../lib/permissions/permission-mid
 const { registerPermission } = await import("../../lib/permissions");
 const { getApiKeyPermissionIds, setApiKeyPermissions } = await import("../../data/api-keys");
 const { hasPrincipalPermission } = await import("../../data/principal-permissions");
+const { removeTeamMember } = await import("../../data/team-members");
 
-const migration = fileURLToPath(new URL("../../db/drizzle/20261029135810_nebulous_iron_monger.sql", import.meta.url));
+const migration = fileURLToPath(new URL("../../db/drizzle/20261109000549_naive_revanche.sql", import.meta.url));
 const app = new Hono<AuthenticatedUserContext>();
 app.get("/login/:userId", async (c) => {
   await createSession(c, { id: c.req.param("userId"), isAdmin: false });
@@ -264,5 +265,25 @@ describe("API-key grants", () => {
     const response = await app.request("/one/api-keys", { headers });
     const json = await response.json() as any;
     expect(json.apiKeys.map((key: any) => [key.id, key.permissionIds])).toEqual([[body.apiKey.id, ["test.read"]]]);
+  });
+  test("a member who can't manage the team puts their own permissions on their key", async () => {
+    await pool.query("INSERT INTO user_permissions (user_id, team_id, permission_id) VALUES ('other', 'one', 'test.read')");
+    const headers = await cookie("other");
+    const { response, body } = await create("basic", ["test.read"], headers);
+    expect(response.status).toBe(200);
+    expect(body.apiKey.permissionIds).toEqual(["test.read"]);
+    expect((await create("basic", ["test.write"], headers)).response.status).toBe(403);
+  });
+  test("deleting a key deletes its grants", async () => {
+    const { body } = await create("basic", ["test.read"]);
+    const response = await app.request(`/one/api-keys/${body.apiKey.id}`, { headers: await cookie(), method: "DELETE" });
+    expect(response.status).toBe(200);
+    expect((await pool.query("SELECT * FROM principal_permissions")).rows).toEqual([]);
+  });
+  test("removing a member deletes their keys' grants", async () => {
+    await create("basic", ["test.read"]);
+    await create("basic", ["test.other"], undefined, "two");
+    await removeTeamMember("one", "owner");
+    expect((await pool.query("SELECT team_id, permission_id FROM principal_permissions")).rows).toEqual([{ permission_id: "test.other", team_id: "two" }]);
   });
 });

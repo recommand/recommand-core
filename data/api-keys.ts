@@ -1,4 +1,4 @@
-import { apiKeys, teams, users } from "@core/db/schema";
+import { apiKeys, principalPermissions, teams, users } from "@core/db/schema";
 import { db } from "@recommand/db";
 import { and, eq } from "drizzle-orm";
 import bcrypt from "bcrypt";
@@ -264,8 +264,15 @@ export async function checkApiKey(apiKeyId: string, secret: string) {
     };
 }
 
-export async function deleteApiKey(userId: string, teamId: string, apiKeyId: string) {
-    return await db
+export const deleteApiKey = async (userId: string, teamId: string, apiKeyId: string) => db.transaction(async (tx) => {
+    const deleted = await tx
         .delete(apiKeys)
-        .where(and(eq(apiKeys.id, apiKeyId), eq(apiKeys.userId, userId), eq(apiKeys.teamId, teamId)));
-}
+        .where(and(eq(apiKeys.id, apiKeyId), eq(apiKeys.userId, userId), eq(apiKeys.teamId, teamId)))
+        .returning({ id: apiKeys.id });
+    if (deleted.length > 0) {
+        await tx
+            .delete(principalPermissions)
+            .where(and(eq(principalPermissions.principalType, "api_key"), eq(principalPermissions.principalId, apiKeyId)));
+    }
+    return deleted;
+});
