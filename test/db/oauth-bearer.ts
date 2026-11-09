@@ -26,6 +26,9 @@ app.get("/me", requireAuth(), ok);
 app.get("/admin", requireAdmin(), ok);
 app.get("/global", requireGlobalPermission("test.global"), ok);
 app.get("/team", requireTeamAccess(), ok);
+// A path that names something of a team rather than the team, like a company
+const things: Record<string, string> = { "thing-one": "one", "thing-two": "two" };
+app.get("/things/:thingId", requireTeamAccess({ findTeamId: async (c) => things[c.req.param("thingId") ?? ""] ?? null }), ok);
 app.get("/:teamId/access", requireTeamAccess(), ok);
 app.get("/:teamId/read", requireTeamAccess(), requirePermission("test.read"), ok);
 app.get("/:teamId/write", requireTeamAccess(), requirePermission("test.write"), ok);
@@ -72,6 +75,15 @@ describe("an OAuth access token", () => {
     expect((await call("/one/read", accessToken)).status).toBe(200);
   });
 
+  test("addresses the team of what the path names, or needs one when the grant covers several", async () => {
+    const { accessToken } = await tokenFor("member", ["one", "two"], ["test.read"]);
+    expect(await (await call("/things/thing-two", accessToken)).json()).toEqual({ team: "two" });
+    const response = await call("/team", accessToken);
+    expect(response.status).toBe(400);
+    expect((await response.json()).code).toBe("team_required");
+    expect((await call("/things/unknown", accessToken)).status).toBe(400);
+  });
+
   test("asks for a permission it wasn't granted", async () => {
     const { accessToken } = await tokenFor("member", ["one"], ["test.read"]);
     const response = await call("/one/write", accessToken);
@@ -100,6 +112,8 @@ describe("an OAuth access token", () => {
   test("addresses its grant's only team when the route names none", async () => {
     const { accessToken } = await tokenFor("member", ["two"], ["test.read"]);
     expect(await (await call("/team", accessToken)).json()).toEqual({ team: "two" });
+    // Unless what the route names belongs to another team
+    expect((await call("/things/thing-one", accessToken)).status).toBe(403);
   });
 
   test("sets up rules only with the permission the user grants deliberately", async () => {

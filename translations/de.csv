@@ -465,7 +465,11 @@ Unverified app,Nicht verifizierte App
 Back to {0},Zurück zu {0}
 You'll be sent back to {0},Sie werden zu {0} zurückgeleitet
 You're not a member of any team.,Sie sind kein Mitglied eines Teams.
-{0} wants access to a team,{0} möchte auf ein Team zugreifen
+{0} wants access to your teams,{0} möchte auf Ihre Teams zugreifen
 Choose what {0} can do,Wählen Sie aus\, was {0} tun darf
 Choose at least one permission,Wählen Sie mindestens eine Berechtigung
+Choose a permission for {0},Wählen Sie eine Berechtigung für {0}
+Choose at least one team,Wählen Sie mindestens ein Team
+Each team only gets the permissions you hold there.,Jedes Team erhält nur die Berechtigungen\, die Sie dort haben.
+Teams,Teams
 {0} will lose access to your teams right away.,{0} verliert sofort den Zugriff auf Ihre Teams.

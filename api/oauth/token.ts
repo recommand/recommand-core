@@ -25,14 +25,21 @@ import { describeOAuthResponse, oauthErrorSchema } from "./responses";
 
 const server = new Server();
 
+const tokenTeamSchema = z
+  .object({
+    id: z.string(),
+    name: z.string().nullable(),
+    scope: z.string().openapi({ description: "The permissions the grant holds in this team, separated by spaces." }),
+  })
+  .openapi({ ref: "OAuthTokenTeam" });
+
 const tokenResponseSchema = z
   .object({
     access_token: z.string(),
     expires_in: z.number().int().openapi({ description: "Seconds until the access token expires." }),
     refresh_token: z.string().optional(),
     scope: z.string().openapi({ description: "The granted permissions, separated by spaces." }),
-    team_id: z.string().optional().openapi({ description: "The team the grant covers." }),
-    team_name: z.string().optional(),
+    teams: z.array(tokenTeamSchema).openapi({ description: "The grant's teams, with what it holds in each." }),
     token_type: z.literal("Bearer"),
   })
   .openapi({ ref: "OAuthTokenResponse" });
@@ -54,16 +61,22 @@ const respond = (c: Context, body: Record<string, unknown>, status: 200 | 400 = 
 const fail = (c: Context, error: TokenError, description: string) =>
   respond(c, { error, error_description: description }, 400);
 
+// Lists the grant's teams with what it holds in each, so a client with several
+// knows which teams it can name in a request
 const tokenResponse = async (c: Context, tokens: IssuedTokens, permissionIdsByTeam: Map<string, string[]>) => {
-  const teamIds = [...permissionIdsByTeam.keys()];
-  // A grant covers one team for now; with more, the client picks one per request
-  const team = teamIds.length === 1 ? await getTeam(teamIds[0]) : null;
+  const teams = await Promise.all(
+    [...permissionIdsByTeam].map(async ([teamId, permissionIds]) => ({
+      id: teamId,
+      name: (await getTeam(teamId))?.name ?? null,
+      scope: permissionIds.join(" "),
+    }))
+  );
   return respond(c, {
     access_token: tokens.accessToken,
     expires_in: tokens.expiresInSeconds,
     ...(tokens.refreshToken ? { refresh_token: tokens.refreshToken } : {}),
     scope: [...new Set([...permissionIdsByTeam.values()].flat())].join(" "),
-    ...(team ? { team_id: team.id, team_name: team.name } : {}),
+    teams,
     token_type: "Bearer",
   });
 };

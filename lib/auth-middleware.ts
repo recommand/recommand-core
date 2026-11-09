@@ -119,6 +119,11 @@ export const refuseOAuthToken = async (c: Context) => {
 export type TeamAccessOptions = {
   param?: string;
   getTeamId?: (c: Context) => string;
+  /**
+   * The team of what the request names, such as a company, for an OAuth grant
+   * when the path has no team: a grant can cover several teams.
+   */
+  findTeamId?: (c: Context) => Promise<string | null>;
   extensions?: SessionVerificationExtension[];
 };
 
@@ -182,10 +187,19 @@ export function requireTeamAccess(options: TeamAccessOptions = {}) {
       const credentialTeamId: string | null = c.get("teamId");
       const grant: RequestGrant | null = c.get("grant") ?? null;
       const grantTeamIds = grant ? [...grant.permissionIdsByTeam.keys()] : [];
-      // A team-bound credential, or a grant for one team, addresses its own team
-      // unless the request names one
-      const teamId = teamIdFromRequest || credentialTeamId || (grantTeamIds.length === 1 ? grantTeamIds[0] : null);
+      // A team-bound credential addresses its own team unless the request names
+      // one. A grant addresses the team of what the request names, or its only team.
+      const teamId =
+        teamIdFromRequest ||
+        credentialTeamId ||
+        (grant ? ((await options.findTeamId?.(c)) ?? (grantTeamIds.length === 1 ? grantTeamIds[0] : null)) : null);
       if (!teamId) {
+        if (grantTeamIds.length > 1) {
+          return c.json(
+            { ...actionFailure("This OAuth grant covers several teams, so the request has to name one"), code: "team_required" as const },
+            400
+          );
+        }
         return c.json(actionFailure("Team ID is required"), 400);
       }
 

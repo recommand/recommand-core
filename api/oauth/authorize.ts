@@ -167,7 +167,7 @@ const _getAuthorization = server.get(
 const _decideAuthorization = server.post(
   "/oauth/authorize",
   describeRoute({
-    description: "Approve an authorization request with the team and permissions the user chose, or deny it, and return where to send the user back to.",
+    description: "Approve an authorization request with the teams and permissions the user chose, or deny it, and return where to send the user back to.",
     hide: true,
     operationId: "decideOAuthConsent",
     responses: {
@@ -184,10 +184,10 @@ const _decideAuthorization = server.post(
     "json",
     z.object({
       parameters: parametersSchema,
-      // The permissions the user chose, from those the team offers; absent when the user denies the request
+      // The permissions the user chose, from those the teams offer; absent when the user denies the request
       permissionIds: z.array(z.string()).optional(),
-      // Null when the user denies the request
-      teamId: z.string().min(1).nullable(),
+      // The teams the user picked; null when the user denies the request
+      teamIds: z.array(z.string().min(1)).nullable(),
     })
   ),
   async (c) => {
@@ -196,7 +196,7 @@ const _decideAuthorization = server.post(
       return c.json(actionFailure({ login: [t`Sign in again to continue`] }), 401);
     }
 
-    const { parameters, permissionIds: chosen, teamId } = c.req.valid("json");
+    const { parameters, permissionIds: chosen, teamIds } = c.req.valid("json");
     const result = await parseAuthorizationRequest(parameters, (clientId) => findClient(clientId));
     if (result.type === "invalid") {
       return c.json(actionFailure({ request: [result.description] }), 400);
@@ -207,7 +207,7 @@ const _decideAuthorization = server.post(
 
     const { request } = result;
     const userId = c.get("user").id;
-    if (teamId === null) {
+    if (teamIds === null) {
       await audit(c, {
         action: "authorize",
         objectId: request.client.id,
@@ -228,16 +228,27 @@ const _decideAuthorization = server.post(
       );
     }
 
-    const team = (await listTeamChoices(userId, request)).find((choice) => choice.id === teamId);
-    if (!team || team.permissionIds.length === 0) {
-      return c.json(actionFailure({ teamId: [t`Nothing can be granted in this team`] }), 400);
+    if (teamIds.length === 0) {
+      return c.json(actionFailure({ teamIds: [t`Choose at least one team`] }), 400);
     }
-    // Only what the team offered: what the client asked for and the user holds there. Without
-    // a choice, what the consent screen ticks: everything but the `opt_in` permissions.
-    const ticked = chosen ?? team.permissionIds.filter((permissionId) => getDelegablePermission(permissionId)?.delegation !== "opt_in");
-    const permissionIds = team.permissionIds.filter((permissionId) => ticked.includes(permissionId));
-    if (permissionIds.length === 0) {
-      return c.json(actionFailure({ permissionIds: [t`Choose at least one permission`] }), 400);
+    const teams = (await listTeamChoices(userId, request)).filter((choice) => teamIds.includes(choice.id));
+    if (teams.length < new Set(teamIds).size || teams.some((team) => team.permissionIds.length === 0)) {
+      return c.json(actionFailure({ teamIds: [t`Nothing can be granted in this team`] }), 400);
+    }
+    // Only what the teams offered: what the client asked for and the user holds there. Without
+    // a choice, what the consent screen ticks: everything but the `opt_in` permissions. Each
+    // team gets the chosen permissions the user holds there.
+    const offered = [...new Set(teams.flatMap((team) => team.permissionIds))];
+    const ticked = chosen ?? offered.filter((permissionId) => getDelegablePermission(permissionId)?.delegation !== "opt_in");
+    const permissionIds = offered.filter((permissionId) => ticked.includes(permissionId));
+    const emptyTeam = teams.find((team) => !team.permissionIds.some((permissionId) => permissionIds.includes(permissionId)));
+    if (permissionIds.length === 0 || emptyTeam) {
+      return c.json(
+        actionFailure({
+          permissionIds: [emptyTeam && permissionIds.length > 0 ? t`Choose a permission for ${emptyTeam.name}` : t`Choose at least one permission`],
+        }),
+        400
+      );
     }
 
     const code = await createAuthorizationCode({
@@ -246,17 +257,21 @@ const _decideAuthorization = server.post(
       permissionIds,
       redirectUri: request.redirectUri,
       resources: request.resources,
-      teamIds: [team.id],
+      teamIds: teams.map((team) => team.id),
       userId,
     });
-    await audit(c, {
-      action: "grant_access",
-      metadata: { permissionIds },
-      objectId: request.client.id,
-      objectType: "core.oauth_client",
-      subsystem: "core.oauth",
-      teamId: team.id,
-    });
+    await Promise.all(
+      teams.map((team) =>
+        audit(c, {
+          action: "grant_access",
+          metadata: { permissionIds: team.permissionIds.filter((permissionId) => permissionIds.includes(permissionId)) },
+          objectId: request.client.id,
+          objectType: "core.oauth_client",
+          subsystem: "core.oauth",
+          teamId: team.id,
+        })
+      )
+    );
 
     return c.json(
       actionSuccess({

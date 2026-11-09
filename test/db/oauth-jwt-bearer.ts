@@ -56,7 +56,7 @@ describe("exchanging an assertion", () => {
   test("returns an access token with what the user can delegate in the team", async () => {
     const { body, status } = await exchange(await assertion());
     expect(status).toBe(200);
-    expect(body).toMatchObject({ team_id: "one", team_name: "One", token_type: "Bearer" });
+    expect(body).toMatchObject({ teams: [{ id: "one", name: "One" }], token_type: "Bearer" });
     expect(decodeProtectedHeader(body.access_token).typ).toBe("at+jwt");
     expect(body.refresh_token).toBeUndefined();
     // `core.api_keys.read` is never delegated, `core.rules.write` is opt-in

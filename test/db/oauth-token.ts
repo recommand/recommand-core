@@ -73,7 +73,12 @@ describe("exchanging a code", () => {
     const { body, headers, status } = await exchange(await authorize());
     expect(status).toBe(200);
     expect(headers.get("Cache-Control")).toBe("no-store");
-    expect(body).toMatchObject({ expires_in: 3_600, scope: "core.rules.read", team_id: "one", team_name: "One", token_type: "Bearer" });
+    expect(body).toMatchObject({
+      expires_in: 3_600,
+      scope: "core.rules.read",
+      teams: [{ id: "one", name: "One", scope: "core.rules.read" }],
+      token_type: "Bearer",
+    });
     expect(decodeProtectedHeader(body.access_token).typ).toBe("at+jwt");
     expect(body.refresh_token).toStartWith("ort_");
 
@@ -151,7 +156,7 @@ describe("refreshing", () => {
     expect(second.status).toBe(200);
     expect(second.body.refresh_token).not.toBe(first.refresh_token);
     expect(second.body.access_token).not.toBe(first.access_token);
-    expect(second.body.team_id).toBe("one");
+    expect(second.body.teams).toEqual([{ id: "one", name: "One", scope: "core.rules.read" }]);
   });
 
   test("deletes the grant when a replaced token comes back", async () => {

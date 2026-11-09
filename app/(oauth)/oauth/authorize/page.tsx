@@ -9,8 +9,8 @@ import { Alert, AlertDescription, AlertTitle } from "@core/components/ui/alert";
 import { Badge } from "@core/components/ui/badge";
 import { Button } from "@core/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@core/components/ui/card";
+import { Checkbox } from "@core/components/ui/checkbox";
 import { Label } from "@core/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@core/components/ui/radio-group";
 import { Skeleton } from "@core/components/ui/skeleton";
 import { toast } from "@core/components/ui/sonner";
 import { useTranslation } from "@core/hooks/use-translation";
@@ -29,6 +29,10 @@ type Consent = {
 
 type Parameters = Record<string, string | string[]>;
 
+// What the picked teams can give the app: what it asked for and the user holds there
+const listOffered = (consent: Consent, teamIds: string[]) =>
+  new Set(consent.teams.filter((team) => teamIds.includes(team.id)).flatMap((team) => team.permissionIds));
+
 // The request exactly as the client sent it; `resource` can be repeated
 const readParameters = (searchParams: URLSearchParams): Parameters => {
   const resources = searchParams.getAll("resource");
@@ -46,17 +50,22 @@ const AuthorizePage: FunctionComponent = () => {
   const [error, setError] = useState<string | null>(null);
   // An error to tell the client about, after the user chose to go back to it
   const [errorRedirect, setErrorRedirect] = useState<URL | null>(null);
-  const [teamId, setTeamId] = useState<string | null>(null);
+  const [teamIds, setTeamIds] = useState<string[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const { t } = useTranslation();
   const parameters = useMemo(() => readParameters(searchParams), [searchParams]);
 
-  // Choosing a team ticks what the app can get there, except what the user grants deliberately
-  const chooseTeam = (choice: Consent["teams"][number] | null, permissions: Consent["permissions"]) => {
-    setTeamId(choice?.id ?? null);
-    setSelectedIds(
-      permissions
-        .filter((permission) => choice?.permissionIds.includes(permission.id) && permission.delegation !== "opt_in")
+  // Picking teams keeps the choices made so far, and ticks what they newly offer,
+  // except what the user grants deliberately
+  const chooseTeams = (current: Consent, previousTeamIds: string[], nextTeamIds: string[]) => {
+    const before = listOffered(current, previousTeamIds);
+    const after = listOffered(current, nextTeamIds);
+    setTeamIds(nextTeamIds);
+    setSelectedIds((selected) =>
+      current.permissions
+        .filter((permission) =>
+          after.has(permission.id) && (before.has(permission.id) ? selected.includes(permission.id) : permission.delegation !== "opt_in")
+        )
         .map((permission) => permission.id)
     );
   };
@@ -83,16 +92,18 @@ const AuthorizePage: FunctionComponent = () => {
         return;
       }
       setConsent(data.consent);
-      if (data.consent) {
-        chooseTeam(data.consent.teams.find((team) => team.permissionIds.length > 0) ?? null, data.consent.permissions);
+      // One team to start with; the user adds others deliberately
+      const firstTeam = data.consent?.teams.find((team) => team.permissionIds.length > 0);
+      if (data.consent && firstTeam) {
+        chooseTeams(data.consent, [], [firstTeam.id]);
       }
     };
     load().catch(() => setError(t`An unexpected error occurred`));
   }, [parameters]);
 
-  const decide = async (decision: string | null) => {
+  const decide = async (approved: boolean) => {
     const response = await client.oauth.authorize.$post({
-      json: { parameters, permissionIds: decision ? selectedIds : undefined, teamId: decision },
+      json: { parameters, permissionIds: approved ? selectedIds : undefined, teamIds: approved ? teamIds : null },
     });
     const data = await response.json();
     if (!data.success) {
@@ -103,10 +114,10 @@ const AuthorizePage: FunctionComponent = () => {
     window.location.assign(data.redirectTo);
   };
 
-  const team = consent?.teams.find((choice) => choice.id === teamId) ?? null;
+  const offered = consent ? listOffered(consent, teamIds) : new Set<string>();
   // The permissions the user grants deliberately, which start unticked
   const optInNames = (consent?.permissions ?? [])
-    .filter((permission) => team?.permissionIds.includes(permission.id) && permission.delegation === "opt_in")
+    .filter((permission) => offered.has(permission.id) && permission.delegation === "opt_in")
     .map((permission) => t(permission.name));
   const clientName = consent?.client.name ?? consent?.client.host ?? t`An app`;
 
@@ -142,7 +153,7 @@ const AuthorizePage: FunctionComponent = () => {
                 <Badge variant="outline">{t`Unverified app`}</Badge>
               </div>
 
-              <CardTitle className="text-2xl">{t`${clientName} wants access to a team`}</CardTitle>
+              <CardTitle className="text-2xl">{t`${clientName} wants access to your teams`}</CardTitle>
 
               <CardDescription className="flex flex-col gap-1">
                 {consent.client.host ? <span>{t`Identified by ${consent.client.host}`}</span> : null}
@@ -165,21 +176,24 @@ const AuthorizePage: FunctionComponent = () => {
               ) : null}
               <div className="flex flex-col gap-3">
                 <span className="text-sm font-medium leading-none" id="consent-teams">
-                  {t`Team`}
+                  {t`Teams`}
                 </span>
 
                 {consent.teams.length > 0 ? (
-                  <RadioGroup
-                    aria-labelledby="consent-teams"
-                    onValueChange={(value) => chooseTeam(consent.teams.find((choice) => choice.id === value) ?? null, consent.permissions)}
-                    value={teamId ?? undefined}
-                  >
+                  <div aria-labelledby="consent-teams" className="flex flex-col gap-2" role="group">
                     {consent.teams.map((choice) => (
                       <div className="flex items-center gap-2" key={choice.id}>
-                        <RadioGroupItem
+                        <Checkbox
+                          checked={teamIds.includes(choice.id)}
                           disabled={choice.permissionIds.length === 0}
                           id={`team-${choice.id}`}
-                          value={choice.id}
+                          onCheckedChange={(checked) =>
+                            chooseTeams(
+                              consent,
+                              teamIds,
+                              checked === true ? [...teamIds, choice.id] : teamIds.filter((teamId) => teamId !== choice.id)
+                            )
+                          }
                         />
 
                         <Label className="font-normal" htmlFor={`team-${choice.id}`}>
@@ -187,28 +201,31 @@ const AuthorizePage: FunctionComponent = () => {
                         </Label>
                       </div>
                     ))}
-                  </RadioGroup>
+                  </div>
                 ) : (
                   <p className="text-sm text-muted-foreground">{t`You're not a member of any team.`}</p>
                 )}
               </div>
 
-              {team ? (
+              {teamIds.length > 0 ? (
                 <div aria-labelledby="consent-permissions" className="flex flex-col gap-3" role="group">
                   <span className="text-sm font-medium leading-none" id="consent-permissions">
                     {t`Choose what ${clientName} can do`}
                   </span>
 
+                  {teamIds.length > 1 ? (
+                    <p className="text-sm text-muted-foreground">{t`Each team only gets the permissions you hold there.`}</p>
+                  ) : null}
                   {optInNames.length > 0 ? (
                     <p className="text-sm text-muted-foreground">
                       {t`These start unticked, so ${clientName} only gets them if you choose to: ${optInNames.join(", ")}.`}
                     </p>
                   ) : null}
                   <PermissionChecklist
-                    idPrefix={`consent-${team.id}`}
+                    idPrefix="consent"
                     onChange={setSelectedIds}
                     permissions={consent.permissions
-                      .filter((permission) => team.permissionIds.includes(permission.id))
+                      .filter((permission) => offered.has(permission.id))
                       .map(({ description, id, name, resource }) => ({
                         description: description ?? undefined,
                         id,
@@ -222,11 +239,11 @@ const AuthorizePage: FunctionComponent = () => {
             </CardContent>
 
             <CardFooter className="flex justify-end gap-2">
-              <AsyncButton onClick={() => decide(null)} variant="outline">
+              <AsyncButton onClick={() => decide(false)} variant="outline">
                 {t`Cancel`}
               </AsyncButton>
 
-              <AsyncButton disabled={!team || selectedIds.length === 0} onClick={() => decide(team!.id)}>
+              <AsyncButton disabled={teamIds.length === 0 || selectedIds.length === 0} onClick={() => decide(true)}>
                 {t`Allow`}
               </AsyncButton>
             </CardFooter>

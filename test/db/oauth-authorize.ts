@@ -31,10 +31,10 @@ beforeEach(async () => {
   await pool.query(`INSERT INTO users (id, email, password_hash, is_admin) VALUES
     ('member', 'member@example.com', 'unused', false),
     ('admin', 'admin@example.com', 'unused', true)`);
-  await pool.query("INSERT INTO teams (id, name) VALUES ('one', 'One'), ('two', 'Two')");
-  await pool.query("INSERT INTO team_members (team_id, user_id) VALUES ('one', 'member')");
+  await pool.query("INSERT INTO teams (id, name) VALUES ('one', 'One'), ('two', 'Two'), ('three', 'Three')");
+  await pool.query("INSERT INTO team_members (team_id, user_id) VALUES ('one', 'member'), ('three', 'member')");
   await pool.query(`INSERT INTO user_permissions (user_id, team_id, permission_id) VALUES
-    ('member', 'one', 'core.rules.read'), ('member', 'one', 'core.rules.write')`);
+    ('member', 'one', 'core.rules.read'), ('member', 'one', 'core.rules.write'), ('member', 'three', 'core.rules.read')`);
   await pool.query(`INSERT INTO oauth_clients (id, kind, name, grant_types, redirect_uris, token_endpoint_auth_method) VALUES
     ('dcr_app', 'dynamic', 'Example', '{authorization_code}', '{https://app.example.com/callback}', 'none')`);
 });
@@ -47,9 +47,9 @@ const show = async (parameters: Record<string, string> = request, userId = "memb
   const response = await app.request(`/oauth/authorize?${new URLSearchParams(parameters)}`, { headers: await cookie(userId) });
   return { body: (await response.json()) as any, status: response.status };
 };
-const decide = async (teamId: string | null, permissionIds?: string[], parameters: Record<string, string> = request) => {
+const decide = async (teamIds: string[] | null, permissionIds?: string[], parameters: Record<string, string> = request) => {
   const response = await app.request("/oauth/authorize", {
-    body: JSON.stringify({ parameters, permissionIds, teamId }),
+    body: JSON.stringify({ parameters, permissionIds, teamIds }),
     headers: { ...(await cookie()), "Content-Type": "application/json" },
     method: "POST",
   });
@@ -70,7 +70,7 @@ describe("showing the consent screen", () => {
     const headers = { Authorization: `Basic ${btoa("key_member:secret")}` };
     expect((await app.request(`/oauth/authorize?${new URLSearchParams(request)}`, { headers })).status).toBe(401);
     const response = await app.request("/oauth/authorize", {
-      body: JSON.stringify({ parameters: request, teamId: "one" }),
+      body: JSON.stringify({ parameters: request, teamIds: ["one"] }),
       headers: { ...headers, "Content-Type": "application/json" },
       method: "POST",
     });
@@ -94,8 +94,11 @@ describe("showing the consent screen", () => {
         { delegation: "opt_in", id: "core.rules.write", resource: "Rules" },
       ],
       redirectHost: "app.example.com",
-      teams: [{ id: "one", name: "One", permissionIds: ["core.rules.read", "core.rules.write"] }],
     });
+    expect(body.consent.teams.toSorted((a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name))).toEqual([
+      { id: "one", name: "One", permissionIds: ["core.rules.read", "core.rules.write"] },
+      { id: "three", name: "Three", permissionIds: ["core.rules.read"] },
+    ]);
     expect((await show(request, "admin")).body.consent.teams).toEqual([]);
   });
 
@@ -118,8 +121,8 @@ describe("showing the consent screen", () => {
 });
 
 describe("deciding on the request", () => {
-  test("approving returns a code for the chosen team", async () => {
-    const { body } = await decide("one");
+  test("approving returns a code for the chosen teams", async () => {
+    const { body } = await decide(["one"]);
     const redirect = new URL(body.redirectTo);
     const code = redirect.searchParams.get("code")!;
     expect(redirect.searchParams.get("state")).toBe("xyz");
@@ -139,20 +142,40 @@ describe("deciding on the request", () => {
   });
 
   test("grants an opt-in permission only when the user chose it", async () => {
-    await decide("one", ["core.rules.read", "core.rules.write"]);
+    await decide(["one"], ["core.rules.read", "core.rules.write"]);
     expect((await codes())[0].permission_ids).toEqual(["core.rules.read", "core.rules.write"]);
   });
 
   test("grants nothing beyond what the team offered", async () => {
     // The member doesn't hold it, and the client didn't ask for it
-    await decide("one", ["core.rules.read", "core.api_keys.read"]);
+    await decide(["one"], ["core.rules.read", "core.api_keys.read"]);
     expect((await codes())[0].permission_ids).toEqual(["core.rules.read"]);
-    const { status } = await decide("one", ["core.api_keys.read"]);
+    const { status } = await decide(["one"], ["core.api_keys.read"]);
     expect(status).toBe(400);
   });
 
+  test("approves several teams at once, each getting the chosen permissions the user holds there", async () => {
+    const { status } = await decide(["one", "three"], ["core.rules.read", "core.rules.write"]);
+    expect(status).toBe(200);
+    const [stored] = await codes();
+    expect(stored.team_ids.toSorted()).toEqual(["one", "three"]);
+    expect(stored.permission_ids).toEqual(["core.rules.read", "core.rules.write"]);
+  });
+
+  test("refuses a team that would get none of the chosen permissions", async () => {
+    // The member doesn't hold `core.rules.write` in Three
+    const { body, status } = await decide(["one", "three"], ["core.rules.write"]);
+    expect(status).toBe(400);
+    expect(body.errors.permissionIds).toEqual(["Choose a permission for Three"]);
+    expect(await codes()).toEqual([]);
+  });
+
+  test("needs a team", async () => {
+    expect((await decide([])).status).toBe(400);
+  });
+
   test("refuses a team the user isn't a member of", async () => {
-    const { status } = await decide("two");
+    const { status } = await decide(["two"]);
     expect(status).toBe(400);
     expect(await codes()).toEqual([]);
   });
