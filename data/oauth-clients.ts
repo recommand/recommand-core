@@ -1,5 +1,6 @@
 import { oauthClients } from "@core/db/schema";
 import {
+  ClientMetadataError,
   ClientMetadataUnavailableError,
   fetchClientMetadataDocument,
   parseClientIdUrl,
@@ -77,4 +78,23 @@ export const findClient = async (
     .onConflictDoUpdate({ set: columns, target: oauthClients.id })
     .returning();
   return client;
+};
+
+/**
+ * The client a request to the token or revocation endpoint names, or `null`
+ * when it names none, or one that is unknown, disabled or has no readable
+ * metadata document; those endpoints answer all of these with `invalid_client`.
+ */
+export const findRequestClient = async (clientId: string | undefined): Promise<OAuthClient | null> => {
+  if (!clientId) {
+    return null;
+  }
+  try {
+    return await findClient(clientId);
+  } catch (error) {
+    if (error instanceof ClientMetadataError) {
+      return null;
+    }
+    throw error;
+  }
 };
