@@ -1,10 +1,11 @@
 import { principalPermissions } from "@core/db/schema";
-import { getRegisteredPermission } from "@core/lib/permissions";
+import { getDelegablePermission, getRegisteredPermission } from "@core/lib/permissions";
 import { db } from "@recommand/db";
 import { and, eq, inArray } from "drizzle-orm";
 import {
   hasPermission,
   InvalidPermissionScopeError,
+  listMemberTeamPermissionIds,
   listOwnerTeamPermissionIds,
   NotAuthorizedError,
   PermissionNotRegisteredError,
@@ -12,7 +13,9 @@ import {
 
 export type ActorPrincipal =
   | { type: "user"; userId: string }
-  | { apiKeyId: string; ownerIsAdmin: boolean; ownerUserId: string; teamId: string; type: "api_key" };
+  | { apiKeyId: string; ownerIsAdmin: boolean; ownerUserId: string; teamId: string; type: "api_key" }
+  // `permissionIds`: what the grant holds in the team, when the request already loaded it
+  | { grantId: string; permissionIds?: string[]; type: "oauth_grant"; userId: string };
 
 export const hasPrincipalPermission = async (
   principal: ActorPrincipal,
@@ -39,6 +42,24 @@ export const hasPrincipalPermission = async (
     }
 
     return hasPermission(principal.ownerUserId, teamId, permissionId);
+  }
+
+  if (principal.type === "oauth_grant") {
+    // Also refuses a permission whose delegation changed after the consent
+    if (!getDelegablePermission(permissionId)) {
+      return false;
+    }
+
+    const granted = principal.permissionIds
+      ? principal.permissionIds.includes(permissionId)
+      : await hasStoredPrincipalPermission("oauth_grant", principal.grantId, permissionId, teamId);
+    if (!granted) {
+      return false;
+    }
+
+    // Unlike an API key, never through the admin bypass: an OAuth token carries
+    // at most what its user holds as a member of the team
+    return (await listMemberTeamPermissionIds(principal.userId, teamId)).includes(permissionId);
   }
 
   throw new Error("Invalid principal type");
@@ -100,7 +121,8 @@ export const listPrincipalPermissionsForIds = async (
 export const hasStoredPrincipalPermission = async (
   principalType: PrincipalType,
   principalId: string,
-  permissionId: string
+  permissionId: string,
+  teamId?: string
 ): Promise<boolean> => {
   const [row] = await db
     .select({ permissionId: principalPermissions.permissionId })
@@ -109,7 +131,8 @@ export const hasStoredPrincipalPermission = async (
       and(
         eq(principalPermissions.principalType, principalType),
         eq(principalPermissions.principalId, principalId),
-        eq(principalPermissions.permissionId, permissionId)
+        eq(principalPermissions.permissionId, permissionId),
+        teamId ? eq(principalPermissions.teamId, teamId) : undefined
       )
     )
     .limit(1);

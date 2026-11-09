@@ -768,6 +768,7 @@ const verify = server.get(
     responses: {
       ...describeSuccessResponse("User is authenticated"),
       ...describeErrorResponse(401, "User is not authenticated"),
+      ...describeErrorResponse(403, "The request used an OAuth access token, which only team routes accept"),
       ...describeErrorResponse(500, "Internal server error"),
     },
   }),
