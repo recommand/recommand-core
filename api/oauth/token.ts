@@ -1,15 +1,25 @@
+import { fromUnixTime } from "date-fns";
 import type { Context } from "hono";
 import { describeRoute } from "hono-openapi";
 import { z } from "zod";
+import { jwtVerifyClientSignedJWT } from "@core/data/oauth";
 import { recordAuthorizationCodeGrant, redeemAuthorizationCode } from "@core/data/oauth-authorization-codes";
 import { findRequestClient } from "@core/data/oauth-clients";
-import type { OAuthGrant } from "@core/data/oauth-grants";
-import { createGrant, deleteGrant, listGrantPermissionIds, OAuthGrantError } from "@core/data/oauth-grants";
+import {
+  createGrant,
+  deleteGrant,
+  listGrantPermissionIds,
+  OAuthGrantError,
+  prepareAssertionGrant,
+  type OAuthGrant,
+} from "@core/data/oauth-grants";
 import type { IssuedTokens } from "@core/data/oauth-tokens";
-import { ACCESS_TOKEN_LIFETIME_SECONDS, issueTokens, rotateRefreshToken } from "@core/data/oauth-tokens";
+import { issueTokens, rotateRefreshToken } from "@core/data/oauth-tokens";
 import { getTeam } from "@core/data/teams";
 import { audit } from "@core/lib/audit";
+import { JWT_BEARER_GRANT_TYPE } from "@core/lib/oauth/jwt-bearer";
 import { verifyS256CodeChallenge } from "@core/lib/oauth/pkce";
+import { supportedResources } from "@core/lib/oauth/resource";
 import { Server } from "@recommand/lib/api";
 import { describeOAuthResponse, oauthErrorSchema } from "./responses";
 
@@ -50,7 +60,7 @@ const tokenResponse = async (c: Context, tokens: IssuedTokens, permissionIdsByTe
   const team = teamIds.length === 1 ? await getTeam(teamIds[0]) : null;
   return respond(c, {
     access_token: tokens.accessToken,
-    expires_in: ACCESS_TOKEN_LIFETIME_SECONDS,
+    expires_in: tokens.expiresInSeconds,
     ...(tokens.refreshToken ? { refresh_token: tokens.refreshToken } : {}),
     scope: [...new Set([...permissionIdsByTeam.values()].flat())].join(" "),
     ...(team ? { team_id: team.id, team_name: team.name } : {}),
@@ -73,14 +83,63 @@ const deleteReusedCodeGrant = async (c: Context, grantId: string | null) => {
 };
 
 /**
- * The token endpoint (RFC 6749, section 3.2) for clients of this authorization
- * server: it exchanges authorization codes and refresh tokens. The JWT bearer
- * flow for API keys keeps its own endpoint at `/oauth2/token`.
+ * The JWT bearer grant (RFC 7523, section 2.1): an assertion signed with a key
+ * the team registered, naming one of its members, buys an access token without
+ * a client. The token carries what the user can delegate there as a member,
+ * never admin access, and expires with the assertion, an hour later at most.
+ * There is no refresh token: the team signs a new assertion instead.
+ */
+const exchangeAssertion = async (c: Context, assertion: string | undefined, resources: string[]) => {
+  if (!assertion) {
+    return fail(c, "invalid_request", "The request has no assertion");
+  }
+  if (!resources.every((resource) => supportedResources().includes(resource))) {
+    return fail(c, "invalid_target", `Tokens can only be issued for ${supportedResources().join(", ")}`);
+  }
+
+  // The audience identifies this authorization server: its issuer or its token endpoint (RFC 7523, section 3)
+  const issuer = process.env.BASE_URL!;
+  const verified = await jwtVerifyClientSignedJWT(assertion, [issuer, `${issuer}/api/core/oauth/token`]);
+  if (!verified || verified.payload.exp === undefined) {
+    return fail(c, "invalid_grant", "The assertion could not be verified");
+  }
+  const prepared = await prepareAssertionGrant(verified.userId, verified.teamId);
+  if (!prepared) {
+    return fail(c, "invalid_grant", "The user holds no permission that can be granted in this team");
+  }
+
+  const tokens = await issueTokens({
+    expiresAt: fromUnixTime(verified.payload.exp),
+    grantId: prepared.grant.id,
+    resources,
+    withRefreshToken: false,
+  });
+  // The user left the team while the tokens were being issued
+  if (!tokens) {
+    return fail(c, "invalid_grant", "The user holds no permission that can be granted in this team");
+  }
+  if (prepared.created) {
+    await audit(c, {
+      action: "create",
+      actorUserId: verified.userId,
+      objectId: prepared.grant.id,
+      objectType: "core.oauth_grant",
+      subsystem: "core.oauth",
+      teamId: verified.teamId,
+    });
+  }
+  return tokenResponse(c, tokens, new Map([[verified.teamId, prepared.permissionIds]]));
+};
+
+/**
+ * The token endpoint (RFC 6749, section 3.2) of this authorization server: it
+ * exchanges authorization codes, refresh tokens and JWT bearer assertions.
+ * `/oauth2/token` keeps issuing JWT API keys for assertions, as before.
  */
 const _token = server.post(
   "/oauth/token",
   describeRoute({
-    description: "Exchange an authorization code or a refresh token for tokens (RFC 6749, section 3.2).",
+    description: "Exchange an authorization code, a refresh token or a JWT bearer assertion for tokens (RFC 6749, section 3.2).",
     hide: true,
     operationId: "requestOAuthToken",
     responses: {
@@ -100,6 +159,11 @@ const _token = server.post(
     const resourcesField = (form as Record<string, unknown>).resource;
     const resources = [resourcesField].flat().filter((value): value is string => typeof value === "string");
 
+    // The team's key vouches for a JWT bearer assertion, so it needs no client
+    if (field("grant_type") === JWT_BEARER_GRANT_TYPE) {
+      return exchangeAssertion(c, field("assertion"), resources);
+    }
+
     const client = await findRequestClient(field("client_id"));
     if (!client) {
       return fail(c, "invalid_client", "The client is unknown or disabled");
@@ -107,7 +171,7 @@ const _token = server.post(
 
     const grantType = field("grant_type");
     if (grantType !== "authorization_code" && grantType !== "refresh_token") {
-      return fail(c, "unsupported_grant_type", "Only authorization_code and refresh_token are supported");
+      return fail(c, "unsupported_grant_type", `Only authorization_code, refresh_token and ${JWT_BEARER_GRANT_TYPE} are supported`);
     }
     if (!client.grantTypes.includes(grantType)) {
       return fail(c, "unauthorized_client", `The client didn't register the ${grantType} grant type`);

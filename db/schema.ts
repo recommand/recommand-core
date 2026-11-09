@@ -211,9 +211,8 @@ export const oauthGrants = pgTable("oauth_grants", {
   lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
   principalType: oauthGrantPrincipalTypes("principal_type").notNull(),
 
-  clientId: text("client_id")
-    .references(() => oauthClients.id, { onDelete: "cascade" })
-    .notNull(),
+  // Null for the JWT bearer flow (RFC 7523), where a team's own key signs the assertion
+  clientId: text("client_id").references(() => oauthClients.id, { onDelete: "cascade" }),
   userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
 
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

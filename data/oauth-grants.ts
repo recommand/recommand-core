@@ -1,9 +1,9 @@
 import { listMemberTeamPermissionIds } from "@core/data/permissions";
 import { oauthClients, oauthGrants, principalPermissions, teamMembers, teams } from "@core/db/schema";
-import { getDelegablePermission } from "@core/lib/permissions";
+import { getDelegablePermission, getDelegablePermissions } from "@core/lib/permissions";
 import { db } from "@recommand/db";
 import type { SQL } from "drizzle-orm";
-import { and, desc, eq, inArray, notExists } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, notExists, sql } from "drizzle-orm";
 import type { OAuthClient } from "./oauth-clients";
 
 export type OAuthGrant = typeof oauthGrants.$inferSelect;
@@ -86,6 +86,61 @@ export const createGrant = async (input: {
       )
     );
     return { grant, permissionIdsByTeam };
+  });
+};
+
+/**
+ * The grant behind the JWT bearer flow (RFC 7523) for a user in a team. It has
+ * no client, so it isn't listed as a connected app, and every exchange reuses
+ * it, setting its permissions again to the delegable ones the user holds there
+ * as a member, without admin access. Returns `null` when the user holds none.
+ */
+export const prepareAssertionGrant = async (
+  userId: string,
+  teamId: string
+): Promise<{ created: boolean; grant: OAuthGrant; permissionIds: string[] } | null> => {
+  return db.transaction(async (tx) => {
+    // One exchange at a time per user and team, so concurrent ones neither make a
+    // second grant nor collide on the permissions of the first
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${`oauth_assertion_grant:${userId}:${teamId}`}, 0))`);
+    await lockMemberships(tx, userId, [teamId]);
+    const held = new Set(await listMemberTeamPermissionIds(userId, teamId));
+    const permissionIds = getDelegablePermissions()
+      .map((permission) => permission.id)
+      .filter((permissionId) => held.has(permissionId));
+    if (permissionIds.length === 0) {
+      return null;
+    }
+    const [existing] = await tx
+      .select({ grant: oauthGrants })
+      .from(oauthGrants)
+      .innerJoin(
+        principalPermissions,
+        and(
+          eq(principalPermissions.principalType, "oauth_grant"),
+          eq(principalPermissions.principalId, oauthGrants.id),
+          eq(principalPermissions.teamId, teamId)
+        )
+      )
+      .where(and(isNull(oauthGrants.clientId), eq(oauthGrants.userId, userId)))
+      .orderBy(asc(oauthGrants.createdAt))
+      .limit(1);
+    const grant =
+      existing?.grant ?? (await tx.insert(oauthGrants).values({ clientId: null, principalType: "user", userId }).returning())[0];
+
+    await tx
+      .delete(principalPermissions)
+      .where(and(eq(principalPermissions.principalType, "oauth_grant"), eq(principalPermissions.principalId, grant.id)));
+    await tx.insert(principalPermissions).values(
+      permissionIds.map((permissionId) => ({
+        grantedByUserId: userId,
+        permissionId,
+        principalId: grant.id,
+        principalType: "oauth_grant" as const,
+        teamId,
+      }))
+    );
+    return { created: !existing, grant, permissionIds };
   });
 };
 

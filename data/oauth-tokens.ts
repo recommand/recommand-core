@@ -5,7 +5,7 @@ import { and, eq, gt, isNull, lt } from "drizzle-orm";
 import type { OAuthGrant } from "./oauth-grants";
 import { deleteGrant, findGrant, listGrantPermissionIds, recordGrantUse } from "./oauth-grants";
 
-export const ACCESS_TOKEN_LIFETIME_SECONDS = 60 * 60;
+const ACCESS_TOKEN_LIFETIME_SECONDS = 60 * 60;
 const REFRESH_TOKEN_LIFETIME = 30 * 24 * 60 * 60 * 1_000;
 
 // The prefixes tell these tokens apart from API keys, and make leaked ones easy to recognize
@@ -15,19 +15,25 @@ const REFRESH_TOKEN_PREFIX = "ort_";
 const hashToken = (token: string) => createHash("sha256").update(token).digest("base64url");
 const createToken = (prefix: string) => `${prefix}${randomBytes(32).toString("base64url")}`;
 
-export type IssuedTokens = { accessToken: string; refreshToken: string | null };
+export type IssuedTokens = { accessToken: string; expiresInSeconds: number; refreshToken: string | null };
 
 /**
  * Issues an access token for a grant and, when the client may refresh, a
- * refresh token. Only their hashes are stored. Returns `null` when the grant was
+ * refresh token. Only their hashes are stored. An access token lasts an hour,
+ * or less when it has to expire earlier. Returns `null` when the grant was
  * deleted meanwhile, such as by a code presented again.
  */
 export const issueTokens = async (input: {
+  expiresAt?: Date;
   grantId: string;
   resources: string[];
   withRefreshToken: boolean;
 }): Promise<IssuedTokens | null> => {
   const now = Date.now();
+  const expiresInSeconds = Math.min(
+    ACCESS_TOKEN_LIFETIME_SECONDS,
+    input.expiresAt ? Math.floor((input.expiresAt.getTime() - now) / 1_000) : Infinity
+  );
   const accessToken = createToken(ACCESS_TOKEN_PREFIX);
   const refreshToken = input.withRefreshToken ? createToken(REFRESH_TOKEN_PREFIX) : null;
 
@@ -47,7 +53,7 @@ export const issueTokens = async (input: {
       .where(and(eq(oauthRefreshTokens.grantId, input.grantId), lt(oauthRefreshTokens.expiresAt, new Date(now))));
 
     await tx.insert(oauthAccessTokens).values({
-      expiresAt: new Date(now + ACCESS_TOKEN_LIFETIME_SECONDS * 1_000),
+      expiresAt: new Date(now + expiresInSeconds * 1_000),
       grantId: input.grantId,
       resources: input.resources,
       tokenHash: hashToken(accessToken),
@@ -63,7 +69,7 @@ export const issueTokens = async (input: {
     return true;
   });
 
-  return issued ? { accessToken, refreshToken } : null;
+  return issued ? { accessToken, expiresInSeconds, refreshToken } : null;
 };
 
 export const isOAuthAccessToken = (token: string) => token.startsWith(ACCESS_TOKEN_PREFIX);
