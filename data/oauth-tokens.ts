@@ -3,7 +3,7 @@ import { apiResource } from "@core/lib/oauth/resource";
 import { getSigningKey } from "@core/lib/signing-keys";
 import { db } from "@recommand/db";
 import { and, eq, isNull, lt } from "drizzle-orm";
-import { SignJWT } from "jose";
+import { decodeProtectedHeader, SignJWT } from "jose";
 import { createHash, randomBytes } from "node:crypto";
 import { ulid } from "ulid";
 import type { OAuthGrant } from "./oauth-grants";
@@ -134,6 +134,15 @@ export const issueTokens = async (input: TokenInput): Promise<IssuedTokens | nul
   return (await db.transaction((tx) => storeTokens(tx, input, signed))) ? toIssued(signed) : null;
 };
 
+/** Whether a token is shaped as one of this server's access tokens, without checking that it's valid. */
+export const isOAuthAccessToken = (token: string) => {
+  try {
+    return decodeProtectedHeader(token).typ === ACCESS_TOKEN_TYPE;
+  } catch {
+    return false;
+  }
+};
+
 export type RefreshResult =
   | { grant: OAuthGrant; tokens: IssuedTokens; type: "rotated" }
   | { type: "invalid" }
@@ -213,4 +222,41 @@ export const rotateRefreshToken = async (refreshToken: string, clientId: string,
   }
 
   return { grant, tokens: toIssued(signed), type: "rotated" };
+};
+
+/**
+ * Revokes a token on behalf of the client it was issued to (RFC 7009). A refresh
+ * token ends its whole grant, since the client signs out with it; an access
+ * token ends only itself. Returns the grant's ID, or `null` when nothing
+ * was revoked, which the caller must not tell the client.
+ *
+ * @see https://www.rfc-editor.org/rfc/rfc7009#section-2
+ */
+export const revokeToken = async (token: string, clientId: string): Promise<{ grantId: string; type: "access" | "refresh" } | null> => {
+  const tokenHash = hashToken(token);
+  if (token.startsWith(REFRESH_TOKEN_PREFIX)) {
+    const [stored] = await db.select().from(oauthRefreshTokens).where(eq(oauthRefreshTokens.tokenHash, tokenHash)).limit(1);
+    const grant = stored ? await findGrant(stored.grantId) : null;
+    if (!grant || grant.clientId !== clientId) {
+      return null;
+    }
+
+    await deleteGrant(grant.id);
+
+    return { grantId: grant.id, type: "refresh" };
+  }
+
+  if (isOAuthAccessToken(token)) {
+    const [stored] = await db.select().from(oauthAccessTokens).where(eq(oauthAccessTokens.tokenHash, tokenHash)).limit(1);
+    const grant = stored ? await findGrant(stored.grantId) : null;
+    if (!grant || grant.clientId !== clientId) {
+      return null;
+    }
+
+    await db.delete(oauthAccessTokens).where(eq(oauthAccessTokens.tokenHash, tokenHash));
+
+    return { grantId: grant.id, type: "access" };
+  }
+
+  return null;
 };
