@@ -4,14 +4,15 @@ import { createLocalJWKSet, decodeJwt, decodeProtectedHeader, jwtVerify } from "
 import { pool, useTestDatabase } from "./harness";
 
 const { default: oauthToken } = await import("../../api/oauth/token");
+const { default: jwks } = await import("../../api/jwks");
 const { default: oauthRevoke } = await import("../../api/oauth/revoke");
 const { createAuthorizationCode } = await import("../../data/oauth-authorization-codes");
 const { findGrant } = await import("../../data/oauth-grants");
 const { issueTokens } = await import("../../data/oauth-tokens");
-const { getPublicKeySet } = await import("../../lib/signing-keys");
 
 const app = new Hono();
 app.route("/", oauthToken);
+app.route("/", jwks);
 app.route("/", oauthRevoke);
 
 // RFC 7636, appendix B
@@ -56,7 +57,7 @@ const refresh = (refreshToken: string, clientId = "dcr_app", fields: Record<stri
 const count = async (table: string) => Number((await pool.query(`SELECT count(*) FROM ${table}`)).rows[0].count);
 
 describe("exchanging a code", () => {
-  test("returns an access token as a JWT that the platform's public keys verify", async () => {
+  test("returns an access token as a JWT that the published keys verify", async () => {
     const { body } = await exchange(await authorize());
     expect(decodeJwt(body.access_token)).toMatchObject({
       aud: "https://recommand.example.com/api",
@@ -65,7 +66,7 @@ describe("exchanging a code", () => {
       scope: "core.rules.read",
       sub: "member",
     });
-    const keys = await getPublicKeySet();
+    const keys = await (await app.request("/.well-known/jwks.json")).json();
     expect((await jwtVerify(body.access_token, createLocalJWKSet(keys), { typ: "at+jwt" })).protectedHeader.kid).toBe(keys.keys[0].kid);
   });
 
