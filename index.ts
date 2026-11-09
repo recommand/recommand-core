@@ -16,6 +16,7 @@ import rules from "./api/rules";
 import { initializeApiKeyCronJobs } from "./data/api-key-cron";
 import { initializeIdempotencyKeyCronJobs } from "./data/idempotency-keys-cron";
 import { initializeRuleCronJobs } from "./data/rules/cron";
+import { forbidFraming } from "./lib/oauth/frame";
 
 let logger: Logger;
 
@@ -27,6 +28,8 @@ export async function init(app: RecommandApp, server: Server) {
   await initializeIdempotencyKeyCronJobs(logger);
   await initializeRuleCronJobs(logger);
   initializeApiKeyCronJobs(logger);
+  // The consent screen is a page of the app, served after the packages initialize
+  server.use("/oauth/authorize", forbidFraming);
 }
 
 server.route("/", auth);

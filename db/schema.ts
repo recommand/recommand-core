@@ -151,21 +151,50 @@ export const principalPermissions = pgTable(
 export const oauthClientKinds = pgEnum("oauth_client_kinds", ["dynamic"]);
 
 export const oauthClients = pgTable("oauth_clients", {
-  // The ID this server gives a registered client: it can't choose one, so none
-  // looks like a URL or like a client this server knows from elsewhere
+  // A metadata document's URL, or the ID this server gives a registered client:
+  // it can't choose one, so none looks like a URL or like a client this server
+  // knows from elsewhere
   id: text("id")
     .primaryKey()
     .$defaultFn(() => "dcr_" + ulid()),
+  // Null: every permission a client of this kind may be granted
+  allowedPermissions: text("allowed_permissions").array(),
   clientUri: text("client_uri"),
+  disabledAt: timestamp("disabled_at", { withTimezone: true }),
   grantTypes: text("grant_types").notNull().array().notNull(),
   kind: oauthClientKinds("kind").notNull(),
   logoUri: text("logo_uri"),
+  // When the stored copy was last checked against the client's metadata document
+  metadataFetchedAt: timestamp("metadata_fetched_at", { withTimezone: true }),
+  // How long, in seconds, that copy may be used: the document's own cache lifetime, within limits
+  metadataMaxAge: integer("metadata_max_age"),
   name: text("name"),
   redirectUris: text("redirect_uris").notNull().array().notNull(),
   tokenEndpointAuthMethod: text("token_endpoint_auth_method").notNull(),
 
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: autoUpdateTimestamp(),
+});
+
+// A code is stored hashed and used once; the grant is only made when it is
+// exchanged, so consent that is never completed leaves no grant behind
+export const oauthAuthorizationCodes = pgTable("oauth_authorization_codes", {
+  codeHash: text("code_hash").primaryKey(),
+  codeChallenge: text("code_challenge").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  permissionIds: text("permission_ids").notNull().array().notNull(),
+  redirectUri: text("redirect_uri").notNull(),
+  resources: text("resources").notNull().array().notNull(),
+  teamIds: text("team_ids").notNull().array().notNull(),
+
+  clientId: text("client_id")
+    .references(() => oauthClients.id, { onDelete: "cascade" })
+    .notNull(),
+  userId: text("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 export const auditEvents = pgTable("audit_events", {
