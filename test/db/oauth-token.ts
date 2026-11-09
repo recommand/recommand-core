@@ -3,12 +3,14 @@ import { Hono } from "hono";
 import { pool, useTestDatabase } from "./harness";
 
 const { default: oauthToken } = await import("../../api/oauth/token");
+const { default: oauthRevoke } = await import("../../api/oauth/revoke");
 const { createAuthorizationCode } = await import("../../data/oauth-authorization-codes");
 const { findGrant } = await import("../../data/oauth-grants");
 const { issueTokens } = await import("../../data/oauth-tokens");
 
 const app = new Hono();
 app.route("/", oauthToken);
+app.route("/", oauthRevoke);
 
 // RFC 7636, appendix B
 const codeVerifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";
@@ -159,4 +161,37 @@ describe("refreshing", () => {
 test("no tokens are issued for a grant that was deleted meanwhile", async () => {
   expect(await issueTokens({ grantId: "grt_deleted", resources: [], withRefreshToken: true })).toBeNull();
   expect(await count("oauth_access_tokens")).toBe(0);
+});
+
+describe("revoking", () => {
+  const revoke = async (fields: Record<string, string>) => {
+    const response = await app.request("/oauth/revoke", { body: new URLSearchParams(fields), method: "POST" });
+    return { body: await response.text(), status: response.status };
+  };
+
+  test("a refresh token ends the whole grant", async () => {
+    const tokens = (await exchange(await authorize())).body;
+    expect(await revoke({ client_id: "dcr_app", token: tokens.refresh_token })).toEqual({ body: "", status: 200 });
+    expect((await refresh(tokens.refresh_token)).body.error).toBe("invalid_grant");
+    expect(await count("oauth_access_tokens")).toBe(0);
+  });
+
+  test("an access token ends only itself", async () => {
+    const tokens = (await exchange(await authorize())).body;
+    expect((await revoke({ client_id: "dcr_app", token: tokens.access_token })).status).toBe(200);
+    expect(await count("oauth_access_tokens")).toBe(0);
+    expect((await refresh(tokens.refresh_token)).status).toBe(200);
+  });
+
+  test("answers the same for another client's or an unknown token", async () => {
+    const tokens = (await exchange(await authorize())).body;
+    expect(await revoke({ client_id: "dcr_other", token: tokens.refresh_token })).toEqual({ body: "", status: 200 });
+    expect(await revoke({ client_id: "dcr_app", token: "ort_unknown" })).toEqual({ body: "", status: 200 });
+    expect((await refresh(tokens.refresh_token)).status).toBe(200);
+  });
+
+  test("needs a known client and a token", async () => {
+    expect((await revoke({ client_id: "dcr_unknown", token: "ort_x" })).status).toBe(400);
+    expect(JSON.parse((await revoke({ client_id: "dcr_app" })).body).error).toBe("invalid_request");
+  });
 });

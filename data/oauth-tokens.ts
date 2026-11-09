@@ -107,3 +107,34 @@ export const rotateRefreshToken = async (refreshToken: string, clientId: string)
   }
   return { grant, tokens, type: "rotated" };
 };
+
+/**
+ * Revokes a token on behalf of the client it was issued to (RFC 7009). A refresh
+ * token ends its whole grant, since the client signs out with it; an access
+ * token ends only itself. Returns the grant's ID, or `null` when nothing
+ * was revoked, which the caller must not tell the client.
+ */
+export const revokeToken = async (token: string, clientId: string): Promise<{ grantId: string; type: "access" | "refresh" } | null> => {
+  const tokenHash = hashToken(token);
+  if (token.startsWith(REFRESH_TOKEN_PREFIX)) {
+    const [stored] = await db.select().from(oauthRefreshTokens).where(eq(oauthRefreshTokens.tokenHash, tokenHash)).limit(1);
+    const grant = stored ? await findGrant(stored.grantId) : null;
+    if (!grant || grant.clientId !== clientId) {
+      return null;
+    }
+    await deleteGrant(grant.id);
+    return { grantId: grant.id, type: "refresh" };
+  }
+
+  if (token.startsWith(ACCESS_TOKEN_PREFIX)) {
+    const [stored] = await db.select().from(oauthAccessTokens).where(eq(oauthAccessTokens.tokenHash, tokenHash)).limit(1);
+    const grant = stored ? await findGrant(stored.grantId) : null;
+    if (!grant || grant.clientId !== clientId) {
+      return null;
+    }
+    await db.delete(oauthAccessTokens).where(eq(oauthAccessTokens.tokenHash, tokenHash));
+    return { grantId: grant.id, type: "access" };
+  }
+
+  return null;
+};
