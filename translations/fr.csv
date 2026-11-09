@@ -361,6 +361,7 @@ Status,Statut
 Succeeded,Réussi
 Target URL,URL cible
 Team permissions,Permissions de l'équipe
+This member manages the team\, so they can give themselves any of these permissions.,Ce membre gère l'équipe\, il peut donc s'attribuer n'importe laquelle de ces permissions.
 These permissions apply to this user across all teams. Only administrators can manage them.,Ces permissions s'appliquent à cet utilisateur dans toutes les équipes. Seuls les administrateurs peuvent les gérer.
 Toggle Sidebar,Afficher ou masquer la barre latérale
 Toggle columns,Afficher ou masquer les colonnes
@@ -418,6 +419,8 @@ Türkçe,Turc
 日本語,Japonais
 Delete this team,Supprimer cette équipe
 Are you sure you want to delete the team "{0}"? Its setup has not been finished yet. This action cannot be undone.,Êtes-vous sûr de vouloir supprimer l'équipe « {0} » ? Sa configuration n'est pas encore terminée. Cette action est irréversible.
+Select all,Tout sélectionner
+Select none,Ne rien sélectionner
 Delete API keys,Supprimer les clés API
 Read API keys,Consulter les clés API
 See API keys and the permissions they hold,Voir les clés API et leurs autorisations
@@ -435,3 +438,5 @@ Delete automation rules\, so they no longer react to events,Supprimer des règle
 API keys,Clés API
 Members,Membres
 Rules,Règles
+Other,Autres
+Permissions updated,Autorisations mises à jour

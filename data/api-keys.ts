@@ -4,6 +4,8 @@ import { and, eq } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import { addSeconds } from "date-fns";
 import { sign } from "@core/lib/jwt";
+import type { Permission } from "@core/lib/permissions";
+import { getRegisteredPermission } from "@core/lib/permissions";
 import { ulid } from "ulid";
 import { listOwnerTeamPermissionIds, NotAuthorizedError } from "./permissions";
 import type { PermissionWriter } from "./principal-permissions";
@@ -117,6 +119,17 @@ export const setApiKeyPermissions = async (input: {
         teamId: input.teamId,
     });
     return { ...apiKey, permissionIds };
+};
+
+/** The team permissions a user can put on their own key: what they hold, and no more than the key they act with. */
+export const getAvailableApiKeyPermissions = async (userId: string, teamId: string, actorApiKeyId?: string): Promise<Permission[]> => {
+    const ownerIds = await listOwnerTeamPermissionIds(userId, teamId);
+    const actorKeyIds = actorApiKeyId ? new Set(await listPrincipalPermissionIds("api_key", actorApiKeyId, teamId)) : null;
+    return ownerIds
+        .filter((id) => !actorKeyIds || actorKeyIds.has(id))
+        .map((id) => getRegisteredPermission(id))
+        .filter((permission): permission is Permission => permission?.scope === "team")
+        .toSorted((a, b) => a.id.localeCompare(b.id));
 };
 
 export const getApiKeyPermissionIds = async (apiKeyId: string, teamId: string) =>

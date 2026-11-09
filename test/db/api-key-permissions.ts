@@ -307,6 +307,15 @@ describe("API-key grants", () => {
     const inherited = await create("basic", undefined, headers);
     expect(inherited.body.apiKey.permissionIds.toSorted()).toEqual(["core.api_keys.delete", "core.api_keys.read", "core.api_keys.write"]);
   });
+  test("available permissions are the caller's own, and no more than the key used", async () => {
+    const available = async (headers: Record<string, string>) => {
+      const response = await app.request("/one/api-keys/available-permissions", { headers });
+      return ((await response.json()) as any).permissions.map((permission: any) => permission.id);
+    };
+    expect(await available(await cookie("other"))).toEqual(["core.api_keys.delete", "core.api_keys.read", "core.api_keys.write"]);
+    const { body } = await create("basic", ["core.api_keys.write", "test.read"]);
+    expect(await available(credentials(body.apiKey))).toEqual(["core.api_keys.write", "test.read"]);
+  });
   test("deleting a key deletes its grants", async () => {
     const { body } = await create("basic", ["test.read"]);
     const response = await app.request(`/one/api-keys/${body.apiKey.id}`, { headers: await cookie(), method: "DELETE" });

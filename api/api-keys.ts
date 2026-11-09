@@ -4,7 +4,7 @@ import { z } from "zod";
 import "zod-openapi/extend";
 import { actionFailure, actionSuccess } from "@recommand/lib/utils";
 import { Server } from "@recommand/lib/api";
-import { createApiKey, deleteApiKey, getApiKeys, getApiKeyCreationStatus, setApiKeyPermissions } from "@core/data/api-keys";
+import { createApiKey, deleteApiKey, getApiKeys, getApiKeyCreationStatus, getAvailableApiKeyPermissions, setApiKeyPermissions } from "@core/data/api-keys";
 import {
   InvalidPermissionScopeError,
   NotAuthorizedError,
@@ -29,6 +29,15 @@ const permissionErrorStatus = (error: unknown) => {
 };
 
 const permissionIdsSchema = z.array(z.string()).openapi({ description: "The ids of the team permissions the key holds." });
+
+const availablePermissionSchema = z
+  .object({
+    description: z.string().optional().openapi({ description: "What the permission allows." }),
+    id: z.string().openapi({ description: "The permission's id, such as `peppol.documents.read`." }),
+    name: z.string().openapi({ description: "The permission's name." }),
+    resource: z.string().optional().openapi({ description: "What the permission is about, such as `Documents`." }),
+  })
+  .openapi({ ref: "ApiKeyAvailablePermission" });
 
 const apiKeyPermissionsSchema = z
   .object({
@@ -132,6 +141,41 @@ const _isApiKeyCreationEnabled = server.get(
   }
 );
 
+const _getAvailableApiKeyPermissions = server.get(
+  "/:teamId/api-keys/available-permissions",
+  requireTeamAccess(),
+  requirePermission("core.api_keys.write"),
+  describeRoute({
+    description: "List the team permissions the caller can put on a key of their own: the ones they hold, and no more than the key they authenticate with.",
+    hide: true,
+    operationId: "listAvailableApiKeyPermissions",
+    responses: {
+      ...describeSuccessResponse("The permissions available for a key", z.object({
+        permissions: z.array(availablePermissionSchema).openapi({ description: "The available permissions, sorted by id." }),
+      })),
+      ...describeErrorResponse(500, "Failed to list the available permissions"),
+    },
+    summary: "List Available API Key Permissions",
+    tags: ["API Keys"],
+  }),
+  zodValidator(
+    "param",
+    z.object({
+      teamId: z.string(),
+    })
+  ),
+  async (c) => {
+    try {
+      const permissions = await getAvailableApiKeyPermissions(c.var.user.id, c.var.team.id, c.get("apiKey")?.id);
+      return c.json(actionSuccess({
+        permissions: permissions.map(({ description, id, name, resource }) => ({ description, id, name, resource })),
+      }));
+    } catch (error) {
+      return c.json(actionFailure(error as Error), 500);
+    }
+  }
+);
+
 const _setApiKeyPermissions = server.put(
   "/:teamId/api-keys/:apiKeyId/permissions",
   requireTeamAccess(),
@@ -230,6 +274,7 @@ const _deleteApiKey = server.delete(
 
 export type ApiKeys =
   | typeof _getApiKeys
+  | typeof _getAvailableApiKeyPermissions
   | typeof _createApiKey
   | typeof _setApiKeyPermissions
   | typeof _deleteApiKey

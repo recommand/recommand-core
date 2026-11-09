@@ -384,6 +384,7 @@ Suomi,Fins
 Svenska,Zweeds
 Target URL,Doel-URL
 Team permissions,Teamrechten
+This member manages the team\, so they can give themselves any of these permissions.,Dit lid beheert het team en kan zichzelf dus elk van deze rechten geven.
 These permissions apply to this user across all teams. Only administrators can manage them.,Deze rechten gelden voor deze gebruiker in alle teams. Alleen beheerders kunnen ze beheren.
 this team,dit team
 Toggle columns,Kolommen tonen of verbergen
@@ -418,6 +419,8 @@ Public signup is disabled. Ask an existing user to invite you to their team.,Ope
 Public signup is disabled. Ask an existing user to invite you.,Openbare registratie is uitgeschakeld. Vraag een bestaande gebruiker om je uit te nodigen.
 Delete this team,Dit team verwijderen
 Are you sure you want to delete the team "{0}"? Its setup has not been finished yet. This action cannot be undone.,Weet je zeker dat je het team "{0}" wilt verwijderen? De configuratie ervan is nog niet afgerond. Deze actie kan niet ongedaan worden gemaakt.
+Select all,Alles selecteren
+Select none,Niets selecteren
 Delete API keys,API-sleutels verwijderen
 Read API keys,API-sleutels bekijken
 See API keys and the permissions they hold,API-sleutels en hun rechten bekijken
@@ -435,3 +438,5 @@ Delete automation rules\, so they no longer react to events,Automatiseringsregel
 API keys,API-sleutels
 Members,Teamleden
 Rules,Regels
+Other,Overige
+Permissions updated,Rechten bijgewerkt

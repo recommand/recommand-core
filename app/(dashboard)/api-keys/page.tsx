@@ -1,7 +1,6 @@
 import { PageTemplate } from "@core/components/page-template";
 import { rc } from "@recommand/lib/client";
 import type { ApiKeys } from "api/api-keys";
-import type { Permissions } from "@core/api/permissions";
 import { useEffect, useState, useCallback } from "react";
 import { DataTable } from "@core/components/data-table";
 import {
@@ -19,7 +18,8 @@ import { stringifyActionFailure } from "@recommand/lib/utils";
 import type { ApiKeyWithPermissions } from "@core/data/api-keys";
 import { useActiveTeam } from "@core/hooks/user";
 import { Trash2, Loader2, Copy, ChevronDown, AlertCircle, Shield } from "lucide-react";
-import { Checkbox } from "@core/components/ui/checkbox";
+import type { KeyPermission } from "@core/components/api-keys/permission-checklist";
+import { PermissionChecklist } from "@core/components/api-keys/permission-checklist";
 import {
   Dialog,
   DialogContent,
@@ -50,7 +50,6 @@ import { useDataTableState } from "@core/hooks/use-data-table-state";
 import { DataTablePagination } from "@core/components/data-table/pagination";
 
 const client = rc<ApiKeys>("core");
-const permissionsClient = rc<Permissions>("core");
 
 type CreationPermissionState =
   | { status: "loading" }
@@ -60,11 +59,11 @@ type CreationPermissionState =
 
 export default function Page() {
   const [apiKeys, setApiKeys] = useState<ApiKeyWithPermissions[]>([]);
-  const [grantablePermissions, setGrantablePermissions] = useState<
-    { id: string; name: string; description?: string }[]
-  >([]);
+  const [availablePermissions, setAvailablePermissions] = useState<KeyPermission[]>([]);
+  // The permissions a new key gets; every available one until the user changes it
+  const [newKeyPermissionIds, setNewKeyPermissionIds] = useState<string[] | null>(null);
   const [editingKey, setEditingKey] = useState<ApiKeyWithPermissions | null>(null);
-  const [pendingPermissionId, setPendingPermissionId] = useState<string | null>(null);
+  const [pendingPermissionIds, setPendingPermissionIds] = useState<string[]>([]);
   const [newKeyName, setNewKeyName] = useState("");
   const [keyType, setKeyType] = useState<"basic" | "jwt">("basic");
   const [expirationDuration, setExpirationDuration] = useState<string>("24");
@@ -147,43 +146,45 @@ export default function Page() {
     }
   }, [activeTeam?.id]);
 
-  const fetchGrantablePermissions = useCallback(async () => {
+  const fetchAvailablePermissions = useCallback(async () => {
+    setNewKeyPermissionIds(null);
     if (!activeTeam?.id) {
-      setGrantablePermissions([]);
+      setAvailablePermissions([]);
 
       return;
     }
     try {
-      const response = await permissionsClient.auth.teams[":teamId"].permissions.$get({
+      const response = await client[":teamId"]["api-keys"]["available-permissions"].$get({
         param: { teamId: activeTeam.id },
       });
       const json = await response.json();
-      if (json.success && json.permissions) {
-        setGrantablePermissions(json.permissions);
+      if (json.success) {
+        setAvailablePermissions(json.permissions);
       }
     } catch (error) {
-      console.error("Error fetching grantable permissions:", error);
+      console.error("Error fetching available permissions:", error);
     }
   }, [activeTeam?.id]);
 
   useEffect(() => {
     fetchApiKeys();
     checkCreationPermission();
-    fetchGrantablePermissions();
-  }, [fetchApiKeys, checkCreationPermission, fetchGrantablePermissions]);
+    fetchAvailablePermissions();
+  }, [fetchApiKeys, checkCreationPermission, fetchAvailablePermissions]);
 
-  const handleKeyPermissionToggle = async (
-    key: ApiKeyWithPermissions,
-    permissionId: string,
-    currentlyHas: boolean
-  ) => {
+  const selectedNewKeyPermissionIds = newKeyPermissionIds ?? availablePermissions.map((permission) => permission.id);
+
+  const handleKeyPermissionsChange = async (key: ApiKeyWithPermissions, changedIds: string[]) => {
     if (!activeTeam?.id) {
       return;
     }
-    setPendingPermissionId(permissionId);
-    const permissionIds = currentlyHas
-      ? key.permissionIds.filter((id) => id !== permissionId)
-      : [...key.permissionIds, permissionId];
+    // A permission the owner lost isn't shown, and the key can't keep it, so it's dropped
+    const permissionIds = changedIds.filter((id) => availablePermissions.some((permission) => permission.id === id));
+    // Only the permissions that change show as saving
+    setPendingPermissionIds([
+      ...permissionIds.filter((id) => !key.permissionIds.includes(id)),
+      ...key.permissionIds.filter((id) => !permissionIds.includes(id)),
+    ]);
     try {
       const response = await client[":teamId"]["api-keys"][":apiKeyId"]["permissions"].$put({
         json: { permissionIds },
@@ -202,11 +203,11 @@ export default function Page() {
       setEditingKey((current) =>
         current?.id === key.id ? { ...current, permissionIds: nextIds } : current
       );
-      toast.success(currentlyHas ? t`Permission revoked` : t`Permission granted`);
+      toast.success(t`Permissions updated`);
     } catch (error) {
       toast.error(error instanceof Error ? t(error.message) : t`Failed to update permission`);
     } finally {
-      setPendingPermissionId(null);
+      setPendingPermissionIds([]);
     }
   };
 
@@ -247,6 +248,8 @@ export default function Page() {
           name: newKeyName,
           type: keyType,
           expiresInSeconds,
+          // Without a choice, the key gets all of its owner's permissions, also before the list has loaded
+          permissionIds: newKeyPermissionIds ?? undefined,
         },
       });
 
@@ -271,6 +274,7 @@ export default function Page() {
       };
       setApiKeys((prev) => [...prev, newApiKey]);
       setNewKeyName("");
+      setNewKeyPermissionIds(null);
       if (keyType === "basic" && "secret" in json.apiKey) {
         setNewKey({
           key: json.apiKey.id,
@@ -439,51 +443,15 @@ export default function Page() {
           </DialogHeader>
 
           {editingKey ? (
-            <div className="space-y-4">
-              {grantablePermissions.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  {t`No permissions are available to manage.`}
-                </p>
-              ) : (
-                grantablePermissions.map((permission) => {
-                  const has = editingKey.permissionIds.includes(permission.id);
-                  const isPending = pendingPermissionId === permission.id;
-
-                  return (
-                    <div className="flex items-start gap-3" key={permission.id}>
-                      <div className="pt-0.5">
-                        {isPending ? (
-                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                        ) : (
-                          <Checkbox
-                            checked={has}
-                            disabled={pendingPermissionId !== null}
-                            id={`key-${editingKey.id}-${permission.id}`}
-                            onCheckedChange={() =>
-                              handleKeyPermissionToggle(editingKey, permission.id, has)
-                            }
-                          />
-                        )}
-                      </div>
-
-                      <div className="flex-1 space-y-0.5">
-                        <Label
-                          className="text-sm font-medium cursor-pointer"
-                          htmlFor={`key-${editingKey.id}-${permission.id}`}
-                        >
-                          {t(permission.name)}
-                        </Label>
-
-                        {permission.description ? (
-                          <p className="text-sm text-muted-foreground">
-                            {t(permission.description)}
-                          </p>
-                        ) : null}
-                      </div>
-                    </div>
-                  );
-                })
-              )}
+            <div className="max-h-[60vh] overflow-y-auto">
+              <PermissionChecklist
+                disabled={pendingPermissionIds.length > 0}
+                idPrefix={`key-${editingKey.id}`}
+                onChange={(permissionIds) => handleKeyPermissionsChange(editingKey, permissionIds)}
+                pendingIds={pendingPermissionIds}
+                permissions={availablePermissions}
+                selectedIds={editingKey.permissionIds}
+              />
             </div>
           ) : null}
         </DialogContent>
@@ -578,6 +546,33 @@ export default function Page() {
                 </div>
               </div>
             )}
+            <Collapsible>
+              <CollapsibleTrigger asChild>
+                <Button className="px-0 gap-2" variant="ghost">
+                  {t`Permissions`} ({selectedNewKeyPermissionIds.length}/{availablePermissions.length})
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </CollapsibleTrigger>
+
+              <CollapsibleContent className="space-y-4 pt-2">
+                <div className="flex gap-2">
+                  <Button onClick={() => setNewKeyPermissionIds(null)} size="sm" variant="outline">
+                    {t`Select all`}
+                  </Button>
+
+                  <Button onClick={() => setNewKeyPermissionIds([])} size="sm" variant="outline">
+                    {t`Select none`}
+                  </Button>
+                </div>
+
+                <PermissionChecklist
+                  idPrefix="new-key"
+                  onChange={setNewKeyPermissionIds}
+                  permissions={availablePermissions}
+                  selectedIds={selectedNewKeyPermissionIds}
+                />
+              </CollapsibleContent>
+            </Collapsible>
           </div>
         ) : null}
         <div className="rounded-lg border p-4 space-y-4 max-w-2xl bg-muted">

@@ -335,6 +335,7 @@ Team Name,Teamname
 Team name updated,Teamname aktualisiert
 Team name updated successfully,Teamname erfolgreich aktualisiert
 Team permissions,Teamberechtigungen
+This member manages the team\, so they can give themselves any of these permissions.,Dieses Mitglied verwaltet das Team und kann sich daher jede dieser Berechtigungen selbst geben.
 Terms of Use,Nutzungsbedingungen
 Thank you for signing up for Recommand. Please confirm your email address to get started.,Vielen Dank für Ihre Registrierung bei Recommand. Bestätigen Sie Ihre E-Mail-Adresse, um loszulegen.
 The confirmation link appears to be invalid or missing.,Der Bestätigungslink scheint ungültig zu sein oder zu fehlen.
@@ -418,6 +419,8 @@ Türkçe,Türkisch
 日本語,Japanisch
 Delete this team,Dieses Team löschen
 Are you sure you want to delete the team "{0}"? Its setup has not been finished yet. This action cannot be undone.,Möchten Sie das Team „{0}“ wirklich löschen? Seine Einrichtung ist noch nicht abgeschlossen. Diese Aktion kann nicht rückgängig gemacht werden.
+Select all,Alle auswählen
+Select none,Keine auswählen
 Delete API keys,API-Schlüssel löschen
 Read API keys,API-Schlüssel anzeigen
 See API keys and the permissions they hold,API-Schlüssel und ihre Berechtigungen anzeigen
@@ -435,3 +438,5 @@ Delete automation rules\, so they no longer react to events,Automatisierungsrege
 API keys,API-Schlüssel
 Members,Mitglieder
 Rules,Regeln
+Other,Sonstige
+Permissions updated,Berechtigungen aktualisiert
