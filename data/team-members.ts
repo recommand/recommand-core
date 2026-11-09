@@ -1,5 +1,6 @@
 import { apiKeys, principalPermissions, teamMembers, userPermissions, users } from "@core/db/schema";
 import { emitBackendEvent, CORE_BACKEND_EVENTS } from "@core/lib/backend-events";
+import { getTeamJoinPermissions } from "@core/lib/permissions";
 import { db } from "@recommand/db";
 import { and, eq, inArray } from "drizzle-orm";
 
@@ -38,10 +39,20 @@ export async function getMinimalTeamMembers(teamId: string): Promise<MinimalTeam
 }
 
 export async function addTeamMember(teamId: string, userId: string) {
-  const res = await db
-    .insert(teamMembers)
-    .values({ teamId, userId })
-    .returning();
+  const res = await db.transaction(async (tx) => {
+    const members = await tx
+      .insert(teamMembers)
+      .values({ teamId, userId })
+      .returning();
+    const joinPermissions = getTeamJoinPermissions();
+    if (joinPermissions.length > 0) {
+      await tx
+        .insert(userPermissions)
+        .values(joinPermissions.map((permission) => ({ permissionId: permission.id, teamId, userId })))
+        .onConflictDoNothing();
+    }
+    return members;
+  });
   await emitBackendEvent(CORE_BACKEND_EVENTS.TEAM_MEMBER_ADDED, { teamId, userId });
   return res;
 }

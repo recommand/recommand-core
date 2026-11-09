@@ -13,6 +13,7 @@ import {
 import { requireTeamAccess } from "@core/lib/auth-middleware";
 import { describeErrorResponse, describeSuccessResponse } from "@core/lib/api-docs";
 import { audit } from "@core/lib/audit";
+import { insufficientPermissionBody, requirePermission } from "@core/lib/permissions/permission-middleware";
 
 const server = new Server();
 
@@ -39,6 +40,7 @@ const apiKeyPermissionsSchema = z
 const _getApiKeys = server.get(
   "/:teamId/api-keys",
   requireTeamAccess(),
+  requirePermission("core.api_keys.read"),
   zodValidator(
     "param",
     z.object({
@@ -62,6 +64,7 @@ const _getApiKeys = server.get(
 const _createApiKey = server.post(
   "/:teamId/api-keys",
   requireTeamAccess(),
+  requirePermission("core.api_keys.write"),
   zodValidator(
     "param",
     z.object({
@@ -113,6 +116,7 @@ const _createApiKey = server.post(
 const _isApiKeyCreationEnabled = server.get(
   "/:teamId/api-keys/is-creation-permitted",
   requireTeamAccess(),
+  requirePermission("core.api_keys.read"),
   zodValidator(
     "param",
     z.object({
@@ -131,6 +135,7 @@ const _isApiKeyCreationEnabled = server.get(
 const _setApiKeyPermissions = server.put(
   "/:teamId/api-keys/:apiKeyId/permissions",
   requireTeamAccess(),
+  requirePermission("core.api_keys.write"),
   describeRoute({
     description: "Replace the team permissions of an API key. The key's owner must hold each of them; changing someone else's key also needs `core.team.manage`.",
     hide: true,
@@ -138,7 +143,12 @@ const _setApiKeyPermissions = server.put(
     responses: {
       ...describeSuccessResponse("The key's permissions were replaced", z.object({ apiKey: apiKeyPermissionsSchema })),
       ...describeErrorResponse(400, "A permission is unknown or not a team permission"),
-      ...describeErrorResponse(403, "The caller can't give the key one of these permissions"),
+      // Replaces the 403 `requirePermission` documents, so it names that cause too
+      ...describeErrorResponse(
+        403,
+        "The credential lacks the `core.api_keys.write` permission, or can't give the key one of these permissions.",
+        insufficientPermissionBody
+      ),
       ...describeErrorResponse(404, "The API key was not found"),
       ...describeErrorResponse(500, "Failed to set the permissions"),
     },
@@ -193,6 +203,7 @@ const _setApiKeyPermissions = server.put(
 const _deleteApiKey = server.delete(
   "/:teamId/api-keys/:apiKeyId",
   requireTeamAccess(),
+  requirePermission("core.api_keys.delete"),
   zodValidator(
     "param",
     z.object({

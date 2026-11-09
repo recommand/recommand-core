@@ -1,13 +1,32 @@
 import { createMiddleware } from "hono/factory";
+import { describeRoute } from "hono-openapi";
+import { z } from "zod";
+import "zod-openapi/extend";
 import type { AuthenticatedUserContext } from "../auth-middleware";
 import { actionFailure } from "@recommand/lib/utils";
 import { hasGlobalPermission } from "@core/data/permissions";
 import { hasPrincipalPermission } from "@core/data/principal-permissions";
+import { describeErrorResponse } from "@core/lib/api-docs";
 import { verifySession } from "../session";
 import { audit } from "@core/lib/audit";
 
+// Optional, since an operation can refuse for other reasons too, such as a team
+// without access to its documents, and those answers carry no `code`
+export const insufficientPermissionBody = z.object({
+  code: z.literal("insufficient_permission").optional().openapi({
+    description:
+      "Set when the credential lacks the permission the operation requires; the message names it. Other `403` responses of the operation come without it.",
+  }),
+});
+
+/**
+ * Lets the request through when its user, or the API key it authenticated with, holds the team permission.
+ * The operation's OpenAPI description gains the 403, which names the permission, and lists the permission on
+ * its `httpBasic` and `jwt` security requirements. A route that sets its own `security` must do so before this
+ * middleware, since a later description replaces it.
+ */
 export function requirePermission(permissionId: string) {
-  return createMiddleware<AuthenticatedUserContext>(async (c, next) => {
+  const middleware = createMiddleware<AuthenticatedUserContext>(async (c, next) => {
     const user = c.var.user;
     if (!user) {
       await audit(c, {
@@ -47,12 +66,26 @@ export function requirePermission(permissionId: string) {
         teamId,
         reasonCode: "missing_permission",
       });
-      return c.json(actionFailure("Unauthorized"), 401);
+      return c.json(insufficientPermission(permissionId), 403);
     }
 
     await next();
   });
+  const documentation = describeRoute({
+    responses: describeErrorResponse(403, `The credential lacks the \`${permissionId}\` permission.`, insufficientPermissionBody),
+    // OpenAPI 3.1 lets a requirement on any scheme list the roles it needs, so an API
+    // key, Basic or JWT, documents the permission the route checks
+    security: [{ httpBasic: [permissionId] }, { jwt: [permissionId] }],
+  });
+  // The description travels as a symbol property of describeRoute's middleware, which Object.assign copies
+  return Object.assign(middleware, documentation);
 }
+
+/** The failure envelope for a credential that lacks a permission, with a code clients can act on. */
+export const insufficientPermission = (permissionId: string) => ({
+  ...actionFailure(`This operation needs the ${permissionId} permission.`),
+  code: "insufficient_permission" as const,
+});
 
 export function requireGlobalPermission(permissionId: string) {
   return createMiddleware<AuthenticatedUserContext>(async (c, next) => {

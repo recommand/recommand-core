@@ -418,3 +418,20 @@ Türkçe,Türkisch
 日本語,Japanisch
 Delete this team,Dieses Team löschen
 Are you sure you want to delete the team "{0}"? Its setup has not been finished yet. This action cannot be undone.,Möchten Sie das Team „{0}“ wirklich löschen? Seine Einrichtung ist noch nicht abgeschlossen. Diese Aktion kann nicht rückgängig gemacht werden.
+Delete API keys,API-Schlüssel löschen
+Read API keys,API-Schlüssel anzeigen
+See API keys and the permissions they hold,API-Schlüssel und ihre Berechtigungen anzeigen
+Manage API keys,API-Schlüssel verwalten
+Create API keys and change their permissions,API-Schlüssel erstellen und ihre Berechtigungen ändern
+Read members,Mitglieder anzeigen
+Delete rules,Regeln löschen
+Read rules,Regeln anzeigen
+See automation rules\, their deliveries and the events they can react to,Automatisierungsregeln\, ihre Zustellungen und die Ereignisse\, auf die sie reagieren können\, anzeigen
+Manage rules,Regeln verwalten
+Create and change automation rules\, and retry their deliveries,Automatisierungsregeln erstellen und ändern und ihre Zustellungen erneut versuchen
+Delete API keys\, which stops every client that uses them,API-Schlüssel löschen\, wodurch jeder Client\, der sie verwendet\, nicht mehr funktioniert
+See who is in the team\, with their email addresses,Sehen\, wer im Team ist\, mit ihren E-Mail-Adressen
+Delete automation rules\, so they no longer react to events,Automatisierungsregeln löschen\, damit sie nicht mehr auf Ereignisse reagieren
+API keys,API-Schlüssel
+Members,Mitglieder
+Rules,Regeln

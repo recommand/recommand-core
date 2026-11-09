@@ -47,6 +47,11 @@ export const hasPrincipalPermission = async (
 export type PrincipalType = "api_key";
 export type PrincipalPermission = typeof principalPermissions.$inferSelect;
 
+// A key's permissions are stored in its own team and apply wherever the key may
+// act: its own team, or, for an admin's key, any team
+const principalTeamCondition = (principalType: PrincipalType, teamId: string) =>
+  principalType === "api_key" ? undefined : eq(principalPermissions.teamId, teamId);
+
 export const listPrincipalPermissionIds = async (
   principalType: PrincipalType,
   principalId: string,
@@ -59,7 +64,7 @@ export const listPrincipalPermissionIds = async (
       and(
         eq(principalPermissions.principalType, principalType),
         eq(principalPermissions.principalId, principalId),
-        eq(principalPermissions.teamId, teamId)
+        principalTeamCondition(principalType, teamId)
       )
     );
 
@@ -110,7 +115,7 @@ export const hasStoredPrincipalPermission = async (
       and(
         eq(principalPermissions.principalType, principalType),
         eq(principalPermissions.principalId, principalId),
-        eq(principalPermissions.teamId, teamId),
+        principalTeamCondition(principalType, teamId),
         eq(principalPermissions.permissionId, permissionId)
       )
     )
