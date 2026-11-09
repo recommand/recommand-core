@@ -4,6 +4,7 @@ import { pool, useTestDatabase } from "./harness";
 // Resetting a password goes through `api/auth`, which needs a signing key for sessions
 process.env.JWT_SECRET = "oauth-grants-test-only-signing-key";
 const { registerPermission } = await import("../../lib/permissions");
+const { hasPrincipalPermission } = await import("../../data/principal-permissions");
 const { createGrant, deleteGrant, findGrant, listGrantPermissionIds } = await import("../../data/oauth-grants");
 const { findClient } = await import("../../data/oauth-clients");
 const { addTeamMember, removeTeamMember } = await import("../../data/team-members");
@@ -38,6 +39,8 @@ const grantFor = async (userId: string, teamIds: string[], permissionIds: string
 
   return createGrant({ client, permissionIds, teamIds, userId });
 };
+const can = (grantId: string, userId: string, teamId: string, permissionId: string) =>
+  hasPrincipalPermission({ grantId, type: "oauth_grant", userId }, teamId, permissionId);
 
 describe("creating a grant", () => {
   test("grants the requested permissions the user holds in each picked team", async () => {
@@ -73,6 +76,37 @@ describe("creating a grant", () => {
     await expect(grantFor("admin", ["two"], ["test.read"])).rejects.toThrow("Nothing can be granted");
     const { permissionIdsByTeam } = await grantFor("admin", ["one"], ["test.read", "test.write"]);
     expect(permissionIdsByTeam).toEqual(new Map([["one", ["test.read"]]]));
+  });
+});
+
+describe("using a grant", () => {
+  test("allows only granted permissions in granted teams", async () => {
+    const { grant } = await grantFor("member", ["one"], ["test.read"]);
+    expect(await can(grant.id, "member", "one", "test.read")).toBe(true);
+    expect(await can(grant.id, "member", "one", "test.write")).toBe(false);
+    expect(await can(grant.id, "member", "two", "test.read")).toBe(false);
+  });
+
+  test("follows the user's current permissions and membership", async () => {
+    const { grant } = await grantFor("member", ["one", "two"], ["test.read", "test.write"]);
+    await pool.query("DELETE FROM user_permissions WHERE user_id = 'member' AND team_id = 'one' AND permission_id = 'test.write'");
+    await pool.query("DELETE FROM team_members WHERE user_id = 'member' AND team_id = 'two'");
+    expect(await can(grant.id, "member", "one", "test.read")).toBe(true);
+    expect(await can(grant.id, "member", "one", "test.write")).toBe(false);
+    expect(await can(grant.id, "member", "two", "test.read")).toBe(false);
+  });
+
+  test("never lets an admin's grant through the admin bypass", async () => {
+    const { grant } = await grantFor("admin", ["one"], ["test.read"]);
+    await pool.query("DELETE FROM user_permissions WHERE user_id = 'admin'");
+    expect(await can(grant.id, "admin", "one", "test.read")).toBe(false);
+    expect(await can(grant.id, "admin", "two", "test.read")).toBe(false);
+  });
+
+  test("stops working once deleted", async () => {
+    const { grant } = await grantFor("member", ["one"], ["test.read"]);
+    await deleteGrant(grant.id);
+    expect(await can(grant.id, "member", "one", "test.read")).toBe(false);
   });
 });
 

@@ -1,9 +1,9 @@
-import { oauthAccessTokens, oauthGrants, oauthRefreshTokens } from "@core/db/schema";
+import { oauthAccessTokens, oauthClients, oauthGrants, oauthRefreshTokens } from "@core/db/schema";
 import { apiResource } from "@core/lib/oauth/resource";
-import { getSigningKey } from "@core/lib/signing-keys";
+import { getSigningKey, getVerificationKeys } from "@core/lib/signing-keys";
 import { db } from "@recommand/db";
-import { and, eq, isNull, lt } from "drizzle-orm";
-import { decodeProtectedHeader, SignJWT } from "jose";
+import { and, eq, gt, isNull, lt } from "drizzle-orm";
+import { decodeProtectedHeader, jwtVerify, SignJWT } from "jose";
 import { createHash, randomBytes } from "node:crypto";
 import { ulid } from "ulid";
 import type { OAuthGrant } from "./oauth-grants";
@@ -141,6 +141,54 @@ export const isOAuthAccessToken = (token: string) => {
   } catch {
     return false;
   }
+};
+
+export type VerifiedAccessToken = {
+  grant: OAuthGrant;
+  permissionIdsByTeam: Map<string, string[]>;
+  resources: string[];
+};
+
+/**
+ * The grant an access token was issued for, with its permissions per team, or
+ * `null` when the token isn't signed by this server, is unknown or expired, or
+ * its grant was deleted. A token is checked against its record too, so deleting
+ * a grant ends its tokens at once.
+ */
+export const verifyAccessToken = async (token: string): Promise<VerifiedAccessToken | null> => {
+  if (!isOAuthAccessToken(token)) {
+    return null;
+  }
+
+  try {
+    await jwtVerify(token, await getVerificationKeys(), {
+      algorithms: ["RS256"],
+      issuer: process.env.BASE_URL!,
+      typ: ACCESS_TOKEN_TYPE,
+    });
+  } catch {
+    return null;
+  }
+
+  const [stored] = await db
+    .select({ grant: oauthGrants, resources: oauthAccessTokens.resources })
+    .from(oauthAccessTokens)
+    .innerJoin(oauthGrants, eq(oauthGrants.id, oauthAccessTokens.grantId))
+    // A disabled client's tokens stop working at once
+    .leftJoin(oauthClients, eq(oauthClients.id, oauthGrants.clientId))
+    .where(
+      and(
+        eq(oauthAccessTokens.tokenHash, hashToken(token)),
+        gt(oauthAccessTokens.expiresAt, new Date()),
+        isNull(oauthClients.disabledAt)
+      )
+    )
+    .limit(1);
+  if (!stored) {
+    return null;
+  }
+
+  return { grant: stored.grant, permissionIdsByTeam: await listGrantPermissionIds(stored.grant.id), resources: stored.resources };
 };
 
 export type RefreshResult =
