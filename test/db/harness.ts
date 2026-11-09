@@ -1,4 +1,5 @@
 import { afterAll, beforeAll } from "bun:test";
+import { exportJWK, generateKeyPair } from "jose";
 import { readdir, readFile } from "node:fs/promises";
 import { Pool } from "pg";
 
@@ -15,6 +16,11 @@ if (!["localhost", "127.0.0.1"].includes(url.hostname) || !url.pathname.endsWith
 // `@recommand/db` connects to this when it is first imported, so import this
 // file before anything that uses the database
 process.env.DATABASE_URL = databaseUrl;
+// Access tokens are signed, so they need an issuer and a key
+process.env.BASE_URL ??= "https://recommand.example.com";
+process.env.SIGNING_KEYS = JSON.stringify({
+  keys: [await exportJWK((await generateKeyPair("RS256", { extractable: true })).privateKey)],
+});
 
 export const pool = new Pool({ connectionString: databaseUrl });
 

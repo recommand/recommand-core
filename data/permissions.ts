@@ -448,13 +448,14 @@ export const listOwnerTeamPermissionIds = async (
 /**
  * The team permissions a user holds as a member of the team, without the admin
  * bypass, for credentials that must never carry admin access, such as OAuth
- * grants.
+ * grants. A transaction passes itself, so it reads what it locked.
  */
 export const listMemberTeamPermissionIds = async (
   userId: string,
   teamId: string,
+  executor: Pick<typeof db, "select"> = db,
 ): Promise<string[]> => {
-  const rows = await db
+  const rows = await executor
     .select({ permissionId: userPermissions.permissionId })
     .from(userPermissions)
     .innerJoin(

@@ -44,7 +44,7 @@ export const hasPrincipalPermission = async (
   throw new Error("Invalid principal type");
 };
 
-export type PrincipalType = "api_key";
+export type PrincipalType = "api_key" | "oauth_grant";
 export type PrincipalPermission = typeof principalPermissions.$inferSelect;
 
 // A key's permissions are stored in its own team and apply wherever the key may
