@@ -4,6 +4,8 @@ import { buildRedirect, parseAuthorizationRequest } from "../lib/oauth/authoriza
 import { ClientMetadataError } from "../lib/oauth/client-metadata";
 import { getDelegablePermissions, registerPermission } from "../lib/permissions";
 
+process.env.BASE_URL = "https://recommand.example.com";
+
 registerPermission({ delegation: "all", id: "test.read", name: "Read", prerequisiteActorPermissionIds: [] });
 registerPermission({ delegation: "opt_in", id: "test.write", name: "Write", prerequisiteActorPermissionIds: [] });
 registerPermission({ id: "test.undelegated", name: "Undelegated", prerequisiteActorPermissionIds: [] });
@@ -69,6 +71,13 @@ describe("an authorization request", () => {
     expect(await parse({ ...valid, code_challenge: "too-short" })).toMatchObject({ error: "invalid_request" });
     expect(await parse({ ...valid, resource: ["not a uri"] })).toMatchObject({ error: "invalid_target" });
     expect(await parse({ ...valid, resource: ["https://api.example.com/#part"] })).toMatchObject({ error: "invalid_target" });
+    expect(await parse({ ...valid, resource: ["https://api.example.com/"] })).toMatchObject({ error: "invalid_target" });
+  });
+
+  test("accepts this API as the resource", async () => {
+    expect(await parse({ ...valid, resource: ["https://recommand.example.com/api"] })).toMatchObject({
+      request: { resources: ["https://recommand.example.com/api"] },
+    });
   });
 
   test("offers everything the client can be granted when there is no scope", async () => {

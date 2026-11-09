@@ -1,6 +1,7 @@
 import type { Context } from "hono";
 import { isOAuthAccessToken, verifyAccessToken } from "@core/data/oauth-tokens";
 import { users } from "@core/db/schema";
+import { apiResource, protectedResourceMetadataUrl } from "@core/lib/oauth/resource";
 import { db } from "@recommand/db";
 import { eq } from "drizzle-orm";
 import type { Session } from "../session";
@@ -35,6 +36,11 @@ export const verifyOAuthAccessToken = async (c: Context): Promise<Session | null
   if (!verified?.grant.userId) {
     return null;
   }
+  // A token meant for another resource isn't for this API (RFC 8707, section 2);
+  // one without any is, since a client doesn't have to name the resource
+  if (verified.resources.length > 0 && !verified.resources.includes(apiResource())) {
+    return null;
+  }
 
   const [user] = await db
     .select({ language: users.language })
@@ -57,16 +63,18 @@ export const verifyOAuthAccessToken = async (c: Context): Promise<Session | null
 
 /**
  * Tells an OAuth client what to do next (RFC 6750, section 3): which permission
- * to ask the user for, or that its token is no longer valid.
+ * to ask the user for, or that its token is no longer valid, and where to find
+ * this API's metadata (RFC 9728, section 5.1).
  */
 export const setBearerChallenge = (
   c: Context,
   challenge: { error?: "insufficient_scope" | "invalid_token"; scope?: string } = {}
 ) => {
   const parameters = [
+    `resource_metadata="${protectedResourceMetadataUrl()}"`,
     challenge.error ? `error="${challenge.error}"` : null,
     // Only a missing permission names what to ask for
     challenge.scope ? `scope="${challenge.scope}"` : null,
   ].filter(Boolean);
-  c.header("WWW-Authenticate", parameters.length > 0 ? `Bearer ${parameters.join(", ")}` : "Bearer");
+  c.header("WWW-Authenticate", `Bearer ${parameters.join(", ")}`);
 };

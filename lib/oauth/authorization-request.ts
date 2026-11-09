@@ -3,6 +3,7 @@ import { getDelegablePermission, getDelegablePermissions } from "@core/lib/permi
 import { ClientMetadataError } from "./client-metadata";
 import { isValidS256CodeChallenge } from "./pkce";
 import { matchesRedirectUri } from "./redirect-uri";
+import { supportedResources } from "./resource";
 
 // OpenID Connect scopes aren't granted yet, so they're left out of the request
 const OIDC_SCOPES = ["email", "openid", "profile"];
@@ -88,10 +89,14 @@ export const parseAuthorizationRequest = async (
     return fail("invalid_request", "The code_challenge is not an S256 challenge");
   }
 
-  // A resource indicator is an absolute URI without a fragment (RFC 8707, section 2)
+  // A resource indicator is an absolute URI without a fragment (RFC 8707,
+  // section 2), and this server only issues tokens for the resources it knows
   const resources = parameters.resource ?? [];
   if (!resources.every((resource) => URL.canParse(resource) && !resource.includes("#"))) {
     return fail("invalid_target", "Each resource must be an absolute URI without a fragment");
+  }
+  if (!resources.every((resource) => supportedResources().includes(resource))) {
+    return fail("invalid_target", `Tokens can only be issued for ${supportedResources().join(", ")}`);
   }
 
   const canBeGranted = (permissionId: string) =>
