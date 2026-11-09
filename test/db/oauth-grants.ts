@@ -5,6 +5,8 @@ const { registerPermission } = await import("../../lib/permissions");
 const { hasPrincipalPermission } = await import("../../data/principal-permissions");
 const { createGrant, deleteGrant, findGrant, listGrantPermissionIds } = await import("../../data/oauth-grants");
 const { findClient } = await import("../../data/oauth-clients");
+const { addTeamMember, removeTeamMember } = await import("../../data/team-members");
+const { deleteTeam } = await import("../../data/teams");
 
 registerPermission({ id: "test.read", name: "Read", prerequisiteActorPermissionIds: [] });
 registerPermission({ id: "test.write", name: "Write", prerequisiteActorPermissionIds: [] });
@@ -93,5 +95,41 @@ describe("using a grant", () => {
     expect(await findGrant(grant.id)).toBeNull();
     expect(await can(grant.id, "member", "one", "test.read")).toBe(false);
     expect(await listGrantPermissionIds(grant.id)).toEqual(new Map());
+  });
+});
+
+describe("leaving or deleting a team", () => {
+  test("removes the team from the leaving user's grants for good", async () => {
+    const { grant } = await grantFor("member", ["one", "two"], ["test.read"]);
+    await removeTeamMember("two", "member");
+    await addTeamMember("two", "member");
+    await pool.query("INSERT INTO user_permissions (user_id, team_id, permission_id) VALUES ('member', 'two', 'test.read')");
+    expect(await listGrantPermissionIds(grant.id)).toEqual(new Map([["one", ["test.read"]]]));
+    expect(await can(grant.id, "member", "two", "test.read")).toBe(false);
+    expect(await can(grant.id, "member", "one", "test.read")).toBe(true);
+  });
+
+  test("leaves other members' grants for the team alone", async () => {
+    const { grant } = await grantFor("admin", ["one"], ["test.read"]);
+    await removeTeamMember("one", "member");
+    expect(await can(grant.id, "admin", "one", "test.read")).toBe(true);
+  });
+
+  test("deletes a grant once its last team is gone", async () => {
+    const { grant: left } = await grantFor("member", ["two"], ["test.read"]);
+    const { grant: deleted } = await grantFor("admin", ["one"], ["test.read"]);
+    const { grant: both } = await grantFor("member", ["one", "two"], ["test.read"]);
+    await removeTeamMember("two", "member");
+    await deleteTeam("one");
+    expect(await findGrant(left.id)).toBeNull();
+    expect(await findGrant(deleted.id)).toBeNull();
+    expect(await findGrant(both.id)).toBeNull();
+  });
+
+  test("keeps a grant that still has a team", async () => {
+    const { grant } = await grantFor("member", ["one", "two"], ["test.read"]);
+    await deleteTeam("one");
+    expect(await findGrant(grant.id)).not.toBeNull();
+    expect(await listGrantPermissionIds(grant.id)).toEqual(new Map([["two", ["test.read"]]]));
   });
 });

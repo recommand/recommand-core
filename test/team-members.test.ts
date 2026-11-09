@@ -7,6 +7,8 @@ const sqlite = new Database(':memory:');
 });
 sqlite.exec('CREATE TABLE api_keys (id TEXT, team_id TEXT, user_id TEXT)');
 sqlite.exec('CREATE TABLE principal_permissions (principal_type TEXT, principal_id TEXT, team_id TEXT, permission_id TEXT)');
+// Removing a member also removes the team from their OAuth grants
+sqlite.exec('CREATE TABLE oauth_grants (id TEXT, user_id TEXT)');
 const members = [
   ['one', 'alice'],
   ['two', 'alice'],
@@ -17,7 +19,8 @@ const db = drizzle(async (query, params) => {
   if (failDeletion && query.includes('delete from "team_members"'))
     throw new Error('injected failure');
   const values: string[] = [];
-  const statement = query.replace(/\$(\d+)/g, (_, index) => {
+  // SQLite has no row locks
+  const statement = query.replace(/ for (update|share)$/, '').replace(/\$(\d+)/g, (_, index) => {
     values.push(params[Number(index) - 1]);
     return '?';
   });

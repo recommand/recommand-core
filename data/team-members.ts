@@ -1,3 +1,4 @@
+import { removeTeamFromGrants } from "@core/data/oauth-grants";
 import { apiKeys, principalPermissions, teamMembers, userPermissions, users } from "@core/db/schema";
 import { emitBackendEvent, CORE_BACKEND_EVENTS } from "@core/lib/backend-events";
 import { getTeamJoinPermissions } from "@core/lib/permissions";
@@ -59,6 +60,13 @@ export async function addTeamMember(teamId: string, userId: string) {
 
 export async function removeTeamMember(teamId: string, userId: string) {
   const res = await db.transaction(async (tx) => {
+    // Locked first, so an OAuth grant being made for this member either finishes
+    // before the team is taken out of it, or finds the member gone
+    await tx
+      .select({ userId: teamMembers.userId })
+      .from(teamMembers)
+      .where(and(eq(teamMembers.teamId, teamId), eq(teamMembers.userId, userId)))
+      .for("update");
     const memberKeys = and(eq(apiKeys.teamId, teamId), eq(apiKeys.userId, userId));
     // Grants name their key without a foreign key, so they go first
     await tx.delete(principalPermissions)
@@ -69,6 +77,7 @@ export async function removeTeamMember(teamId: string, userId: string) {
     await tx.delete(apiKeys).where(memberKeys);
     await tx.delete(userPermissions)
       .where(and(eq(userPermissions.teamId, teamId), eq(userPermissions.userId, userId)));
+    await removeTeamFromGrants(teamId, { executor: tx, userId });
     return tx.delete(teamMembers)
       .where(and(eq(teamMembers.teamId, teamId), eq(teamMembers.userId, userId)));
   });

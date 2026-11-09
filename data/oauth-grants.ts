@@ -2,7 +2,7 @@ import { listMemberTeamPermissionIds } from "@core/data/permissions";
 import { oauthGrants, principalPermissions, teamMembers } from "@core/db/schema";
 import { getRegisteredPermission } from "@core/lib/permissions";
 import { db } from "@recommand/db";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, notExists } from "drizzle-orm";
 import type { OAuthClient } from "./oauth-clients";
 
 export type OAuthGrant = typeof oauthGrants.$inferSelect;
@@ -112,3 +112,54 @@ export const deleteGrant = async (grantId: string): Promise<boolean> => db.trans
   const deleted = await tx.delete(oauthGrants).where(eq(oauthGrants.id, grantId)).returning({ id: oauthGrants.id });
   return deleted.length > 0;
 });
+
+export type GrantWriter = Pick<typeof db, "delete" | "select">;
+
+/**
+ * Removes a team from grants: from one user's grants when they leave the team,
+ * or from every grant when the team is deleted. Joining the team again doesn't
+ * bring it back, and a grant left without teams is deleted.
+ */
+export const removeTeamFromGrants = async (
+  teamId: string,
+  { executor = db, userId }: { executor?: GrantWriter; userId?: string } = {}
+): Promise<void> => {
+  const removed = await executor
+    .delete(principalPermissions)
+    .where(
+      and(
+        eq(principalPermissions.principalType, "oauth_grant"),
+        eq(principalPermissions.teamId, teamId),
+        userId
+          ? inArray(
+              principalPermissions.principalId,
+              executor.select({ id: oauthGrants.id }).from(oauthGrants).where(eq(oauthGrants.userId, userId))
+            )
+          : undefined
+      )
+    )
+    .returning({ grantId: principalPermissions.principalId });
+  const grantIds = [...new Set(removed.map(({ grantId }) => grantId))];
+  if (grantIds.length === 0) {
+    return;
+  }
+
+  await executor
+    .delete(oauthGrants)
+    .where(
+      and(
+        inArray(oauthGrants.id, grantIds),
+        notExists(
+          executor
+            .select({ permissionId: principalPermissions.permissionId })
+            .from(principalPermissions)
+            .where(
+              and(
+                eq(principalPermissions.principalType, "oauth_grant"),
+                eq(principalPermissions.principalId, oauthGrants.id)
+              )
+            )
+        )
+      )
+    );
+};
