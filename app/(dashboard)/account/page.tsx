@@ -15,6 +15,7 @@ import { rc } from "@recommand/lib/client";
 import type { Languages } from "@core/api/languages";
 import type { Account } from "@core/api/account";
 import { stringifyActionFailure } from "@recommand/lib/utils";
+import { ConnectedAppsCard } from "./connected-apps-card";
 import { SessionsCard } from "./sessions-card";
 
 const languagesClient = rc<Languages>("core");
@@ -186,6 +187,8 @@ export default function AccountPage() {
         </Card>
 
         <SessionsCard />
+
+        <ConnectedAppsCard />
       </div>
     </PageTemplate>
   );
