@@ -1,6 +1,6 @@
 import { principalPermissions } from "@core/db/schema";
 import type { PermissionScope } from "@core/lib/permissions";
-import { getRegisteredPermission } from "@core/lib/permissions";
+import { getDelegablePermission, getRegisteredPermission } from "@core/lib/permissions";
 import { db } from "@recommand/db";
 import { and, eq, inArray } from "drizzle-orm";
 import {
@@ -44,7 +44,8 @@ export const hasPrincipalPermission = async (
   }
 
   if (principal.type === "oauth_grant") {
-    if (getRegisteredPermission(permissionId)?.scope !== "team") {
+    // Also refuses a permission whose delegation changed after the consent
+    if (!getDelegablePermission(permissionId)) {
       return false;
     }
     const granted = await hasStoredPrincipalPermission(

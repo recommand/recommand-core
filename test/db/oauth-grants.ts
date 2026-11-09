@@ -8,9 +8,11 @@ const { findClient } = await import("../../data/oauth-clients");
 const { addTeamMember, removeTeamMember } = await import("../../data/team-members");
 const { deleteTeam } = await import("../../data/teams");
 
-registerPermission({ id: "test.read", name: "Read", prerequisiteActorPermissionIds: [] });
-registerPermission({ id: "test.write", name: "Write", prerequisiteActorPermissionIds: [] });
-registerPermission({ id: "test.global", name: "Global", prerequisiteActorPermissionIds: [], scope: "global" });
+registerPermission({ delegation: "all", id: "test.read", name: "Read", prerequisiteActorPermissionIds: [] });
+registerPermission({ delegation: "all", id: "test.write", name: "Write", prerequisiteActorPermissionIds: [] });
+registerPermission({ delegation: "opt_in", id: "test.optional", name: "Optional", prerequisiteActorPermissionIds: [] });
+registerPermission({ id: "test.undelegated", name: "Undelegated", prerequisiteActorPermissionIds: [] });
+registerPermission({ delegation: "all", id: "test.global", name: "Global", prerequisiteActorPermissionIds: [], scope: "global" });
 
 useTestDatabase();
 beforeEach(async () => {
@@ -47,12 +49,21 @@ describe("creating a grant", () => {
     expect(await listGrantPermissionIds(grant.id)).toEqual(expected);
   });
 
+  test("grants an opt-in permission like any other, once the user chose it", async () => {
+    await pool.query("INSERT INTO user_permissions (user_id, team_id, permission_id) VALUES ('member', 'two', 'test.optional')");
+    const { grant, permissionIdsByTeam } = await grantFor("member", ["two"], ["test.optional"]);
+    expect(permissionIdsByTeam).toEqual(new Map([["two", ["test.optional"]]]));
+    expect(await can(grant.id, "member", "two", "test.optional")).toBe(true);
+  });
+
   test("refuses a team the user can't grant anything in", async () => {
     await expect(grantFor("member", ["one", "three"], ["test.read"])).rejects.toThrow("Nothing can be granted in these teams: three");
   });
 
-  test("refuses global permissions, unknown ones, and ones the client may not get", async () => {
+  test("refuses global, undelegated and unknown permissions, and ones the client may not get", async () => {
+    await pool.query("INSERT INTO user_permissions (user_id, team_id, permission_id) VALUES ('member', 'one', 'test.undelegated')");
     await expect(grantFor("member", ["one"], ["test.global"])).rejects.toThrow("can't be granted");
+    await expect(grantFor("member", ["one"], ["test.undelegated"])).rejects.toThrow("can't be granted");
     await expect(grantFor("member", ["one"], ["test.unknown"])).rejects.toThrow("can't be granted");
     await expect(grantFor("member", ["one"], ["test.read", "test.write"], "dcr_read")).rejects.toThrow("test.write");
   });

@@ -1,6 +1,6 @@
 import { listMemberTeamPermissionIds } from "@core/data/permissions";
 import { oauthGrants, principalPermissions, teamMembers } from "@core/db/schema";
-import { getRegisteredPermission } from "@core/lib/permissions";
+import { getDelegablePermission } from "@core/lib/permissions";
 import { db } from "@recommand/db";
 import { and, eq, inArray, notExists } from "drizzle-orm";
 import type { OAuthClient } from "./oauth-clients";
@@ -21,9 +21,9 @@ const lockMemberships = (executor: Pick<typeof db, "select">, userId: string, te
 /**
  * Records a user's consent for a client: the requested permissions in each team
  * the user picked. Per team, the grant gets the permissions the user holds there
- * as a member, so an admin's consent carries no admin access. A permission the
- * client may not be granted, or a team the user can't grant anything in, is
- * refused rather than left out.
+ * as a member, so an admin's consent carries no admin access. A permission that
+ * isn't delegable or that the client may not be granted, or a team the user
+ * can't grant anything in, is refused rather than left out.
  */
 export const createGrant = async (input: {
   client: OAuthClient;
@@ -39,7 +39,7 @@ export const createGrant = async (input: {
 
   const refused = permissionIds.filter(
     (permissionId) =>
-      getRegisteredPermission(permissionId)?.scope !== "team" ||
+      !getDelegablePermission(permissionId) ||
       (input.client.allowedPermissions !== null && !input.client.allowedPermissions.includes(permissionId))
   );
   if (refused.length > 0) {
