@@ -23,8 +23,9 @@ const registeredClientSchema = z
   .openapi({ ref: "OAuthRegisteredClient" });
 
 /**
- * Dynamic client registration (RFC 7591). The server picks the `client_id`; a
- * client can't ask for a secret, so it authenticates with `none`.
+ * Dynamic client registration (RFC 7591), for clients that can't publish a
+ * Client ID Metadata Document. The server picks the `client_id`; a client
+ * can't ask for a secret, so it authenticates with `none`.
  *
  * @see https://www.rfc-editor.org/rfc/rfc7591#section-3
  */

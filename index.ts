@@ -15,6 +15,7 @@ import manifest from "./api/manifest";
 import rules from "./api/rules";
 import { initializeApiKeyCronJobs } from "./data/api-key-cron";
 import { initializeRuleCronJobs } from "./data/rules/cron";
+import { forbidFraming } from "./lib/oauth/frame";
 
 let logger: Logger;
 
@@ -25,6 +26,8 @@ export async function init(app: RecommandApp, server: Server) {
   logger.info("Initializing core app");
   await initializeRuleCronJobs(logger);
   initializeApiKeyCronJobs(logger);
+  // The consent screen is a page of the app, served after the packages initialize
+  server.use("/oauth/authorize", forbidFraming);
 }
 
 server.route("/", auth);
