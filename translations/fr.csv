@@ -381,6 +381,8 @@ this team,cette équipe
 {0} actions,{0} actions
 {0} of {1} rows selected.,{0} lignes sélectionnées sur {1}.
 {0} selected,{0} sélectionné(s)
+API key permissions,Autorisations de la clé API
+This key can only receive permissions its creator has.,Cette clé ne peut recevoir que les autorisations de son créateur.
 Manage Team,Gérer l'équipe
 Manage the team and its members,Gérer l'équipe et ses membres
 English,Anglais
