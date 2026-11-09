@@ -14,7 +14,7 @@ export const oauth2SecurityScheme = () => {
   const tokenUrl = `${issuer}/api/core/oauth/token`;
 
   return {
-    description: "An access token from the OAuth 2.1 authorization code flow, which requires PKCE with the `S256` method. Its scopes are the permissions an app can be granted.",
+    description: `An access token from the OAuth 2.1 authorization code flow, which requires PKCE with the \`S256\` method. Its scopes are the permissions an app can be granted. The authorization server metadata (RFC 8414) is at ${issuer}/.well-known/oauth-authorization-server.`,
     flows: {
       authorizationCode: {
         authorizationUrl: `${issuer}/oauth/authorize`,
