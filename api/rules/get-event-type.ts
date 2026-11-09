@@ -31,7 +31,7 @@ const getEventTypeRouteDescription = describeRoute({
 
 const _getEventTypeMinimal = server.get(
   "/event-types/:type",
-  requireTeamAccess(),
+  requireTeamAccess({ documentTeamHeader: true }),
   requirePermission("core.rules.read"),
   getEventTypeRouteDescription,
   zodValidator("param", eventTypeParamSchema),

@@ -42,7 +42,7 @@ type ListRulesContext = Context<
 
 const _listRulesMinimal = server.get(
   "/rules",
-  requireTeamAccess(),
+  requireTeamAccess({ documentTeamHeader: true }),
   requirePermission("core.rules.read"),
   listRulesRouteDescription,
   zodValidator("query", listRulesQuerySchema),
