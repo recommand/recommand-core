@@ -7,6 +7,7 @@ import {
   getGrantablePermissions,
   hasPermission,
   InvalidPermissionScopeError,
+  listMemberTeamPermissionIds,
   listOwnerTeamPermissionIds,
   NotAuthorizedError,
   PermissionNotRegisteredError,
@@ -14,7 +15,8 @@ import {
 
 export type ActorPrincipal =
   | { type: "user"; userId: string }
-  | { type: "api_key"; apiKeyId: string; ownerUserId: string };
+  | { type: "api_key"; apiKeyId: string; ownerUserId: string }
+  | { type: "oauth_grant"; grantId: string; userId: string };
 
 export const hasPrincipalPermission = async (
   principal: ActorPrincipal,
@@ -41,10 +43,28 @@ export const hasPrincipalPermission = async (
     return hasPermission(principal.ownerUserId, teamId, permissionId);
   }
 
+  if (principal.type === "oauth_grant") {
+    if (getRegisteredPermission(permissionId)?.scope !== "team") {
+      return false;
+    }
+    const granted = await hasStoredPrincipalPermission(
+      "oauth_grant",
+      principal.grantId,
+      teamId,
+      permissionId
+    );
+    if (!granted) {
+      return false;
+    }
+    // Unlike an API key, never through the admin bypass: an OAuth token carries
+    // at most what its user holds as a member of the team
+    return (await listMemberTeamPermissionIds(principal.userId, teamId)).includes(permissionId);
+  }
+
   throw new Error("Invalid principal type");
 };
 
-export type PrincipalType = "api_key";
+export type PrincipalType = "api_key" | "oauth_grant";
 export type PrincipalPermission = typeof principalPermissions.$inferSelect;
 
 // A key's permissions are stored in its own team and apply wherever the key may

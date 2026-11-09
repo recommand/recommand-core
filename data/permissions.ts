@@ -440,6 +440,34 @@ export const listOwnerTeamPermissionIds = async (
   return permissions.map((permission) => permission.permissionId);
 };
 
+/**
+ * The team permissions a user holds as a member of the team, without the admin
+ * bypass, for credentials that must never carry admin access, such as OAuth
+ * grants.
+ */
+export const listMemberTeamPermissionIds = async (
+  userId: string,
+  teamId: string,
+): Promise<string[]> => {
+  const rows = await db
+    .select({ permissionId: userPermissions.permissionId })
+    .from(userPermissions)
+    .innerJoin(
+      teamMembers,
+      and(
+        eq(teamMembers.teamId, userPermissions.teamId),
+        eq(teamMembers.userId, userPermissions.userId),
+      ),
+    )
+    .where(
+      and(eq(userPermissions.userId, userId), eq(userPermissions.teamId, teamId)),
+    );
+
+  return rows
+    .map((row) => row.permissionId)
+    .filter((permissionId) => getRegisteredPermission(permissionId)?.scope === "team");
+};
+
 export async function getUserPermissionsForTeam(
   userId: string,
   teamId: string,

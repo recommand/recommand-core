@@ -114,7 +114,7 @@ export const apiKeys = pgTable(
   (table) => [index("api_keys_secret_hash_idx").using("hash", table.secretHash)]
 );
 
-export const principalTypes = pgEnum("principal_types", ["api_key", "installation"]);
+export const principalTypes = pgEnum("principal_types", ["api_key", "installation", "oauth_grant"]);
 
 export const principalPermissions = pgTable(
   "principal_permissions",
@@ -167,6 +167,25 @@ export const oauthClients = pgTable("oauth_clients", {
   name: text("name"),
   redirectUris: text("redirect_uris").notNull().array().notNull(),
   tokenEndpointAuthMethod: text("token_endpoint_auth_method").notNull(),
+
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: autoUpdateTimestamp(),
+});
+
+// Who a grant acts for: the user who consented
+export const oauthGrantPrincipalTypes = pgEnum("oauth_grant_principal_types", ["user"]);
+
+// The teams and permissions of a grant are its `principal_permissions` rows
+export const oauthGrants = pgTable("oauth_grants", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => "grt_" + ulid()),
+  principalType: oauthGrantPrincipalTypes("principal_type").notNull(),
+
+  clientId: text("client_id")
+    .references(() => oauthClients.id, { onDelete: "cascade" })
+    .notNull(),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
 
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: autoUpdateTimestamp(),
