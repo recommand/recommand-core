@@ -146,6 +146,32 @@ export const principalPermissions = pgTable(
   ]
 );
 
+export const oauthClientKinds = pgEnum("oauth_client_kinds", ["dynamic"]);
+
+export const oauthClients = pgTable("oauth_clients", {
+  // A metadata document's URL, or the ID this server gives a registered client:
+  // it can't choose one, so none looks like a URL or like a client this server
+  // knows from elsewhere
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => "dcr_" + ulid()),
+  // Null: every permission a client of this kind may be granted
+  allowedPermissions: text("allowed_permissions").array(),
+  clientUri: text("client_uri"),
+  disabledAt: timestamp("disabled_at", { withTimezone: true }),
+  grantTypes: text("grant_types").notNull().array().notNull(),
+  kind: oauthClientKinds("kind").notNull(),
+  logoUri: text("logo_uri"),
+  // When the stored copy was last checked against the client's metadata document
+  metadataFetchedAt: timestamp("metadata_fetched_at", { withTimezone: true }),
+  name: text("name"),
+  redirectUris: text("redirect_uris").notNull().array().notNull(),
+  tokenEndpointAuthMethod: text("token_endpoint_auth_method").notNull(),
+
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: autoUpdateTimestamp(),
+});
+
 export const auditEvents = pgTable("audit_events", {
   id: text("id")
     .primaryKey()
