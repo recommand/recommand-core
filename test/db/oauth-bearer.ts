@@ -6,6 +6,7 @@ import type { AuthenticatedUserContext } from "../../lib/auth-middleware";
 import { pool, useTestDatabase } from "./harness";
 
 process.env.JWT_SECRET = "oauth-bearer-test-only-signing-key";
+process.env.BASE_URL = "https://recommand.example.com";
 const { default: apiKeys } = await import("../../api/api-keys");
 const { default: rules } = await import("../../api/rules");
 const { default: core } = await import("../../index");
@@ -37,6 +38,8 @@ app.get("/:teamId/never", requireTeamAccess(), requirePermission("test.never"), 
 app.route("/", apiKeys);
 app.route("/", rules);
 
+const metadata = 'resource_metadata="https://recommand.example.com/.well-known/oauth-protected-resource/api"';
+
 useTestDatabase();
 beforeEach(async () => {
   await pool.query("TRUNCATE users, teams, oauth_clients, principal_permissions, audit_events CASCADE");
@@ -54,14 +57,14 @@ beforeEach(async () => {
     ('dcr_app', 'dynamic', '{authorization_code}', '{https://app.example.com/callback}', 'none')`);
 });
 
-const tokenFor = async (userId: string, teamIds: string[], permissionIds: string[]) => {
+const tokenFor = async (userId: string, teamIds: string[], permissionIds: string[], resources: string[] = []) => {
   const { grant } = await createGrant({
     client: (await findClient("dcr_app"))!,
     permissionIds,
     teamIds,
     userId,
   });
-  const { accessToken } = (await issueTokens({ grantId: grant.id, resources: [], withRefreshToken: false }))!;
+  const { accessToken } = (await issueTokens({ grantId: grant.id, resources, withRefreshToken: false }))!;
 
   return { accessToken, grant };
 };
@@ -122,7 +125,7 @@ describe("an OAuth access token", () => {
     const { accessToken } = await tokenFor("member", ["one"], ["test.read"]);
     const response = await call("/one/write", accessToken);
     expect(response.status).toBe(403);
-    expect(response.headers.get("WWW-Authenticate")).toBe('Bearer error="insufficient_scope", scope="test.write"');
+    expect(response.headers.get("WWW-Authenticate")).toBe(`Bearer ${metadata}, error="insufficient_scope", scope="test.write"`);
   });
 
   test("is audited with the app it acts for", async () => {
@@ -136,20 +139,20 @@ describe("an OAuth access token", () => {
     const { accessToken } = await tokenFor("member", ["one"], ["test.read"]);
     const response = await call("/one/never", accessToken);
     expect(response.status).toBe(403);
-    expect(response.headers.get("WWW-Authenticate")).toBe("Bearer");
+    expect(response.headers.get("WWW-Authenticate")).toBe(`Bearer ${metadata}`);
   });
 
   test("doesn't reach a team outside its grant, or one its user left", async () => {
     const { accessToken } = await tokenFor("member", ["one"], ["test.read"]);
     const other = await call("/two/access", accessToken);
     expect(other.status).toBe(403);
-    expect(other.headers.get("WWW-Authenticate")).toBe('Bearer error="insufficient_scope"');
+    expect(other.headers.get("WWW-Authenticate")).toBe(`Bearer ${metadata}, error="insufficient_scope"`);
 
     await pool.query("DELETE FROM team_members WHERE user_id = 'member' AND team_id = 'one'");
     const left = await call("/one/access", accessToken);
     expect(left.status).toBe(403);
     // Consent can't grant a team the user isn't a member of
-    expect(left.headers.get("WWW-Authenticate")).toBe("Bearer");
+    expect(left.headers.get("WWW-Authenticate")).toBe(`Bearer ${metadata}`);
   });
 
   test("isn't audited into a team outside its grant", async () => {
@@ -185,7 +188,7 @@ describe("an OAuth access token", () => {
     expect((await call("/one/rules", reader.accessToken)).status).toBe(200);
     const refused = await send(reader.accessToken, "POST", "/one/rules");
     expect(refused.status).toBe(403);
-    expect(refused.headers.get("WWW-Authenticate")).toBe('Bearer error="insufficient_scope", scope="core.rules.write"');
+    expect(refused.headers.get("WWW-Authenticate")).toBe(`Bearer ${metadata}, error="insufficient_scope", scope="core.rules.write"`);
     expect((await send(reader.accessToken, "PATCH", "/one/rules/rule_unknown")).status).toBe(403);
 
     // Past the permission check, the empty body is what's wrong
@@ -209,6 +212,16 @@ describe("an OAuth access token", () => {
     await expect(tokenFor("member", ["one"], ["core.api_keys.read"])).rejects.toThrow();
   });
 
+  test("is only accepted when meant for this API", async () => {
+    const forApi = await tokenFor("member", ["one"], ["test.read"], ["https://recommand.example.com/api"]);
+    expect((await call("/one/access", forApi.accessToken)).status).toBe(200);
+
+    const forOther = await tokenFor("member", ["one"], ["test.read"], ["https://other.example.com/"]);
+    const response = await call("/one/access", forOther.accessToken);
+    expect(response.status).toBe(401);
+    expect(response.headers.get("WWW-Authenticate")).toBe(`Bearer ${metadata}, error="invalid_token"`);
+  });
+
   test("is refused when another key signed it", async () => {
     const { accessToken, grant } = await tokenFor("member", ["one"], ["test.read"]);
     const { privateKey } = await generateKeyPair("RS256");
@@ -226,7 +239,7 @@ describe("an OAuth access token", () => {
     await pool.query("UPDATE oauth_access_tokens SET expires_at = now() - interval '1 second'");
     const response = await call("/one/access", expired.accessToken);
     expect(response.status).toBe(401);
-    expect(response.headers.get("WWW-Authenticate")).toBe('Bearer error="invalid_token"');
+    expect(response.headers.get("WWW-Authenticate")).toBe(`Bearer ${metadata}, error="invalid_token"`);
 
     const revoked = await tokenFor("member", ["one"], ["test.read"]);
     await deleteGrant(revoked.grant.id);
@@ -255,10 +268,10 @@ describe("an OAuth access token", () => {
   });
 });
 
-test("a request without credentials gets a bearer challenge", async () => {
+test("a request without credentials learns where to find the API's metadata", async () => {
   const response = await call("/one/access");
   expect(response.status).toBe(401);
-  expect(response.headers.get("WWW-Authenticate")).toBe("Bearer");
+  expect(response.headers.get("WWW-Authenticate")).toBe(`Bearer ${metadata}`);
 });
 
 test("every Core team route refuses an OAuth token without its permission", async () => {

@@ -1,5 +1,6 @@
 import { isOAuthAccessToken, verifyAccessToken } from "@core/data/oauth-tokens";
 import { users } from "@core/db/schema";
+import { apiResource, protectedResourceMetadataUrl } from "@core/lib/oauth/resource";
 import { db } from "@recommand/db";
 import { eq } from "drizzle-orm";
 import type { Context } from "hono";
@@ -51,6 +52,12 @@ export const verifyOAuthAccessToken = async (c: Context): Promise<Session | null
     return null;
   }
 
+  // A token meant for another resource isn't for this API (RFC 8707, section 2);
+  // one without any is, since a client doesn't have to name the resource
+  if (verified.resources.length > 0 && !verified.resources.includes(apiResource())) {
+    return null;
+  }
+
   const [user] = await db
     .select({ language: users.language })
     .from(users)
@@ -72,7 +79,8 @@ export const verifyOAuthAccessToken = async (c: Context): Promise<Session | null
 
 /**
  * Tells an OAuth client what to do next (RFC 6750, section 3): which permission
- * to ask the user for, or that its token is no longer valid.
+ * to ask the user for, or that its token is no longer valid, and where to find
+ * this API's metadata (RFC 9728, section 5.1).
  *
  * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/WWW-Authenticate
  * @see https://www.rfc-editor.org/rfc/rfc6750#section-3
@@ -83,9 +91,10 @@ export const setBearerChallenge = (
   challenge: { error?: "insufficient_scope" | "invalid_token"; scope?: string } = {}
 ) => {
   const parameters = [
+    `resource_metadata="${protectedResourceMetadataUrl()}"`,
     challenge.error ? `error="${challenge.error}"` : null,
     // Only a missing permission names what to ask for
     challenge.scope ? `scope="${challenge.scope}"` : null,
   ].filter(Boolean);
-  c.header("WWW-Authenticate", parameters.length > 0 ? `Bearer ${parameters.join(", ")}` : "Bearer");
+  c.header("WWW-Authenticate", `Bearer ${parameters.join(", ")}`);
 };
