@@ -2,9 +2,16 @@ import { beforeEach, expect, mock, test } from 'bun:test';
 import { Database } from 'bun:sqlite';
 import { drizzle } from 'drizzle-orm/pg-proxy';
 const sqlite = new Database(':memory:');
-for (const table of ['team_members', 'api_keys', 'user_permissions']) {
+['team_members', 'user_permissions'].forEach((table) => {
   sqlite.exec(`CREATE TABLE ${table} (team_id TEXT, user_id TEXT)`);
-}
+});
+sqlite.exec('CREATE TABLE api_keys (id TEXT, team_id TEXT, user_id TEXT)');
+sqlite.exec('CREATE TABLE principal_permissions (principal_type TEXT, principal_id TEXT, team_id TEXT, permission_id TEXT)');
+const members = [
+  ['one', 'alice'],
+  ['two', 'alice'],
+  ['one', 'bob'],
+] as const;
 let failDeletion = false;
 const db = drizzle(async (query, params) => {
   if (failDeletion && query.includes('delete from "team_members"'))
@@ -41,34 +48,39 @@ const { removeTeamMember } = await import('../data/team-members');
 beforeEach(() => {
   emitted.mockClear();
   failDeletion = false;
-  for (const table of ['team_members', 'api_keys', 'user_permissions']) {
+  ['team_members', 'user_permissions'].forEach((table) => {
     sqlite.exec(`DELETE FROM ${table}`);
-    for (const [team, user] of [
-      ['one', 'alice'],
-      ['two', 'alice'],
-      ['one', 'bob'],
-    ]) {
-      sqlite.prepare(`INSERT INTO ${table} VALUES (?, ?)`).run(team!, user!);
-    }
-  }
+    members.forEach(([team, user]) => {
+      sqlite.prepare(`INSERT INTO ${table} VALUES (?, ?)`).run(team, user);
+    });
+  });
+  sqlite.exec('DELETE FROM api_keys; DELETE FROM principal_permissions');
+  members.forEach(([team, user]) => {
+    sqlite.prepare('INSERT INTO api_keys VALUES (?, ?, ?)').run(`key_${team}_${user}`, team, user);
+    sqlite.prepare("INSERT INTO principal_permissions VALUES ('api_key', ?, ?, 'test.read')").run(`key_${team}_${user}`, team);
+  });
 });
-test("removal deletes only the member's keys and grants in the selected team", async () => {
+test("removal deletes only the member's keys, their grants and permissions in the selected team", async () => {
   await removeTeamMember('one', 'alice');
-  for (const table of ['team_members', 'api_keys', 'user_permissions']) {
+  ['team_members', 'api_keys', 'user_permissions'].forEach((table) => {
     expect(
       sqlite.prepare(`SELECT team_id, user_id FROM ${table} ORDER BY team_id, user_id`).values(),
     ).toEqual([
       ['one', 'bob'],
       ['two', 'alice'],
     ]);
-  }
+  });
+  expect(sqlite.prepare('SELECT principal_id FROM principal_permissions ORDER BY principal_id').values()).toEqual([
+    ['key_one_bob'],
+    ['key_two_alice'],
+  ]);
   expect(emitted).toHaveBeenCalledTimes(1);
 });
 test('failed removal rolls back credential deletion and does not emit success', async () => {
   failDeletion = true;
   await expect(removeTeamMember('one', 'alice')).rejects.toThrow();
-  for (const table of ['team_members', 'api_keys', 'user_permissions']) {
+  ['team_members', 'api_keys', 'user_permissions', 'principal_permissions'].forEach((table) => {
     expect(sqlite.prepare(`SELECT COUNT(*) FROM ${table}`).values()[0]).toEqual([3]);
-  }
+  });
   expect(emitted).not.toHaveBeenCalled();
 });
