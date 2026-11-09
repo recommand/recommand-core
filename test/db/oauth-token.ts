@@ -199,6 +199,13 @@ describe("refreshing", () => {
     expect((await refresh(first.refresh_token)).body.error).toBe("invalid_grant");
   });
 
+  test("ends once the user left the grant's only team", async () => {
+    const first = (await exchange(await authorize())).body;
+    const { removeTeamMember } = await import("../../data/team-members");
+    await removeTeamMember("one", "member");
+    expect((await refresh(first.refresh_token)).body.error).toBe("invalid_grant");
+  });
+
   test("is never cached", async () => {
     const first = await exchange(await authorize());
     expect(first.headers.get("Cache-Control")).toBe("no-store");

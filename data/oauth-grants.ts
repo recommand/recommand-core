@@ -3,7 +3,7 @@ import { oauthGrants, principalPermissions, teamMembers } from "@core/db/schema"
 import { getDelegablePermission } from "@core/lib/permissions";
 import { db } from "@recommand/db";
 import type { SQL } from "drizzle-orm";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, notExists } from "drizzle-orm";
 import type { OAuthClient } from "./oauth-clients";
 
 export type OAuthGrant = typeof oauthGrants.$inferSelect;
@@ -105,9 +105,11 @@ export const listGrantPermissionIds = async (grantId: string): Promise<Map<strin
   );
 };
 
+type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 // Deletes the grants and their permissions, which have no foreign key to the
 // grant; their tokens and codes go with them. Returns the deleted grants' IDs.
-const deleteGrantsWhere = async (condition: SQL): Promise<string[]> => db.transaction(async (tx) => {
+const deleteGrantsWhere = async (condition: SQL, executor: typeof db | Transaction = db): Promise<string[]> => executor.transaction(async (tx) => {
   const grantIds = (await tx.select({ id: oauthGrants.id }).from(oauthGrants).where(condition)).map(({ id }) => id);
   if (grantIds.length === 0) {
     return [];
@@ -124,3 +126,61 @@ const deleteGrantsWhere = async (condition: SQL): Promise<string[]> => db.transa
 /** Deletes a grant, so its tokens stop working. Returns `false` when there was no such grant. */
 export const deleteGrant = async (grantId: string): Promise<boolean> =>
   (await deleteGrantsWhere(eq(oauthGrants.id, grantId))).length > 0;
+
+/**
+ * Deletes every grant a user gave, so no app keeps access: for when their
+ * password is reset by someone who may not be who connected the apps.
+ */
+export const deleteUserGrants = async (userId: string, executor?: Transaction): Promise<string[]> =>
+  deleteGrantsWhere(eq(oauthGrants.userId, userId), executor);
+
+export type GrantWriter = Pick<typeof db, "delete" | "select">;
+
+/**
+ * Removes a team from grants: from one user's grants when they leave the team,
+ * or from every grant when the team is deleted. Joining the team again doesn't
+ * bring it back, and a grant left without teams is deleted.
+ */
+export const removeTeamFromGrants = async (
+  teamId: string,
+  { executor = db, userId }: { executor?: GrantWriter; userId?: string } = {}
+): Promise<void> => {
+  const removed = await executor
+    .delete(principalPermissions)
+    .where(
+      and(
+        eq(principalPermissions.principalType, "oauth_grant"),
+        eq(principalPermissions.teamId, teamId),
+        userId
+          ? inArray(
+              principalPermissions.principalId,
+              executor.select({ id: oauthGrants.id }).from(oauthGrants).where(eq(oauthGrants.userId, userId))
+            )
+          : undefined
+      )
+    )
+    .returning({ grantId: principalPermissions.principalId });
+  const grantIds = [...new Set(removed.map(({ grantId }) => grantId))];
+  if (grantIds.length === 0) {
+    return;
+  }
+
+  await executor
+    .delete(oauthGrants)
+    .where(
+      and(
+        inArray(oauthGrants.id, grantIds),
+        notExists(
+          executor
+            .select({ permissionId: principalPermissions.permissionId })
+            .from(principalPermissions)
+            .where(
+              and(
+                eq(principalPermissions.principalType, "oauth_grant"),
+                eq(principalPermissions.principalId, oauthGrants.id)
+              )
+            )
+        )
+      )
+    );
+};
