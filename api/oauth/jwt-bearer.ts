@@ -81,6 +81,7 @@ const _token = server.post(
             }))
         }catch(error){
             console.error(error);
+
             return c.json(actionFailure("Error while generating token"), 500);
         }
     }
