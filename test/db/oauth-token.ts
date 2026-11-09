@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { Hono } from "hono";
+import { createLocalJWKSet, decodeJwt, decodeProtectedHeader, jwtVerify } from "jose";
 import { pool, useTestDatabase } from "./harness";
 
 const { default: oauthToken } = await import("../../api/oauth/token");
+const { default: jwks } = await import("../../api/jwks");
 const { default: oauthRevoke } = await import("../../api/oauth/revoke");
 const { createAuthorizationCode } = await import("../../data/oauth-authorization-codes");
 const { findGrant } = await import("../../data/oauth-grants");
@@ -10,6 +12,7 @@ const { issueTokens } = await import("../../data/oauth-tokens");
 
 const app = new Hono();
 app.route("/", oauthToken);
+app.route("/", jwks);
 app.route("/", oauthRevoke);
 
 // RFC 7636, appendix B
@@ -53,12 +56,25 @@ const refresh = (refreshToken: string, clientId = "dcr_app") =>
 const count = async (table: string) => Number((await pool.query(`SELECT count(*) FROM ${table}`)).rows[0].count);
 
 describe("exchanging a code", () => {
+  test("returns an access token as a JWT that the published keys verify", async () => {
+    const { body } = await exchange(await authorize());
+    expect(decodeJwt(body.access_token)).toMatchObject({
+      aud: "https://recommand.example.com/api",
+      client_id: "dcr_app",
+      iss: "https://recommand.example.com",
+      scope: "core.rules.read",
+      sub: "member",
+    });
+    const keys = await (await app.request("/.well-known/jwks.json")).json();
+    expect((await jwtVerify(body.access_token, createLocalJWKSet(keys), { typ: "at+jwt" })).protectedHeader.kid).toBe(keys.keys[0].kid);
+  });
+
   test("creates the grant and returns tokens for its team", async () => {
     const { body, headers, status } = await exchange(await authorize());
     expect(status).toBe(200);
     expect(headers.get("Cache-Control")).toBe("no-store");
     expect(body).toMatchObject({ expires_in: 3_600, scope: "core.rules.read", team_id: "one", team_name: "One", token_type: "Bearer" });
-    expect(body.access_token).toStartWith("oat_");
+    expect(decodeProtectedHeader(body.access_token).typ).toBe("at+jwt");
     expect(body.refresh_token).toStartWith("ort_");
 
     const { rows } = await pool.query("SELECT token_hash FROM oauth_access_tokens");

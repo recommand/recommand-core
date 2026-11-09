@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, test } from "bun:test";
+import { createHash } from "node:crypto";
 import { Hono } from "hono";
+import { decodeJwt, generateKeyPair, SignJWT } from "jose";
 import type { AuthenticatedUserContext } from "../../lib/auth-middleware";
 import { pool, useTestDatabase } from "./harness";
 
@@ -143,6 +145,18 @@ describe("an OAuth access token", () => {
     const response = await call("/one/access", forOther.accessToken);
     expect(response.status).toBe(401);
     expect(response.headers.get("WWW-Authenticate")).toBe(`Bearer ${metadata}, error="invalid_token"`);
+  });
+
+  test("is refused when another key signed it", async () => {
+    const { accessToken, grant } = await tokenFor("member", ["one"], ["test.read"]);
+    const { privateKey } = await generateKeyPair("RS256");
+    const forged = await new SignJWT(decodeJwt(accessToken)).setProtectedHeader({ alg: "RS256", typ: "at+jwt" }).sign(privateKey);
+    // Even with a record for it, as if one had been stored
+    await pool.query("INSERT INTO oauth_access_tokens (token_hash, expires_at, resources, grant_id) VALUES ($1, now() + interval '1 hour', '{}', $2)", [
+      createHash("sha256").update(forged).digest("base64url"),
+      grant.id,
+    ]);
+    expect((await call("/one/access", forged)).status).toBe(401);
   });
 
   test("stops working once expired, or once its grant is deleted", async () => {

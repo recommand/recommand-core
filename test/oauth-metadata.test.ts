@@ -31,6 +31,7 @@ describe("OAuth discovery", () => {
       code_challenge_methods_supported: ["S256"],
       grant_types_supported: ["authorization_code", "urn:ietf:params:oauth:grant-type:jwt-bearer", "refresh_token"],
       issuer: "https://recommand.example.com",
+      jwks_uri: "https://recommand.example.com/.well-known/jwks.json",
       registration_endpoint: "https://recommand.example.com/api/core/oauth/register",
       response_types_supported: ["code"],
       revocation_endpoint: "https://recommand.example.com/api/core/oauth/revoke",

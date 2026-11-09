@@ -1,19 +1,55 @@
 import { createHash, randomBytes } from "node:crypto";
 import { oauthAccessTokens, oauthClients, oauthGrants, oauthRefreshTokens } from "@core/db/schema";
+import { apiResource } from "@core/lib/oauth/resource";
+import { getSigningKey, getVerificationKeys } from "@core/lib/signing-keys";
 import { db } from "@recommand/db";
 import { and, eq, gt, isNull, lt } from "drizzle-orm";
+import { decodeProtectedHeader, jwtVerify, SignJWT } from "jose";
+import { ulid } from "ulid";
 import type { OAuthGrant } from "./oauth-grants";
 import { deleteGrant, findGrant, listGrantPermissionIds, recordGrantUse } from "./oauth-grants";
 
 const ACCESS_TOKEN_LIFETIME_SECONDS = 60 * 60;
 const REFRESH_TOKEN_LIFETIME = 30 * 24 * 60 * 60 * 1_000;
 
-// The prefixes tell these tokens apart from API keys, and make leaked ones easy to recognize
-const ACCESS_TOKEN_PREFIX = "oat_";
+// An access token is a JWT (RFC 9068), whose type tells it apart from the other
+// tokens the platform signs with the same keys
+const ACCESS_TOKEN_TYPE = "at+jwt";
+// The prefix tells refresh tokens apart from API keys, and makes leaked ones easy to recognize
 const REFRESH_TOKEN_PREFIX = "ort_";
 
 const hashToken = (token: string) => createHash("sha256").update(token).digest("base64url");
 const createToken = (prefix: string) => `${prefix}${randomBytes(32).toString("base64url")}`;
+
+/**
+ * Signs an access token for a grant (RFC 9068, section 2.2): who it acts for,
+ * the client, the resources it is meant for (this API unless the client named
+ * others) and the permissions the grant holds. The grant's stored permissions
+ * still decide each request, so the claims describe the token rather than
+ * limit it. A JWT bearer grant has no OAuth client: the system holding the
+ * team's key requested it, so its tokens name the team as their `client_id`.
+ * Returns `null` when the grant no longer exists.
+ */
+const signAccessToken = async (grantId: string, resources: string[], expiresAt: Date): Promise<string | null> => {
+  const grant = await findGrant(grantId);
+  if (!grant?.userId) {
+    return null;
+  }
+  const permissionIdsByTeam = await listGrantPermissionIds(grant.id);
+  const permissionIds = [...new Set([...permissionIdsByTeam.values()].flat())];
+  // A JWT bearer grant covers the one team whose key signed the assertion
+  const clientId = grant.clientId ?? [...permissionIdsByTeam.keys()][0];
+  const { key, kid } = await getSigningKey();
+  return new SignJWT({ client_id: clientId, scope: permissionIds.join(" ") })
+    .setProtectedHeader({ alg: "RS256", kid, typ: ACCESS_TOKEN_TYPE })
+    .setAudience(resources.length > 0 ? resources : apiResource())
+    .setExpirationTime(expiresAt)
+    .setIssuedAt()
+    .setIssuer(process.env.BASE_URL!)
+    .setJti(ulid())
+    .setSubject(grant.userId)
+    .sign(key);
+};
 
 export type IssuedTokens = { accessToken: string; expiresInSeconds: number; refreshToken: string | null };
 
@@ -34,7 +70,11 @@ export const issueTokens = async (input: {
     ACCESS_TOKEN_LIFETIME_SECONDS,
     input.expiresAt ? Math.floor((input.expiresAt.getTime() - now) / 1_000) : Infinity
   );
-  const accessToken = createToken(ACCESS_TOKEN_PREFIX);
+  const expiresAt = new Date(now + expiresInSeconds * 1_000);
+  const accessToken = await signAccessToken(input.grantId, input.resources, expiresAt);
+  if (!accessToken) {
+    return null;
+  }
   const refreshToken = input.withRefreshToken ? createToken(REFRESH_TOKEN_PREFIX) : null;
 
   const issued = await db.transaction(async (tx) => {
@@ -53,7 +93,7 @@ export const issueTokens = async (input: {
       .where(and(eq(oauthRefreshTokens.grantId, input.grantId), lt(oauthRefreshTokens.expiresAt, new Date(now))));
 
     await tx.insert(oauthAccessTokens).values({
-      expiresAt: new Date(now + expiresInSeconds * 1_000),
+      expiresAt,
       grantId: input.grantId,
       resources: input.resources,
       tokenHash: hashToken(accessToken),
@@ -72,7 +112,14 @@ export const issueTokens = async (input: {
   return issued ? { accessToken, expiresInSeconds, refreshToken } : null;
 };
 
-export const isOAuthAccessToken = (token: string) => token.startsWith(ACCESS_TOKEN_PREFIX);
+/** Whether a token is shaped as one of this server's access tokens, without checking that it's valid. */
+export const isOAuthAccessToken = (token: string) => {
+  try {
+    return decodeProtectedHeader(token).typ === ACCESS_TOKEN_TYPE;
+  } catch {
+    return false;
+  }
+};
 
 export type VerifiedAccessToken = {
   grant: OAuthGrant;
@@ -82,10 +129,21 @@ export type VerifiedAccessToken = {
 
 /**
  * The grant an access token was issued for, with its permissions per team, or
- * `null` when the token is unknown, expired or its grant was deleted.
+ * `null` when the token isn't signed by this server, is unknown or expired, or
+ * its grant was deleted. A token is checked against its record too, so deleting
+ * a grant ends its tokens at once.
  */
 export const verifyAccessToken = async (token: string): Promise<VerifiedAccessToken | null> => {
   if (!isOAuthAccessToken(token)) {
+    return null;
+  }
+  try {
+    await jwtVerify(token, await getVerificationKeys(), {
+      algorithms: ["RS256"],
+      issuer: process.env.BASE_URL!,
+      typ: ACCESS_TOKEN_TYPE,
+    });
+  } catch {
     return null;
   }
 
@@ -171,7 +229,7 @@ export const revokeToken = async (token: string, clientId: string): Promise<{ gr
     return { grantId: grant.id, type: "refresh" };
   }
 
-  if (token.startsWith(ACCESS_TOKEN_PREFIX)) {
+  if (isOAuthAccessToken(token)) {
     const [stored] = await db.select().from(oauthAccessTokens).where(eq(oauthAccessTokens.tokenHash, tokenHash)).limit(1);
     const grant = stored ? await findGrant(stored.grantId) : null;
     if (!grant || grant.clientId !== clientId) {

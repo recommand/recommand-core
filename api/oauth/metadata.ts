@@ -28,6 +28,7 @@ const _authorizationServer = server.get(
       code_challenge_methods_supported: ["S256"],
       grant_types_supported: ["authorization_code", JWT_BEARER_GRANT_TYPE, "refresh_token"],
       issuer,
+      jwks_uri: `${issuer}/.well-known/jwks.json`,
       registration_endpoint: `${issuer}/api/core/oauth/register`,
       response_types_supported: ["code"],
       revocation_endpoint: `${issuer}/api/core/oauth/revoke`,

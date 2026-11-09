@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { Hono } from "hono";
-import { exportJWK, generateKeyPair, SignJWT } from "jose";
+import { decodeJwt, decodeProtectedHeader, exportJWK, generateKeyPair, SignJWT } from "jose";
 import { pool, useTestDatabase } from "./harness";
 
 process.env.BASE_URL = "https://recommand.example.com";
@@ -57,10 +57,12 @@ describe("exchanging an assertion", () => {
     const { body, status } = await exchange(await assertion());
     expect(status).toBe(200);
     expect(body).toMatchObject({ team_id: "one", team_name: "One", token_type: "Bearer" });
-    expect(body.access_token).toStartWith("oat_");
+    expect(decodeProtectedHeader(body.access_token).typ).toBe("at+jwt");
     expect(body.refresh_token).toBeUndefined();
     // `core.api_keys.read` is never delegated, `core.rules.write` is opt-in
     expect(body.scope.split(" ").toSorted()).toEqual(["core.rules.read", "core.rules.write"]);
+    // The system holding the team's key requested it
+    expect(decodeJwt(body.access_token)).toMatchObject({ client_id: "one", sub: "member" });
     const verified = await verifyAccessToken(body.access_token);
     expect(verified?.grant).toMatchObject({ clientId: null, userId: "member" });
   });
