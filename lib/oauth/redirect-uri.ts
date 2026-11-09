@@ -1,4 +1,8 @@
 // Native apps receive the code on a loopback address (RFC 8252, section 7.3).
+// RFC 8252, section 8.3, prefers the IP literals to `localhost`, which depends on
+// how the user's device resolves it. Native apps commonly register `localhost`,
+// though, PKCE keeps an intercepted code useless, and the consent screen warns
+// about loopback redirects, so it's accepted too.
 const LOOPBACK_HOSTS = ["127.0.0.1", "[::1]", "localhost"];
 
 const isLoopback = (url: URL) => url.protocol === "http:" && LOOPBACK_HOSTS.includes(url.hostname);

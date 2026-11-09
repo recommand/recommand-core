@@ -172,6 +172,27 @@ export const oauthClients = pgTable("oauth_clients", {
   updatedAt: autoUpdateTimestamp(),
 });
 
+// A code is stored hashed and used once; the grant is only made when it is
+// exchanged, so consent that is never completed leaves no grant behind
+export const oauthAuthorizationCodes = pgTable("oauth_authorization_codes", {
+  codeHash: text("code_hash").primaryKey(),
+  codeChallenge: text("code_challenge").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  permissionIds: text("permission_ids").notNull().array().notNull(),
+  redirectUri: text("redirect_uri").notNull(),
+  resources: text("resources").notNull().array().notNull(),
+  teamIds: text("team_ids").notNull().array().notNull(),
+
+  clientId: text("client_id")
+    .references(() => oauthClients.id, { onDelete: "cascade" })
+    .notNull(),
+  userId: text("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 // Who a grant acts for: the user who consented
 export const oauthGrantPrincipalTypes = pgEnum("oauth_grant_principal_types", ["user"]);
 

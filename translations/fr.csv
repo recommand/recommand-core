@@ -440,3 +440,19 @@ Members,Membres
 Rules,Règles
 Other,Autres
 Permissions updated,Autorisations mises à jour
+Allow,Autoriser
+An app,Une application
+Identified by {0},Identifiée par {0}
+Nothing can be granted in this team,Rien ne peut être accordé dans cette équipe
+Only continue if you started this yourself,Ne continuez que si vous avez lancé cette demande vous-même
+Sign in again to continue,Reconnectez-vous pour continuer
+This app returns to a program on your own computer. Any program can claim to be this app.,Cette application revient vers un programme sur votre propre ordinateur. N'importe quel programme peut se faire passer pour cette application.
+These start unticked\, so {0} only gets them if you choose to: {1}.,Celles-ci ne sont pas cochées au départ\, {0} ne les obtient donc que si vous les choisissez : {1}.
+This request can't be handled,Cette demande ne peut pas être traitée
+Unverified app,Application non vérifiée
+Back to {0},Retour à {0}
+You'll be sent back to {0},Vous serez redirigé vers {0}
+You're not a member of any team.,Vous n'êtes membre d'aucune équipe.
+{0} wants access to a team,{0} souhaite accéder à une équipe
+Choose what {0} can do,Choisissez ce que {0} peut faire
+Choose at least one permission,Choisissez au moins une autorisation
