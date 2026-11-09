@@ -1,3 +1,4 @@
+import { JWT_BEARER_GRANT_TYPE } from "@core/lib/oauth/jwt-bearer";
 import { apiResource, PROTECTED_RESOURCE_METADATA_PATH } from "@core/lib/oauth/resource";
 import { getDelegablePermissions } from "@core/lib/permissions";
 import { Server } from "@recommand/lib/api";
@@ -26,7 +27,7 @@ const _authorizationServer = server.get(
       authorization_response_iss_parameter_supported: true,
       client_id_metadata_document_supported: true,
       code_challenge_methods_supported: ["S256"],
-      grant_types_supported: ["authorization_code", "refresh_token"],
+      grant_types_supported: ["authorization_code", JWT_BEARER_GRANT_TYPE, "refresh_token"],
       issuer,
       jwks_uri: `${issuer}/.well-known/jwks.json`,
       registration_endpoint: `${issuer}/api/core/oauth/register`,

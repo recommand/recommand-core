@@ -29,7 +29,7 @@ describe("OAuth discovery", () => {
       authorization_response_iss_parameter_supported: true,
       client_id_metadata_document_supported: true,
       code_challenge_methods_supported: ["S256"],
-      grant_types_supported: ["authorization_code", "refresh_token"],
+      grant_types_supported: ["authorization_code", "urn:ietf:params:oauth:grant-type:jwt-bearer", "refresh_token"],
       issuer: "https://recommand.example.com",
       jwks_uri: "https://recommand.example.com/.well-known/jwks.json",
       registration_endpoint: "https://recommand.example.com/api/core/oauth/register",

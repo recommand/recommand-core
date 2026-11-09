@@ -9,7 +9,7 @@ import { ulid } from "ulid";
 import type { OAuthGrant } from "./oauth-grants";
 import { deleteGrant, findGrant, listGrantPermissionIds, recordGrantUse } from "./oauth-grants";
 
-export const ACCESS_TOKEN_LIFETIME_SECONDS = 60 * 60;
+const ACCESS_TOKEN_LIFETIME_SECONDS = 60 * 60;
 const REFRESH_TOKEN_LIFETIME = 30 * 24 * 60 * 60 * 1_000;
 // A client that refreshes from several places at once, such as tabs or an assistant's
 // parallel tool calls, presents the same token again within moments. Ten seconds
@@ -33,7 +33,9 @@ const createToken = (prefix: string) => `${prefix}${randomBytes(32).toString("ba
  * the client, the resources it is meant for (this API unless the client named
  * others) and the permissions the grant holds. The grant's stored permissions
  * still decide each request, so the claims describe the token rather than
- * limit it. Returns `null` when the grant no longer exists.
+ * limit it. A JWT bearer grant has no OAuth client: the system holding the
+ * team's key requested it, so its tokens name the team as their `client_id`.
+ * Returns `null` when the grant no longer exists.
  *
  * @see https://www.rfc-editor.org/rfc/rfc9068#section-2.2
  */
@@ -45,9 +47,11 @@ const signAccessToken = async (grantId: string, resources: string[], expiresAt: 
 
   const permissionIdsByTeam = await listGrantPermissionIds(grant.id);
   const permissionIds = [...new Set([...permissionIdsByTeam.values()].flat())];
+  // A JWT bearer grant covers the one team whose key signed the assertion
+  const clientId = grant.clientId ?? [...permissionIdsByTeam.keys()][0];
   const { key, kid } = await getSigningKey();
 
-  return new SignJWT({ client_id: grant.clientId, scope: permissionIds.join(" ") })
+  return new SignJWT({ client_id: clientId, scope: permissionIds.join(" ") })
     .setProtectedHeader({ alg: "RS256", kid, typ: ACCESS_TOKEN_TYPE })
     .setAudience(resources.length > 0 ? resources : apiResource())
     .setExpirationTime(expiresAt)
@@ -58,9 +62,10 @@ const signAccessToken = async (grantId: string, resources: string[], expiresAt: 
     .sign(key);
 };
 
-export type IssuedTokens = { accessToken: string; refreshToken: string | null };
+export type IssuedTokens = { accessToken: string; expiresInSeconds: number; refreshToken: string | null };
 
 type TokenInput = {
+  expiresAt?: Date;
   grantId: string;
   // What the refresh token keeps, so a later refresh can ask for any of them again; the access token's by default
   refreshTokenResources?: string[];
@@ -73,13 +78,17 @@ type SignedTokens = IssuedTokens & { expiresAt: Date; now: number };
 // Signing happens before anything is stored, so a key that can't sign changes nothing
 const signTokens = async (input: TokenInput): Promise<SignedTokens | null> => {
   const now = Date.now();
-  const expiresAt = new Date(now + ACCESS_TOKEN_LIFETIME_SECONDS * 1_000);
+  const expiresInSeconds = Math.min(
+    ACCESS_TOKEN_LIFETIME_SECONDS,
+    input.expiresAt ? Math.floor((input.expiresAt.getTime() - now) / 1_000) : Infinity
+  );
+  const expiresAt = new Date(now + expiresInSeconds * 1_000);
   const accessToken = await signAccessToken(input.grantId, input.resources, expiresAt);
   if (!accessToken) {
     return null;
   }
 
-  return { accessToken, expiresAt, now, refreshToken: input.withRefreshToken ? createToken(REFRESH_TOKEN_PREFIX) : null };
+  return { accessToken, expiresAt, expiresInSeconds, now, refreshToken: input.withRefreshToken ? createToken(REFRESH_TOKEN_PREFIX) : null };
 };
 
 type TokenWriter = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -118,11 +127,12 @@ const storeTokens = async (tx: TokenWriter, input: TokenInput, signed: SignedTok
   return true;
 };
 
-const toIssued = ({ accessToken, refreshToken }: SignedTokens): IssuedTokens => ({ accessToken, refreshToken });
+const toIssued = ({ accessToken, expiresInSeconds, refreshToken }: SignedTokens): IssuedTokens => ({ accessToken, expiresInSeconds, refreshToken });
 
 /**
  * Issues an access token for a grant and, when the client may refresh, a
- * refresh token. Only their hashes are stored. Returns `null` when the grant was
+ * refresh token. Only their hashes are stored. An access token lasts an hour,
+ * or less when it has to expire earlier. Returns `null` when the grant was
  * deleted meanwhile, such as by a code presented again.
  */
 export const issueTokens = async (input: TokenInput): Promise<IssuedTokens | null> => {

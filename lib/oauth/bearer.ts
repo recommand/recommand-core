@@ -9,7 +9,8 @@ import type { Session } from "../session";
 
 /** The grant behind a request's OAuth access token, for checks that read `c.var.grant`. */
 export type RequestGrant = {
-  clientId: string;
+  // Null for a token from the JWT bearer flow
+  clientId: string | null;
   id: string;
   permissionIdsByTeam: Map<string, string[]>;
 };
