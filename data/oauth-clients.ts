@@ -89,3 +89,19 @@ export const findClient = async (
   return client;
 };
 
+/**
+ * The stored client a request to the token or revocation endpoint names, or `null`
+ * when it names none, or one that is unknown or disabled; those endpoints answer all
+ * of these with `invalid_client`. Unlike the authorization endpoint, they never fetch
+ * a metadata document: anyone can call them, and a client only gets a token after a
+ * user authorized it, which stored it.
+ */
+export const findRequestClient = async (clientId: string | undefined): Promise<OAuthClient | null> => {
+  if (!clientId) {
+    return null;
+  }
+
+  const [stored] = await db.select().from(oauthClients).where(eq(oauthClients.id, clientId)).limit(1);
+
+  return stored && !stored.disabledAt ? stored : null;
+};
