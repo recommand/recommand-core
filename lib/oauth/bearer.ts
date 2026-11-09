@@ -1,3 +1,4 @@
+import { recordGrantUse } from "@core/data/oauth-grants";
 import { isOAuthAccessToken, verifyAccessToken } from "@core/data/oauth-tokens";
 import { users } from "@core/db/schema";
 import { apiResource, protectedResourceMetadataUrl } from "@core/lib/oauth/resource";
@@ -66,6 +67,8 @@ export const verifyOAuthAccessToken = async (c: Context): Promise<Session | null
   if (!user) {
     return null;
   }
+
+  await recordGrantUse(verified.grant);
 
   return {
     apiKey: null,

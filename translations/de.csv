@@ -461,7 +461,19 @@ Other,Sonstige
 Permissions updated,Berechtigungen aktualisiert
 Allow,Zulassen
 An app,Eine App
+App disconnected,App getrennt
+Apps you allowed to access your teams. Disconnect any app you no longer use.,Apps\, denen Sie Zugriff auf Ihre Teams gewährt haben. Trennen Sie Apps\, die Sie nicht mehr verwenden.
+Connected app not found,Verbundene App nicht gefunden
+Connected apps,Verbundene Apps
+Connected {0},Verbunden am {0}
+Disconnect,Trennen
+Disconnect {0},{0} trennen
+Failed to disconnect the app,Die App konnte nicht getrennt werden
+Failed to load connected apps,Verbundene Apps konnten nicht geladen werden
 Identified by {0},Identifiziert durch {0}
+Last used {0},Zuletzt verwendet am {0}
+No connected apps,Keine verbundenen Apps
+Not used yet,Noch nicht verwendet
 Nothing can be granted in this team,In diesem Team kann nichts gewährt werden
 Only continue if you started this yourself,Fahren Sie nur fort\, wenn Sie dies selbst gestartet haben
 Sign in again to continue,Melden Sie sich erneut an\, um fortzufahren
@@ -479,3 +491,4 @@ Choose a permission for {0},Wählen Sie eine Berechtigung für {0}
 Choose at least one team,Wählen Sie mindestens ein Team
 Each team only gets the permissions you hold there.,Jedes Team erhält nur die Berechtigungen\, die Sie dort haben.
 Teams,Teams
+{0} will lose access to your teams right away.,{0} verliert sofort den Zugriff auf Ihre Teams.
