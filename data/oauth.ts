@@ -3,7 +3,7 @@ import { db } from "@recommand/db";
 import { and, eq } from "drizzle-orm";
 import { jwtVerify, type JWTPayload, decodeJwt, createLocalJWKSet } from "jose";
 
-export async function jwtVerifyClientSignedJWT(jwt: string, expectedAudience: string): Promise<{userId: string, isAdmin: boolean, teamId: string, payload: JWTPayload} | false> {
+export async function jwtVerifyClientSignedJWT(jwt: string, expectedAudience: string | string[]): Promise<{userId: string, isAdmin: boolean, teamId: string, payload: JWTPayload} | false> {
 
     try{
         // Extract the teamId and userId
