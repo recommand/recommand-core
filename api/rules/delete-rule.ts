@@ -1,4 +1,5 @@
 import { requireTeamAccess } from "@core/lib/auth-middleware";
+import { requirePermission } from "@core/lib/permissions/permission-middleware";
 import { Server } from "@recommand/lib/api";
 import { actionFailure, actionSuccess } from "@recommand/lib/utils";
 import { zodValidator } from "@recommand/lib/zod-validator";
@@ -25,6 +26,7 @@ const deleteRuleRouteDescription = describeRoute({
 const _deleteRuleMinimal = server.delete(
   "/rules/:id",
   requireTeamAccess(),
+  requirePermission("core.rules.delete"),
   deleteRuleRouteDescription,
   zodValidator("param", ruleIdParamSchema),
   _deleteRuleImplementation
@@ -33,6 +35,7 @@ const _deleteRuleMinimal = server.delete(
 const _deleteRule = server.delete(
   "/:teamId/rules/:id",
   requireTeamAccess(),
+  requirePermission("core.rules.delete"),
   describeRoute({ hide: true }),
   zodValidator("param", ruleIdParamSchemaWithTeamId),
   _deleteRuleImplementation

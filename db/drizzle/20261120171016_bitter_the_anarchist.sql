@@ -12,6 +12,21 @@ CREATE TABLE "principal_permissions" (
 --> statement-breakpoint
 ALTER TABLE "principal_permissions" ADD CONSTRAINT "principal_permissions_team_id_teams_id_fk" FOREIGN KEY ("team_id") REFERENCES "public"."teams"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "principal_permissions_principal_idx" ON "principal_permissions" USING btree ("principal_type","principal_id","team_id");--> statement-breakpoint
+-- The routes these permissions now guard were open to every member, so every
+-- member gets them, as a member who joins later does.
+INSERT INTO "user_permissions" ("user_id", "team_id", "permission_id")
+SELECT members."user_id", members."team_id", permissions."permission_id"
+FROM "team_members" AS members
+CROSS JOIN (VALUES
+  ('core.api_keys.delete'),
+  ('core.api_keys.read'),
+  ('core.api_keys.write'),
+  ('core.members.read'),
+  ('core.rules.delete'),
+  ('core.rules.read'),
+  ('core.rules.write')
+) AS permissions("permission_id")
+ON CONFLICT DO NOTHING;--> statement-breakpoint
 -- Existing keys get their owner's team permissions, so they keep working as before.
 INSERT INTO "principal_permissions" ("principal_type", "principal_id", "team_id", "permission_id", "granted_by_user_id")
 SELECT 'api_key', keys."id", keys."team_id", permissions."permission_id", keys."user_id"
@@ -24,6 +39,15 @@ INSERT INTO "principal_permissions" ("principal_type", "principal_id", "team_id"
 SELECT 'api_key', keys."id", keys."team_id", permissions."permission_id", keys."user_id"
 FROM "api_keys" AS keys
 INNER JOIN "users" ON "users"."id" = keys."user_id"
-CROSS JOIN (VALUES ('core.team.manage')) AS permissions("permission_id")
+CROSS JOIN (VALUES
+  ('core.api_keys.delete'),
+  ('core.api_keys.read'),
+  ('core.api_keys.write'),
+  ('core.members.read'),
+  ('core.rules.delete'),
+  ('core.rules.read'),
+  ('core.rules.write'),
+  ('core.team.manage')
+) AS permissions("permission_id")
 WHERE "users"."is_admin" = true
 ON CONFLICT DO NOTHING;

@@ -1,4 +1,5 @@
 import { requireTeamAccess } from "@core/lib/auth-middleware";
+import { requirePermission } from "@core/lib/permissions/permission-middleware";
 import { Server } from "@recommand/lib/api";
 import { actionFailure, actionSuccess } from "@recommand/lib/utils";
 import { zodValidator } from "@recommand/lib/zod-validator";
@@ -28,6 +29,7 @@ const retryRuleDeliveryRouteDescription = describeRoute({
 const _retryRuleDeliveryMinimal = server.post(
   "/rules/:id/deliveries/:ruleActionDeliveryId/retry",
   requireTeamAccess(),
+  requirePermission("core.rules.write"),
   retryRuleDeliveryRouteDescription,
   zodValidator("param", deliveryParamSchema),
   _retryRuleDeliveryImplementation
@@ -36,6 +38,7 @@ const _retryRuleDeliveryMinimal = server.post(
 const _retryRuleDelivery = server.post(
   "/:teamId/rules/:id/deliveries/:ruleActionDeliveryId/retry",
   requireTeamAccess(),
+  requirePermission("core.rules.write"),
   describeRoute({ hide: true }),
   zodValidator("param", deliveryParamSchemaWithTeamId),
   _retryRuleDeliveryImplementation

@@ -437,3 +437,20 @@ Failed to load sessions,Échec du chargement des sessions
 Failed to sign out the session,Échec de la déconnexion de la session
 Failed to sign out the other sessions,Échec de la déconnexion des autres sessions
 Session not found,Session introuvable
+Delete API keys,Supprimer les clés API
+Read API keys,Consulter les clés API
+See API keys and the permissions they hold,Voir les clés API et leurs autorisations
+Manage API keys,Gérer les clés API
+Create API keys and change their permissions,Créer des clés API et modifier leurs autorisations
+Read members,Consulter les membres
+Delete rules,Supprimer les règles
+Read rules,Consulter les règles
+See automation rules\, their deliveries and the events they can react to,Voir les règles d'automatisation\, leurs livraisons et les événements auxquels elles peuvent réagir
+Manage rules,Gérer les règles
+Create and change automation rules\, and retry their deliveries,Créer et modifier des règles d'automatisation\, et relancer leurs livraisons
+Delete API keys\, which stops every client that uses them,Supprimer des clés API\, ce qui arrête tous les clients qui les utilisent
+See who is in the team\, with their email addresses,Voir qui fait partie de l'équipe\, avec leurs adresses e-mail
+Delete automation rules\, so they no longer react to events,Supprimer des règles d'automatisation\, pour qu'elles ne réagissent plus aux événements
+API keys,Clés API
+Members,Membres
+Rules,Règles

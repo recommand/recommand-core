@@ -1,4 +1,5 @@
 import { requireTeamAccess } from "@core/lib/auth-middleware";
+import { requirePermission } from "@core/lib/permissions/permission-middleware";
 import { Server } from "@recommand/lib/api";
 import { actionFailure, actionSuccess } from "@recommand/lib/utils";
 import { zodValidator } from "@recommand/lib/zod-validator";
@@ -27,6 +28,7 @@ const listEventTypesRouteDescription = describeRoute({
 const _listEventTypesMinimal = server.get(
   "/event-types",
   requireTeamAccess(),
+  requirePermission("core.rules.read"),
   listEventTypesRouteDescription,
   _listEventTypesImplementation
 );
@@ -34,6 +36,7 @@ const _listEventTypesMinimal = server.get(
 const _listEventTypes = server.get(
   "/:teamId/event-types",
   requireTeamAccess(),
+  requirePermission("core.rules.read"),
   describeRoute({ hide: true }),
   zodValidator("param", teamIdParamSchema),
   _listEventTypesImplementation
