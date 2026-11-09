@@ -1,5 +1,6 @@
 import { zodValidator } from "@recommand/lib/zod-validator";
 import { z } from "zod";
+import "zod-openapi/extend";
 import { actionFailure, actionSuccess } from "@recommand/lib/utils";
 import { Server } from "@recommand/lib/api";
 import { createApiKey, deleteApiKey, getApiKeys, getApiKeyCreationStatus } from "@core/data/api-keys";
@@ -7,6 +8,30 @@ import { requireTeamAccess } from "@core/lib/auth-middleware";
 import { audit } from "@core/lib/audit";
 
 const server = new Server();
+
+// Long enough for any key, and short enough for the expiry to stay a valid date
+const MAX_EXPIRES_IN_SECONDS = 100 * 365 * 24 * 60 * 60;
+
+export const createApiKeyBodySchema = z.discriminatedUnion("type", [
+  z.object({
+    expiresInSeconds: z.number().int().min(1).max(MAX_EXPIRES_IN_SECONDS).optional().openapi({
+      description: "Seconds until the key expires. Without it, the key doesn't expire.",
+    }),
+    name: z.string(),
+    type: z.literal("basic"),
+  }),
+  z.object({
+    expiresInSeconds: z
+      .number()
+      .int()
+      .min(1)
+      .max(MAX_EXPIRES_IN_SECONDS)
+      .default(24 * 60 * 60)
+      .openapi({ description: "Seconds until the key expires." }),
+    name: z.string(),
+    type: z.literal("jwt"),
+  }),
+]);
 
 const _getApiKeys = server.get(
   "/:teamId/api-keys",
@@ -42,11 +67,7 @@ const _createApiKey = server.post(
   ),
   zodValidator(
     "json",
-    z.object({
-      name: z.string(),
-      type: z.enum(["basic", "jwt"]).default("basic"),
-      expiresInSeconds: z.number().min(1).optional().default(24 * 60 * 60), // 24 hours in seconds
-    })
+    createApiKeyBodySchema
   ),
   async (c) => {
     try {

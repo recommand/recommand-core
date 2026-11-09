@@ -323,6 +323,11 @@ async function verifyBasicAuth(c: Context): Promise<Session | null> {
     return null;
   }
 
+  // A Basic key without an expiry date doesn't expire
+  if (apiKey.apiKey.expiresAt && apiKey.apiKey.expiresAt <= new Date()) {
+    return null;
+  }
+
   return {
     userId: apiKey.user.id,
     isAdmin: apiKey.user.isAdmin,
