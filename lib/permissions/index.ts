@@ -6,7 +6,7 @@ export type Permission = {
   description?: string;
   scope?: PermissionScope;
   prerequisiteActorPermissionIds: string[];
-  /** What the permission is about, as the dashboard groups permissions, such as `Documents`. */
+  /** What the permission is about, as the dashboard groups permissions, such as `API keys`. */
   resource?: string;
   hasAdminPrerequisite?: boolean;
   isAddedOnTeamCreation?: boolean;
