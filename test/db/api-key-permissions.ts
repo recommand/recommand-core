@@ -218,42 +218,25 @@ describe("API-key grants", () => {
       expect((await app.request("/two/manage", { headers })).status).toBe(403);
     });
   });
-  test("the actor cannot grant permissions the owner lacks", async () => {
+  test("the owner cannot give their key permissions they lack", async () => {
     const { body } = await create("basic", []);
     await pool.query("DELETE FROM user_permissions WHERE user_id = 'owner' AND team_id = 'one' AND permission_id = 'test.write'");
-    expect((await update(body.apiKey.id, ["test.write"], await cookie("admin"))).status).toBe(403);
+    expect((await update(body.apiKey.id, ["test.write"])).status).toBe(403);
   });
-  test("the actor must be allowed to grant permissions", async () => {
-    const { body } = await create("basic", []);
-    expect((await update(body.apiKey.id, ["test.read"], await cookie("other"))).status).toBe(403);
-  });
-  test("an ordinary member cannot clear another owner's key grants", async () => {
+  test("only the key's owner can change its permissions, as only they can list and delete it", async () => {
     const { body } = await create("basic", ["test.read"]);
-    expect((await update(body.apiKey.id, [], await cookie("other"))).status).toBe(403);
+    await pool.query("INSERT INTO user_permissions (user_id, team_id, permission_id) VALUES ('other', 'one', 'core.team.manage')");
+    expect((await update(body.apiKey.id, [], await cookie("other"))).status).toBe(404);
+    expect((await update(body.apiKey.id, [], await cookie("admin"))).status).toBe(404);
     expect(await getApiKeyPermissionIds(body.apiKey.id, "one")).toEqual(["test.read"]);
   });
   (["basic", "jwt"] as const).forEach((type) => {
-    test(`${type}: a restricted team manager key cannot clear another owner's grants`, async () => {
-      const { body: target } = await create(type, ["test.read"]);
-      await pool.query("INSERT INTO user_permissions (user_id, team_id, permission_id) VALUES ('other', 'one', 'core.team.manage')");
-      const { body: caller } = await create(type, [], await cookie("other"));
-      expect((await update(target.apiKey.id, [], credentials(caller.apiKey))).status).toBe(403);
-      expect(await getApiKeyPermissionIds(target.apiKey.id, "one")).toEqual(["test.read"]);
-      expect((await update(target.apiKey.id, [], await cookie("other"))).status).toBe(200);
-    });
-    test(`${type}: a restricted admin key cannot clear another owner's grants`, async () => {
-      const { body: target } = await create(type, ["test.read"]);
-      const { body: caller } = await create(type, [], await cookie("admin"));
-      expect((await update(target.apiKey.id, [], credentials(caller.apiKey))).status).toBe(403);
-      expect(await getApiKeyPermissionIds(target.apiKey.id, "one")).toEqual(["test.read"]);
-      expect((await update(target.apiKey.id, [], await cookie("admin"))).status).toBe(200);
-    });
-    test(`${type}: a team manager key with an explicit grant can clear another owner's grants`, async () => {
+    test(`${type}: a team manager's key cannot change another member's key`, async () => {
       const { body: target } = await create(type, ["test.read"]);
       await pool.query("INSERT INTO user_permissions (user_id, team_id, permission_id) VALUES ('other', 'one', 'core.team.manage')");
       const { body: caller } = await create(type, ["core.api_keys.write", "core.team.manage"], await cookie("other"));
-      expect((await update(target.apiKey.id, [], credentials(caller.apiKey))).status).toBe(200);
-      expect(await getApiKeyPermissionIds(target.apiKey.id, "one")).toEqual([]);
+      expect((await update(target.apiKey.id, [], credentials(caller.apiKey))).status).toBe(404);
+      expect(await getApiKeyPermissionIds(target.apiKey.id, "one")).toEqual(["test.read"]);
     });
     test(`${type}: an owner can revoke their own key's grants using that key`, async () => {
       const { body } = await create(type, ["core.api_keys.write", "test.read"]);

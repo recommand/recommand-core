@@ -181,7 +181,7 @@ const _setApiKeyPermissions = server.put(
   requireTeamAccess(),
   requirePermission("core.api_keys.write"),
   describeRoute({
-    description: "Replace the team permissions of an API key. The key's owner must hold each of them; changing someone else's key also needs `core.team.manage`.",
+    description: "Replace the team permissions of one of the caller's own API keys. The caller must hold each of them.",
     hide: true,
     operationId: "setApiKeyPermissions",
     responses: {
@@ -193,7 +193,7 @@ const _setApiKeyPermissions = server.put(
         "The credential lacks the `core.api_keys.write` permission, or can't give the key one of these permissions.",
         insufficientPermissionBody
       ),
-      ...describeErrorResponse(404, "The API key was not found"),
+      ...describeErrorResponse(404, "The API key was not found among the caller's keys"),
       ...describeErrorResponse(500, "Failed to set the permissions"),
     },
     summary: "Set API Key Permissions",

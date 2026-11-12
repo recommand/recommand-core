@@ -7,10 +7,9 @@ import { sign } from "@core/lib/jwt";
 import type { Permission } from "@core/lib/permissions";
 import { getRegisteredPermission } from "@core/lib/permissions";
 import { ulid } from "ulid";
-import { listOwnerTeamPermissionIds, NotAuthorizedError } from "./permissions";
+import { listOwnerTeamPermissionIds } from "./permissions";
 import type { PermissionWriter } from "./principal-permissions";
 import {
-  hasPrincipalPermission,
   listPrincipalPermissionIds,
   listPrincipalPermissionsForIds,
   setPrincipalPermissions,
@@ -98,16 +97,9 @@ export const setApiKeyPermissions = async (input: {
     actorApiKeyId?: string;
 }) => {
     const apiKey = await getApiKey(input.apiKeyId);
-    if (!apiKey || apiKey.teamId !== input.teamId) {
+    // Only the key's owner can change it, as only they can list and delete it
+    if (!apiKey || apiKey.teamId !== input.teamId || apiKey.userId !== input.actorUserId) {
         return null;
-    }
-    if (apiKey.userId !== input.actorUserId) {
-        const principal = input.actorApiKeyId
-            ? { apiKeyId: input.actorApiKeyId, ownerUserId: input.actorUserId, type: "api_key" as const }
-            : { type: "user" as const, userId: input.actorUserId };
-        if (!(await hasPrincipalPermission(principal, input.teamId, "core.team.manage"))) {
-            throw new NotAuthorizedError("You don't have permission to manage this API key");
-        }
     }
     const permissionIds = await setPrincipalPermissions({
         actorApiKeyId: input.actorApiKeyId,
