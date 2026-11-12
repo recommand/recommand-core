@@ -33,9 +33,9 @@ const permissionIdsSchema = z.array(z.string()).openapi({ description: "The ids 
 const availablePermissionSchema = z
   .object({
     description: z.string().optional().openapi({ description: "What the permission allows." }),
-    id: z.string().openapi({ description: "The permission's id, such as `peppol.documents.read`." }),
+    id: z.string().openapi({ description: "The permission's id, such as `core.api_keys.read`." }),
     name: z.string().openapi({ description: "The permission's name." }),
-    resource: z.string().optional().openapi({ description: "What the permission is about, such as `Documents`." }),
+    resource: z.string().optional().openapi({ description: "What the permission is about, such as `API keys`." }),
   })
   .openapi({ ref: "ApiKeyAvailablePermission" });
 
