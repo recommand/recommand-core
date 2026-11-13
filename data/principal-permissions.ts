@@ -1,3 +1,4 @@
+import { listGrantPermissionIds } from "@core/data/oauth-grants";
 import { principalPermissions } from "@core/db/schema";
 import { getDelegablePermission, getRegisteredPermission } from "@core/lib/permissions";
 import { db } from "@recommand/db";
@@ -63,6 +64,38 @@ export const hasPrincipalPermission = async (
   }
 
   throw new Error("Invalid principal type");
+};
+
+/**
+ * The team permissions a principal holds in a team, as `hasPrincipalPermission`
+ * decides them one at a time, for a caller that checks several at once.
+ */
+export const listPrincipalTeamPermissionIds = async (principal: ActorPrincipal, teamId: string): Promise<string[]> => {
+  if (principal.type === "user") {
+    return listOwnerTeamPermissionIds(principal.userId, teamId);
+  }
+
+  if (principal.type === "api_key") {
+    // A key acts in its own team; only an admin's key reaches other teams
+    if (principal.teamId !== teamId && !principal.ownerIsAdmin) {
+      return [];
+    }
+
+    const [stored, owned] = await Promise.all([
+      // Stored in the key's own team, wherever it acts
+      listPrincipalPermissionIds("api_key", principal.apiKeyId),
+      listOwnerTeamPermissionIds(principal.ownerUserId, teamId),
+    ]);
+
+    return stored.filter((permissionId) => getRegisteredPermission(permissionId)?.scope === "team" && owned.includes(permissionId));
+  }
+
+  const [granted, held] = await Promise.all([
+    principal.permissionIds ?? listGrantPermissionIds(principal.grantId).then((byTeam) => byTeam.get(teamId) ?? []),
+    listMemberTeamPermissionIds(principal.userId, teamId),
+  ]);
+
+  return granted.filter((permissionId) => !!getDelegablePermission(permissionId) && held.includes(permissionId));
 };
 
 export type PrincipalType = "api_key" | "oauth_grant";

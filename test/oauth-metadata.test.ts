@@ -51,4 +51,13 @@ describe("OAuth discovery", () => {
       scopes_supported: getDelegablePermissions().map((permission) => permission.id),
     });
   });
+
+  test("names the MCP server as a resource of its own", async () => {
+    expect(await read("/.well-known/oauth-protected-resource/mcp")).toEqual({
+      authorization_servers: ["https://recommand.example.com"],
+      bearer_methods_supported: ["header"],
+      resource: "https://recommand.example.com/mcp",
+      scopes_supported: getDelegablePermissions().map((permission) => permission.id),
+    });
+  });
 });

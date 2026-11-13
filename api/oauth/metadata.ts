@@ -1,5 +1,10 @@
 import { JWT_BEARER_GRANT_TYPE } from "@core/lib/oauth/jwt-bearer";
-import { apiResource, PROTECTED_RESOURCE_METADATA_PATH } from "@core/lib/oauth/resource";
+import {
+  apiResource,
+  MCP_PROTECTED_RESOURCE_METADATA_PATH,
+  mcpResource,
+  PROTECTED_RESOURCE_METADATA_PATH,
+} from "@core/lib/oauth/resource";
 import { getDelegablePermissions } from "@core/lib/permissions";
 import { Server } from "@recommand/lib/api";
 import { describeRoute } from "hono-openapi";
@@ -43,6 +48,13 @@ const _authorizationServer = server.get(
   }
 );
 
+const protectedResourceMetadata = (resource: string) => ({
+  authorization_servers: [process.env.BASE_URL!],
+  bearer_methods_supported: ["header"],
+  resource,
+  scopes_supported: delegableScopes(),
+});
+
 /**
  * Protected resource metadata (RFC 9728) for this API: its resource identifier
  * and the authorization server that issues tokens for it.
@@ -52,15 +64,22 @@ const _authorizationServer = server.get(
 const _protectedResource = server.get(
   PROTECTED_RESOURCE_METADATA_PATH,
   describeRoute({ hide: true, security: [] }),
-  (c) =>
-    c.json({
-      authorization_servers: [process.env.BASE_URL!],
-      bearer_methods_supported: ["header"],
-      resource: apiResource(),
-      scopes_supported: delegableScopes(),
-    })
+  (c) => c.json(protectedResourceMetadata(apiResource()))
 );
 
-export type OAuthMetadata = typeof _authorizationServer | typeof _protectedResource;
+/**
+ * The same for the MCP server, which MCP clients read to find where to sign in
+ * after its first `401`.
+ *
+ * @see https://www.rfc-editor.org/rfc/rfc9728#section-3.1
+ * @see https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/authorization-server-discovery
+ */
+const _mcpProtectedResource = server.get(
+  MCP_PROTECTED_RESOURCE_METADATA_PATH,
+  describeRoute({ hide: true, security: [] }),
+  (c) => c.json(protectedResourceMetadata(mcpResource()))
+);
+
+export type OAuthMetadata = typeof _authorizationServer | typeof _mcpProtectedResource | typeof _protectedResource;
 
 export default server;

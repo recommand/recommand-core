@@ -1,7 +1,7 @@
 import { recordGrantUse } from "@core/data/oauth-grants";
 import { isOAuthAccessToken, verifyAccessToken } from "@core/data/oauth-tokens";
 import { users } from "@core/db/schema";
-import { apiResource, protectedResourceMetadataUrl } from "@core/lib/oauth/resource";
+import { apiResource, protectedResourceMetadataUrl, requestResource } from "@core/lib/oauth/resource";
 import { db } from "@recommand/db";
 import { eq } from "drizzle-orm";
 import type { Context } from "hono";
@@ -54,9 +54,12 @@ export const verifyOAuthAccessToken = async (c: Context): Promise<Session | null
     return null;
   }
 
-  // A token meant for another resource isn't for this API (RFC 8707, section 2);
-  // one without any is, since a client doesn't have to name the resource
-  if (verified.resources.length > 0 && !verified.resources.includes(apiResource())) {
+  // A token meant for another resource, such as the MCP server's for the API, isn't
+  // for this one (RFC 8707, section 2). One issued without a resource is meant for
+  // the API, as its audience says: MCP clients have to name the MCP server.
+  // https://www.rfc-editor.org/rfc/rfc8707#section-2
+  const resources = verified.resources.length > 0 ? verified.resources : [apiResource()];
+  if (!resources.includes(requestResource(c))) {
     return null;
   }
 
@@ -84,7 +87,7 @@ export const verifyOAuthAccessToken = async (c: Context): Promise<Session | null
 /**
  * Tells an OAuth client what to do next (RFC 6750, section 3): which permission
  * to ask the user for, or that its token is no longer valid, and where to find
- * this API's metadata (RFC 9728, section 5.1).
+ * the metadata of the resource it called (RFC 9728, section 5.1).
  *
  * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/WWW-Authenticate
  * @see https://www.rfc-editor.org/rfc/rfc6750#section-3
@@ -95,7 +98,7 @@ export const setBearerChallenge = (
   challenge: { error?: "insufficient_scope" | "invalid_token"; scope?: string } = {}
 ) => {
   const parameters = [
-    `resource_metadata="${protectedResourceMetadataUrl()}"`,
+    `resource_metadata="${protectedResourceMetadataUrl(requestResource(c))}"`,
     challenge.error ? `error="${challenge.error}"` : null,
     // Only a missing permission names what to ask for
     challenge.scope ? `scope="${challenge.scope}"` : null,
