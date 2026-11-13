@@ -183,6 +183,25 @@ export const checkTeamAccess = async (c: Context, teamId: string): Promise<TeamA
   return (await isMember(user.id, teamId)) ? { allowed: true } : { allowed: false, reason: "not_team_member" };
 };
 
+/**
+ * The teams a credential bound to teams reaches, as `checkTeamAccess` decides:
+ * the teams of an OAuth grant, or the team of an API key or integration token.
+ * Empty for a session that reaches teams through its user's memberships.
+ */
+export const listReachableTeamIds = async (c: Context): Promise<string[]> => {
+  const grant: RequestGrant | null = c.get("grant") ?? null;
+  if (grant) {
+    const teamIds = [...grant.permissionIdsByTeam.keys()];
+    const access = await Promise.all(teamIds.map((teamId) => checkTeamAccess(c, teamId)));
+
+    return teamIds.filter((_, index) => access[index]!.allowed);
+  }
+
+  const credentialTeamId: string | null = c.get("teamId");
+
+  return credentialTeamId ? [credentialTeamId] : [];
+};
+
 export function requireTeamAccess(options: TeamAccessOptions = {}) {
   return createMiddleware<AuthenticatedUserContext & AuthenticatedTeamContext>(
     async (c, next) => {
