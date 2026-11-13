@@ -1,3 +1,4 @@
+import { describeRoute } from "hono-openapi";
 import { zodValidator } from "@recommand/lib/zod-validator";
 import { z } from "zod";
 import { actionFailure, actionSuccess } from "@recommand/lib/utils";
@@ -16,6 +17,7 @@ import {
   revokeUserSession,
   revokeUserSessions,
 } from "@core/lib/session";
+import { describeErrorResponse, describeSuccessResponse } from "@core/lib/api-docs";
 import { audit } from "@core/lib/audit";
 
 const server = new Server();
@@ -149,8 +151,31 @@ const _changePassword = server.put(
   }
 );
 
+const sessionSchema = z
+  .object({
+    createdAt: z.string().datetime().openapi({ description: "When the session signed in." }),
+    expiresAt: z.string().datetime(),
+    id: z.string(),
+    isCurrent: z.boolean().openapi({ description: "Whether this is the session making the request." }),
+    lastSeenAt: z.string().datetime().nullable().openapi({ description: "When the session was last used, updated at most every ten minutes." }),
+    userAgent: z.string().nullable().openapi({ description: "The User-Agent the session signed in with." }),
+  })
+  .openapi({ ref: "AccountSession" });
+
 const _getSessions = server.get(
   "/account/sessions",
+  describeRoute({
+    description: "List the user's active sessions, most recently used first.",
+    hide: true,
+    operationId: "listAccountSessions",
+    responses: {
+      ...describeSuccessResponse("The active sessions", z.object({ sessions: z.array(sessionSchema) })),
+      ...describeErrorResponse(401, "The user isn't signed in"),
+      ...describeErrorResponse(500, "Failed to list the sessions"),
+    },
+    summary: "List Sessions",
+    tags: ["Account"],
+  }),
   requireAuth(),
   withTranslation(),
   async (c) => {
@@ -175,6 +200,19 @@ const _getSessions = server.get(
 
 const _revokeSession = server.delete(
   "/account/sessions/:sessionId",
+  describeRoute({
+    description: "Sign out one of the user's sessions.",
+    hide: true,
+    operationId: "revokeAccountSession",
+    responses: {
+      ...describeSuccessResponse("The session was signed out"),
+      ...describeErrorResponse(401, "The user isn't signed in"),
+      ...describeErrorResponse(404, "The user has no such active session"),
+      ...describeErrorResponse(500, "Failed to sign out the session"),
+    },
+    summary: "Sign Out a Session",
+    tags: ["Account"],
+  }),
   requireAuth(),
   withTranslation(),
   async (c) => {
@@ -206,6 +244,18 @@ const _revokeSession = server.delete(
 
 const _revokeOtherSessions = server.delete(
   "/account/sessions",
+  describeRoute({
+    description: "Sign out every session of the user except the one making the request.",
+    hide: true,
+    operationId: "revokeOtherAccountSessions",
+    responses: {
+      ...describeSuccessResponse("The other sessions were signed out"),
+      ...describeErrorResponse(401, "The user isn't signed in"),
+      ...describeErrorResponse(500, "Failed to sign out the other sessions"),
+    },
+    summary: "Sign Out Other Sessions",
+    tags: ["Account"],
+  }),
   requireAuth(),
   withTranslation(),
   async (c) => {
