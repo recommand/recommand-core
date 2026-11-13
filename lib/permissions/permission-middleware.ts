@@ -54,7 +54,7 @@ export function requirePermission(permissionId: string) {
 
     const apiKey = c.get("apiKey");
     const principal = apiKey
-      ? { apiKeyId: apiKey.id, ownerUserId: user.id, type: "api_key" as const }
+      ? { apiKeyId: apiKey.id, ownerIsAdmin: user.isAdmin, ownerUserId: user.id, teamId: apiKey.teamId, type: "api_key" as const }
       : { type: "user" as const, userId: user.id };
     if (!(await hasPrincipalPermission(principal, teamId, permissionId))) {
       await audit(c, {

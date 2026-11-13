@@ -12,7 +12,7 @@ import {
 
 export type ActorPrincipal =
   | { type: "user"; userId: string }
-  | { apiKeyId: string; ownerUserId: string; type: "api_key" };
+  | { apiKeyId: string; ownerIsAdmin: boolean; ownerUserId: string; teamId: string; type: "api_key" };
 
 export const hasPrincipalPermission = async (
   principal: ActorPrincipal,
@@ -24,7 +24,8 @@ export const hasPrincipalPermission = async (
   }
 
   if (principal.type === "api_key") {
-    if (getRegisteredPermission(permissionId)?.scope !== "team") {
+    // A key acts in its own team; only an admin's key reaches other teams
+    if (getRegisteredPermission(permissionId)?.scope !== "team" || (principal.teamId !== teamId && !principal.ownerIsAdmin)) {
       return false;
     }
 
