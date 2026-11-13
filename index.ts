@@ -13,6 +13,7 @@ import account from "./api/account";
 import teamLogo from "./api/team-logo";
 import manifest from "./api/manifest";
 import rules from "./api/rules";
+import { initializeIdempotencyKeyCronJobs } from "./data/idempotency-keys-cron";
 import { initializeRuleCronJobs } from "./data/rules/cron";
 
 let logger: Logger;
@@ -22,6 +23,7 @@ const server = new Server();
 export async function init(app: RecommandApp, server: Server) {
   logger = new Logger(app);
   logger.info("Initializing core app");
+  await initializeIdempotencyKeyCronJobs(logger);
   await initializeRuleCronJobs(logger);
 }
 
