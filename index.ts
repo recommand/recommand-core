@@ -17,6 +17,7 @@ import teamLogo from "./api/team-logo";
 import manifest from "./api/manifest";
 import rules from "./api/rules";
 import { initializeApiKeyCronJobs } from "./data/api-key-cron";
+import { initializeIdempotencyKeyCronJobs } from "./data/idempotency-keys-cron";
 import { initializeOAuthClientCronJobs } from "./data/oauth-client-cron";
 import { initializeRuleCronJobs } from "./data/rules/cron";
 import { forbidFraming } from "./lib/oauth/frame";
@@ -28,6 +29,7 @@ const server = new Server();
 export async function init(app: RecommandApp, server: Server) {
   logger = new Logger(app);
   logger.info("Initializing core app");
+  await initializeIdempotencyKeyCronJobs(logger);
   await initializeRuleCronJobs(logger);
   initializeApiKeyCronJobs(logger);
   initializeOAuthClientCronJobs(logger);
