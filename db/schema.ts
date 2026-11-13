@@ -116,7 +116,7 @@ export const apiKeys = pgTable(
   (table) => [index("api_keys_secret_hash_idx").using("hash", table.secretHash)]
 );
 
-export const principalTypes = pgEnum("principal_types", ["api_key", "installation"]);
+export const principalTypes = pgEnum("principal_types", ["api_key"]);
 
 export const principalPermissions = pgTable(
   "principal_permissions",

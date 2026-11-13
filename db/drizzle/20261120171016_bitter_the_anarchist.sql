@@ -1,4 +1,4 @@
-CREATE TYPE "public"."principal_types" AS ENUM('api_key', 'installation');--> statement-breakpoint
+CREATE TYPE "public"."principal_types" AS ENUM('api_key');--> statement-breakpoint
 CREATE TABLE "principal_permissions" (
 	"principal_type" "principal_types" NOT NULL,
 	"principal_id" text NOT NULL,

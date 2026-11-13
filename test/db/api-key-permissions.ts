@@ -121,13 +121,13 @@ describe("grant migration", () => {
     const members = await pool.query("SELECT user_id, permission_id FROM user_permissions WHERE team_id = 'one' AND permission_id LIKE 'core.%' AND permission_id <> 'core.team.manage' ORDER BY 1, 2");
     expect(members.rows).toEqual(["other", "owner"].flatMap((user_id) => CORE_MEMBER_PERMISSIONS.map((permission_id) => ({ permission_id, user_id }))));
     await Promise.all(["legacy_basic", "legacy_jwt"].map(async (id) => {
-      expect((await getApiKeyPermissionIds(id, "one")).toSorted()).toEqual([...CORE_MEMBER_PERMISSIONS, "core.team.manage", "test.read", "test.write"]);
+      expect((await getApiKeyPermissionIds(id)).toSorted()).toEqual([...CORE_MEMBER_PERMISSIONS, "core.team.manage", "test.read", "test.write"]);
       // Stored in the key's own team only
       expect((await pool.query("SELECT DISTINCT team_id FROM principal_permissions WHERE principal_id = $1", [id])).rows).toEqual([{ team_id: "one" }]);
     }));
     expect(await read({ Authorization: `Basic ${btoa("legacy_basic:legacy-secret")}` })).toBe(200);
     expect(await read({ Authorization: `Bearer ${jwt}` })).toBe(200);
-    expect((await getApiKeyPermissionIds("legacy_admin", "one")).toSorted()).toEqual([...CORE_MEMBER_PERMISSIONS, "core.team.manage"]);
+    expect((await getApiKeyPermissionIds("legacy_admin")).toSorted()).toEqual([...CORE_MEMBER_PERMISSIONS, "core.team.manage"]);
     expect(await hasPrincipalPermission({ apiKeyId: "legacy_admin", ownerUserId: "admin", type: "api_key" }, "one", "core.team.manage")).toBe(true);
   });
 });
@@ -151,7 +151,7 @@ describe("API-key grants", () => {
       expect((await app.request("/one/manage", { headers })).status).toBe(403);
       await pool.query("DELETE FROM user_permissions WHERE user_id = 'owner' AND team_id = 'one' AND permission_id = 'test.read'");
       expect(await read(headers)).toBe(403);
-      expect(await getApiKeyPermissionIds(body.apiKey.id, "one")).toEqual(["test.read"]);
+      expect(await getApiKeyPermissionIds(body.apiKey.id)).toEqual(["test.read"]);
     });
     test(`${type}: empty grants deny permissions and updates take effect immediately`, async () => {
       const { body } = await create(type, []);
@@ -159,7 +159,7 @@ describe("API-key grants", () => {
       expect(await read(headers)).toBe(403);
       expect((await update(body.apiKey.id, ["test.read", "test.read"])).status).toBe(200);
       expect(await read(headers)).toBe(200);
-      expect(await getApiKeyPermissionIds(body.apiKey.id, "one")).toEqual(["test.read"]);
+      expect(await getApiKeyPermissionIds(body.apiKey.id)).toEqual(["test.read"]);
       expect((await update(body.apiKey.id, [])).status).toBe(200);
       expect(await read(headers)).toBe(403);
     });
@@ -167,7 +167,7 @@ describe("API-key grants", () => {
       const { body } = await create(type, ["test.read"]);
       expect(await read(credentials(body.apiKey), "two")).toBe(401);
       expect((await update(body.apiKey.id, [], undefined, "two")).status).toBe(404);
-      expect(await getApiKeyPermissionIds(body.apiKey.id, "one")).toEqual(["test.read"]);
+      expect(await getApiKeyPermissionIds(body.apiKey.id)).toEqual(["test.read"]);
     });
     test(`${type}: missing owner membership and deleted keys deny access`, async () => {
       const { body } = await create(type, ["test.read"]);
@@ -227,7 +227,7 @@ describe("API-key grants", () => {
     await pool.query("INSERT INTO user_permissions (user_id, team_id, permission_id) VALUES ('other', 'one', 'core.team.manage')");
     expect((await update(body.apiKey.id, [], await cookie("other"))).status).toBe(404);
     expect((await update(body.apiKey.id, [], await cookie("admin"))).status).toBe(404);
-    expect(await getApiKeyPermissionIds(body.apiKey.id, "one")).toEqual(["test.read"]);
+    expect(await getApiKeyPermissionIds(body.apiKey.id)).toEqual(["test.read"]);
   });
   (["basic", "jwt"] as const).forEach((type) => {
     test(`${type}: a team manager's key cannot change another member's key`, async () => {
@@ -235,19 +235,19 @@ describe("API-key grants", () => {
       await pool.query("INSERT INTO user_permissions (user_id, team_id, permission_id) VALUES ('other', 'one', 'core.team.manage')");
       const { body: caller } = await create(type, ["core.api_keys.write", "core.team.manage"], await cookie("other"));
       expect((await update(target.apiKey.id, [], credentials(caller.apiKey))).status).toBe(404);
-      expect(await getApiKeyPermissionIds(target.apiKey.id, "one")).toEqual(["test.read"]);
+      expect(await getApiKeyPermissionIds(target.apiKey.id)).toEqual(["test.read"]);
     });
     test(`${type}: an owner can revoke their own key's grants using that key`, async () => {
       const { body } = await create(type, ["core.api_keys.write", "test.read"]);
       expect((await update(body.apiKey.id, [], credentials(body.apiKey))).status).toBe(200);
-      expect(await getApiKeyPermissionIds(body.apiKey.id, "one")).toEqual([]);
+      expect(await getApiKeyPermissionIds(body.apiKey.id)).toEqual([]);
     });
   });
   test("invalid updates leave existing grants intact", async () => {
     const { body } = await create("basic", ["test.read"]);
     expect((await update(body.apiKey.id, ["test.global"])).status).toBe(400);
     expect((await update(body.apiKey.id, ["unknown"])).status).toBe(400);
-    expect(await getApiKeyPermissionIds(body.apiKey.id, "one")).toEqual(["test.read"]);
+    expect(await getApiKeyPermissionIds(body.apiKey.id)).toEqual(["test.read"]);
   });
   test("failed grant insertion rolls back the key and grant deletion", async () => {
     const { body } = await create("basic", ["test.read"]);
@@ -255,7 +255,7 @@ describe("API-key grants", () => {
       CREATE TRIGGER reject_test_grants BEFORE INSERT ON principal_permissions FOR EACH ROW EXECUTE FUNCTION reject_test_grants()`);
     try {
       await expect(setApiKeyPermissions({ actorUserId: "owner", apiKeyId: body.apiKey.id, permissionIds: ["test.write"], teamId: "one" })).rejects.toThrow();
-      expect(await getApiKeyPermissionIds(body.apiKey.id, "one")).toEqual(["test.read"]);
+      expect(await getApiKeyPermissionIds(body.apiKey.id)).toEqual(["test.read"]);
       expect((await create("basic", ["test.read"])).response.status).toBe(500);
       expect((await pool.query("SELECT id FROM api_keys")).rows).toHaveLength(1);
     } finally {

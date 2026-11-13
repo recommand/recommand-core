@@ -1498,8 +1498,7 @@
       "name": "principal_types",
       "schema": "public",
       "values": [
-        "api_key",
-        "installation"
+        "api_key"
       ]
     },
     "public.rule_delivery_status": {
