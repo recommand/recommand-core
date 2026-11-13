@@ -12,6 +12,9 @@ const publicJwk = async (key: CryptoKey) => {
   return { alg: "RS256", e, kty, n, use: "sig" };
 };
 
+const privateJwk = await exportJWK(current.privateKey);
+const publicOnly = await publicJwk(current.publicKey);
+
 const sign = async () => {
   const { key, kid } = await getSigningKey();
 
@@ -91,6 +94,29 @@ describe("with a key set to rotate", () => {
 
     process.env.SIGNING_KEYS = JSON.stringify({ keys: [await exportJWK(next.privateKey)] });
     expect(await verifies(before)).toBe(false);
+  });
+});
+
+describe("with settings that can't work", () => {
+  test("still publishes and verifies when the private key is broken", async () => {
+    process.env.INTEGRATIONS_PRIVATE_KEY = "-----BEGIN PRIVATE KEY----- broken -----END PRIVATE KEY-----";
+    process.env.INTEGRATIONS_JWKS = JSON.stringify({ keys: [await publicJwk(current.publicKey)] });
+    await expect(getSigningKey()).rejects.toThrow();
+    expect((await getPublicKeySet()).keys).toHaveLength(1);
+  });
+
+  test.each([
+    ["not json", "SIGNING_KEYS isn't valid JSON"],
+    ["{}", "SIGNING_KEYS needs a `keys` array with at least one key"],
+    [JSON.stringify({ keys: [] }), "SIGNING_KEYS needs a `keys` array with at least one key"],
+    [JSON.stringify({ keys: [privateJwk, { k: "c2VjcmV0", kty: "oct" }] }), "SIGNING_KEYS key 1 isn't an RSA key"],
+    [JSON.stringify({ keys: [publicOnly] }), "SIGNING_KEYS key 0 signs, so it needs its private members"],
+    [JSON.stringify({ keys: [{ ...privateJwk, kid: "same" }, { ...publicOnly, kid: "same" }] }), "Two published signing keys have the same `kid`"],
+  ])("refuses %s with a message that names no key material", async (value, message) => {
+    process.env.SIGNING_KEYS = value;
+    const error = await getPublicKeySet().then(() => null, (refusal: Error) => refusal.message);
+    expect(error).toBe(message);
+    expect(error).not.toContain(privateJwk.n!);
   });
 });
 
