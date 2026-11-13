@@ -18,11 +18,16 @@ import {
   revokeGlobalPermission,
   revokePermission,
 } from "@core/data/permissions";
+import { hasStoredPrincipalPermission } from "@core/data/principal-permissions";
 import { requirePermission } from "@core/lib/permissions/permission-middleware";
 import { audit } from "@core/lib/audit";
 import { describeRoute } from "hono-openapi";
 
 const server = new Server();
+
+/** A request made with an API key only gives or takes the permissions the key holds itself. */
+const keyLacksPermission = async (apiKey: { id: string } | null, permissionId: string) =>
+  apiKey !== null && !(await hasStoredPrincipalPermission("api_key", apiKey.id, permissionId));
 
 function serializePermissions(
   permissions: Awaited<ReturnType<typeof getGrantablePermissions>>,
@@ -150,6 +155,10 @@ const _grantPermission = server.post(
         return c.json(actionFailure(t`User ID is required`), 400);
       }
 
+      if (await keyLacksPermission(c.get("apiKey"), permissionId)) {
+        throw new NotAuthorizedError("API keys cannot grant permissions they do not have");
+      }
+
       const permission = await grantPermission(userId, teamId, permissionId, actorUserId);
       await audit(c, {
         action: "grant_access",
@@ -211,6 +220,10 @@ const _revokePermission = server.delete(
       const actorUserId = c.var.user?.id;
       if (!actorUserId) {
         return c.json(actionFailure(t`User ID is required`), 400);
+      }
+
+      if (await keyLacksPermission(c.get("apiKey"), permissionId)) {
+        throw new NotAuthorizedError("API keys cannot revoke permissions they do not have");
       }
 
       const wasRevoked = await revokePermission(userId, teamId, permissionId, actorUserId);
