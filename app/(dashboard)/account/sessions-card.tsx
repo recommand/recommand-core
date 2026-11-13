@@ -7,6 +7,7 @@ import { Badge } from "@core/components/ui/badge";
 import { Button } from "@core/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@core/components/ui/card";
 import { toast } from "@core/components/ui/sonner";
+import { useDateFormat } from "@core/hooks/use-date-format";
 import { useTranslation } from "@core/hooks/use-translation";
 import { describeUserAgent } from "@core/lib/user-agent";
 import { rc } from "@recommand/lib/client";
@@ -23,8 +24,9 @@ type Session = {
 };
 
 export const SessionsCard: FunctionComponent = () => {
+  const { formatDateTime } = useDateFormat();
   const [sessions, setSessions] = useState<Session[]>([]);
-  const { t, language } = useTranslation();
+  const { t } = useTranslation();
 
   const fetchSessions = async () => {
     try {
@@ -83,7 +85,7 @@ export const SessionsCard: FunctionComponent = () => {
     return browser ?? system ?? t`Unknown device`;
   };
 
-  const formatDate = (date: string | null) => (date ? new Date(date).toLocaleString(language) : t`N/A`);
+  const formatDate = (date: string | null) => (date ? formatDateTime(date) : t`N/A`);
 
   return (
     <Card className="md:col-span-2">
