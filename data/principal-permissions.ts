@@ -1,10 +1,8 @@
 import { principalPermissions } from "@core/db/schema";
-import type { PermissionScope } from "@core/lib/permissions";
 import { getRegisteredPermission } from "@core/lib/permissions";
 import { db } from "@recommand/db";
 import { and, eq, inArray } from "drizzle-orm";
 import {
-  getGrantablePermissions,
   hasPermission,
   InvalidPermissionScopeError,
   listOwnerTeamPermissionIds,
@@ -33,7 +31,6 @@ export const hasPrincipalPermission = async (
     const granted = await hasStoredPrincipalPermission(
       "api_key",
       principal.apiKeyId,
-      teamId,
       permissionId
     );
     if (!granted) {
@@ -51,13 +48,9 @@ export type PrincipalPermission = typeof principalPermissions.$inferSelect;
 
 // A key's permissions are stored in its own team and apply wherever the key may
 // act: its own team, or, for an admin's key, any team
-const principalTeamCondition = (principalType: PrincipalType, teamId: string) =>
-  principalType === "api_key" ? undefined : eq(principalPermissions.teamId, teamId);
-
 export const listPrincipalPermissionIds = async (
   principalType: PrincipalType,
-  principalId: string,
-  teamId: string
+  principalId: string
 ): Promise<string[]> => {
   const rows = await db
     .select({ permissionId: principalPermissions.permissionId })
@@ -65,8 +58,7 @@ export const listPrincipalPermissionIds = async (
     .where(
       and(
         eq(principalPermissions.principalType, principalType),
-        eq(principalPermissions.principalId, principalId),
-        principalTeamCondition(principalType, teamId)
+        eq(principalPermissions.principalId, principalId)
       )
     );
 
@@ -107,7 +99,6 @@ export const listPrincipalPermissionsForIds = async (
 export const hasStoredPrincipalPermission = async (
   principalType: PrincipalType,
   principalId: string,
-  teamId: string,
   permissionId: string
 ): Promise<boolean> => {
   const [row] = await db
@@ -117,7 +108,6 @@ export const hasStoredPrincipalPermission = async (
       and(
         eq(principalPermissions.principalType, principalType),
         eq(principalPermissions.principalId, principalId),
-        principalTeamCondition(principalType, teamId),
         eq(principalPermissions.permissionId, permissionId)
       )
     )
@@ -131,37 +121,28 @@ export type PermissionWriter = Pick<typeof db, "delete" | "insert">;
 export const setPrincipalPermissions = async (input: {
   actorApiKeyId?: string;
   actorUserId: string;
-  expectedScope?: PermissionScope;
-  ownerUserId?: string;
+  ownerUserId: string;
   permissionIds: string[];
   principalId: string;
   principalType: PrincipalType;
   teamId: string;
 }, executor?: PermissionWriter): Promise<string[]> => {
   const uniqueIds = [...new Set(input.permissionIds)];
-  // Holding a permission is enough to put it on your own key; giving it to someone else's needs the right to grant it
-  const grantableIds = input.ownerUserId === input.actorUserId
-    ? null
-    : new Set((await getGrantablePermissions(input.actorUserId, input.teamId)).map((permission) => permission.id));
-  const ownerIds = input.ownerUserId
-    ? new Set(await listOwnerTeamPermissionIds(input.ownerUserId, input.teamId))
-    : null;
-
+  const ownerIds = new Set(await listOwnerTeamPermissionIds(input.ownerUserId, input.teamId));
   const actorKeyIds = input.actorApiKeyId
-    ? new Set(await listPrincipalPermissionIds("api_key", input.actorApiKeyId, input.teamId))
+    ? new Set(await listPrincipalPermissionIds("api_key", input.actorApiKeyId))
     : null;
 
-  const expectedScope = input.expectedScope ?? "team";
   uniqueIds.forEach((permissionId) => {
     const permission = getRegisteredPermission(permissionId);
     if (!permission) {
       throw new PermissionNotRegisteredError(permissionId);
     }
 
-    if (permission.scope !== expectedScope) {
+    if (permission.scope !== "team") {
       throw new InvalidPermissionScopeError(
         permissionId,
-        expectedScope,
+        "team",
         permission.scope ?? "team"
       );
     }
@@ -170,13 +151,7 @@ export const setPrincipalPermissions = async (input: {
       throw new NotAuthorizedError("API keys cannot grant permissions they do not have");
     }
 
-    if (grantableIds && !grantableIds.has(permissionId)) {
-      throw new NotAuthorizedError(
-        "You don't have permission to grant this permission"
-      );
-    }
-
-    if (ownerIds && !ownerIds.has(permissionId)) {
+    if (!ownerIds.has(permissionId)) {
       throw new NotAuthorizedError(
         "API keys can only have a subset of the creating user's permissions"
       );

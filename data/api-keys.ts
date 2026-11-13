@@ -75,7 +75,7 @@ const attachApiKeyPermissions = async (input: {
 }, executor: PermissionWriter) => {
     const ownerIds = await listOwnerTeamPermissionIds(input.userId, input.teamId);
     const actorKeyIds = input.actorApiKeyId
-        ? new Set(await listPrincipalPermissionIds("api_key", input.actorApiKeyId, input.teamId))
+        ? new Set(await listPrincipalPermissionIds("api_key", input.actorApiKeyId))
         : null;
     const permissionIds = input.permissionIds ?? ownerIds.filter((id) => !actorKeyIds || actorKeyIds.has(id));
     await setPrincipalPermissions({
@@ -120,7 +120,7 @@ export const setApiKeyPermissions = async (input: {
 /** The team permissions a user can put on their own key: what they hold, and no more than the key they act with. */
 export const getAvailableApiKeyPermissions = async (userId: string, teamId: string, actorApiKeyId?: string): Promise<Permission[]> => {
     const ownerIds = await listOwnerTeamPermissionIds(userId, teamId);
-    const actorKeyIds = actorApiKeyId ? new Set(await listPrincipalPermissionIds("api_key", actorApiKeyId, teamId)) : null;
+    const actorKeyIds = actorApiKeyId ? new Set(await listPrincipalPermissionIds("api_key", actorApiKeyId)) : null;
 
     return ownerIds
         .filter((id) => !actorKeyIds || actorKeyIds.has(id))
@@ -129,8 +129,7 @@ export const getAvailableApiKeyPermissions = async (userId: string, teamId: stri
         .toSorted((a, b) => a.id.localeCompare(b.id));
 };
 
-export const getApiKeyPermissionIds = async (apiKeyId: string, teamId: string) =>
-    listPrincipalPermissionIds("api_key", apiKeyId, teamId);
+export const getApiKeyPermissionIds = async (apiKeyId: string) => listPrincipalPermissionIds("api_key", apiKeyId);
 
 export async function createApiKey({
     user,
