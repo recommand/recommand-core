@@ -27,7 +27,7 @@ const { sign } = await import("../../lib/jwt");
 const { requireTeamAccess } = await import("../../lib/auth-middleware");
 const { requirePermission } = await import("../../lib/permissions/permission-middleware");
 const { registerPermission } = await import("../../lib/permissions");
-const { getApiKeyPermissionIds, setApiKeyPermissions } = await import("../../data/api-keys");
+const { deleteExpiredApiKeyPermissions, getApiKeyPermissionIds, setApiKeyPermissions } = await import("../../data/api-keys");
 const { hasPrincipalPermission } = await import("../../data/principal-permissions");
 const { addTeamMember, removeTeamMember } = await import("../../data/team-members");
 
@@ -283,6 +283,15 @@ describe("API-key grants", () => {
       { action: "create", after: ["test.read"], before: undefined },
       { action: "update", after: ["test.write"], before: ["test.read"] },
     ]);
+  });
+  test("the permissions of expired keys are deleted, the keys stay", async () => {
+    const expired = await create("jwt", ["test.read"]);
+    const live = await create("jwt", ["test.read"]);
+    await pool.query("UPDATE api_keys SET expires_at = now() - interval '1 second' WHERE id = $1", [expired.body.apiKey.id]);
+    expect(await deleteExpiredApiKeyPermissions()).toBe(1);
+    expect(await getApiKeyPermissionIds(expired.body.apiKey.id)).toEqual([]);
+    expect(await getApiKeyPermissionIds(live.body.apiKey.id)).toEqual(["test.read"]);
+    expect((await pool.query("SELECT id FROM api_keys")).rows).toHaveLength(2);
   });
   test("invalid updates leave existing grants intact", async () => {
     const { body } = await create("basic", ["test.read"]);
