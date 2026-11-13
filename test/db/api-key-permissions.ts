@@ -275,6 +275,15 @@ describe("API-key grants", () => {
     expect(await revoke("test.write")).toBe(403);
     expect(await revoke("test.read")).toBe(200);
   });
+  test("the audit log records a key's permissions when it's created and changed", async () => {
+    const { body } = await create("basic", ["test.read"]);
+    await update(body.apiKey.id, ["test.write"]);
+    const { rows } = await pool.query("SELECT action, before, after FROM audit_events WHERE object_id = $1 ORDER BY occurred_at", [body.apiKey.id]);
+    expect(rows.map(({ action, after, before }) => ({ action, after: after.permissionIds, before: before?.permissionIds }))).toEqual([
+      { action: "create", after: ["test.read"], before: undefined },
+      { action: "update", after: ["test.write"], before: ["test.read"] },
+    ]);
+  });
   test("invalid updates leave existing grants intact", async () => {
     const { body } = await create("basic", ["test.read"]);
     expect((await update(body.apiKey.id, ["test.global"])).status).toBe(400);

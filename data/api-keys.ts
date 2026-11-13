@@ -105,6 +105,7 @@ export const setApiKeyPermissions = async (input: {
         return null;
     }
 
+    const previousPermissionIds = await listPrincipalPermissionIds("api_key", apiKey.id);
     const permissionIds = await setPrincipalPermissions({
         actorApiKeyId: input.actorApiKeyId,
         actorUserId: input.actorUserId,
@@ -115,7 +116,7 @@ export const setApiKeyPermissions = async (input: {
         teamId: input.teamId,
     }, tx);
 
-    return { ...apiKey, permissionIds };
+    return { ...apiKey, permissionIds, previousPermissionIds };
 });
 
 /** The team permissions a user can put on their own key: what they hold, and no more than the key they act with. */
