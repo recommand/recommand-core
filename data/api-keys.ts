@@ -1,6 +1,6 @@
 import { apiKeys, principalPermissions, teams, users } from "@core/db/schema";
 import { db } from "@recommand/db";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray, lte } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import { addSeconds } from "date-fns";
 import { sign } from "@core/lib/jwt";
@@ -129,6 +129,22 @@ export const getAvailableApiKeyPermissions = async (userId: string, teamId: stri
         .map((id) => getRegisteredPermission(id))
         .filter((permission): permission is Permission => permission?.scope === "team")
         .toSorted((a, b) => a.id.localeCompare(b.id));
+};
+
+/**
+ * Deletes the permissions of expired keys, which can't use them any more. The keys stay, so their audit
+ * entries keep pointing at them. Returns how many keys had permissions.
+ */
+export const deleteExpiredApiKeyPermissions = async () => {
+    const deleted = await db
+        .delete(principalPermissions)
+        .where(and(
+            eq(principalPermissions.principalType, "api_key"),
+            inArray(principalPermissions.principalId, db.select({ id: apiKeys.id }).from(apiKeys).where(lte(apiKeys.expiresAt, new Date())))
+        ))
+        .returning({ principalId: principalPermissions.principalId });
+
+    return new Set(deleted.map((row) => row.principalId)).size;
 };
 
 export const getApiKeyPermissionIds = async (apiKeyId: string) => listPrincipalPermissionIds("api_key", apiKeyId);
