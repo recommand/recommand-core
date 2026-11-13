@@ -7,6 +7,7 @@ import type { AuthenticatedUserContext } from "../auth-middleware";
 import { refuseOAuthToken } from "../auth-middleware";
 import { actionFailure } from "@recommand/lib/utils";
 import { hasGlobalPermission } from "@core/data/permissions";
+import type { ActorPrincipal } from "@core/data/principal-permissions";
 import { hasPrincipalPermission } from "@core/data/principal-permissions";
 import { describeErrorResponse } from "@core/lib/api-docs";
 import { verifySession } from "../session";
@@ -23,6 +24,21 @@ export const insufficientPermissionBody = z.object({
   }),
 });
 
+/**
+ * Who a request acts as in a team, for a permission check: its OAuth grant, its
+ * API key, or else its user.
+ */
+export const requestPrincipal = (c: Context, user: { id: string; isAdmin: boolean }, teamId: string): ActorPrincipal => {
+  const apiKey = c.get("apiKey");
+  const grant = c.get("grant");
+
+  return grant
+    ? { grantId: grant.id, permissionIds: grant.permissionIdsByTeam.get(teamId) ?? [], type: "oauth_grant" as const, userId: user.id }
+    : apiKey
+      ? { apiKeyId: apiKey.id, ownerIsAdmin: user.isAdmin, ownerUserId: user.id, teamId: apiKey.teamId, type: "api_key" as const }
+      : { type: "user" as const, userId: user.id };
+};
+
 /** Whether the request's user, or the API key or OAuth grant it authenticated with, holds the team permission in its team. */
 export const hasRequestPermission = async <E extends AuthenticatedUserContext>(c: Context<E>, permissionId: string) => {
   const user = c.var.user;
@@ -31,15 +47,7 @@ export const hasRequestPermission = async <E extends AuthenticatedUserContext>(c
     return false;
   }
 
-  const apiKey = c.get("apiKey");
-  const grant = c.get("grant");
-  const principal = grant
-    ? { grantId: grant.id, permissionIds: grant.permissionIdsByTeam.get(teamId) ?? [], type: "oauth_grant" as const, userId: user.id }
-    : apiKey
-      ? { apiKeyId: apiKey.id, ownerIsAdmin: user.isAdmin, ownerUserId: user.id, teamId: apiKey.teamId, type: "api_key" as const }
-      : { type: "user" as const, userId: user.id };
-
-  return hasPrincipalPermission(principal, teamId, permissionId);
+  return hasPrincipalPermission(requestPrincipal(c, user, teamId), teamId, permissionId);
 };
 
 /**
