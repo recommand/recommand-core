@@ -128,7 +128,7 @@ describe("grant migration", () => {
     expect(await read({ Authorization: `Basic ${btoa("legacy_basic:legacy-secret")}` })).toBe(200);
     expect(await read({ Authorization: `Bearer ${jwt}` })).toBe(200);
     expect((await getApiKeyPermissionIds("legacy_admin")).toSorted()).toEqual([...CORE_MEMBER_PERMISSIONS, "core.team.manage"]);
-    expect(await hasPrincipalPermission({ apiKeyId: "legacy_admin", ownerUserId: "admin", type: "api_key" }, "one", "core.team.manage")).toBe(true);
+    expect(await hasPrincipalPermission({ apiKeyId: "legacy_admin", ownerIsAdmin: true, ownerUserId: "admin", teamId: "one", type: "api_key" }, "two", "core.team.manage")).toBe(true);
   });
 });
 
@@ -168,6 +168,13 @@ describe("API-key grants", () => {
       expect(await read(credentials(body.apiKey), "two")).toBe(401);
       expect((await update(body.apiKey.id, [], undefined, "two")).status).toBe(404);
       expect(await getApiKeyPermissionIds(body.apiKey.id)).toEqual(["test.read"]);
+    });
+    test(`${type}: a key's permissions don't count in another team of its owner`, async () => {
+      const { body } = await create(type, ["test.read"]);
+      await pool.query("INSERT INTO user_permissions (user_id, team_id, permission_id) VALUES ('owner', 'two', 'test.read')");
+      const principal = { apiKeyId: body.apiKey.id, ownerIsAdmin: false, ownerUserId: "owner", teamId: "one", type: "api_key" as const };
+      expect(await hasPrincipalPermission(principal, "one", "test.read")).toBe(true);
+      expect(await hasPrincipalPermission(principal, "two", "test.read")).toBe(false);
     });
     test(`${type}: missing owner membership and deleted keys deny access`, async () => {
       const { body } = await create(type, ["test.read"]);
