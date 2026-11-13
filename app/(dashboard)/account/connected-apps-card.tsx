@@ -5,6 +5,7 @@ import { ConfirmDialog } from "@core/components/confirm-dialog";
 import { Button } from "@core/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@core/components/ui/card";
 import { toast } from "@core/components/ui/sonner";
+import { useDateFormat } from "@core/hooks/use-date-format";
 import { useTranslation } from "@core/hooks/use-translation";
 import { rc } from "@recommand/lib/client";
 import { stringifyActionFailure } from "@recommand/lib/utils";
@@ -19,8 +20,9 @@ type ConnectedApp = {
 };
 
 export const ConnectedAppsCard: FunctionComponent = () => {
+  const { formatDateTime } = useDateFormat();
   const [apps, setApps] = useState<ConnectedApp[]>([]);
-  const { language, t } = useTranslation();
+  const { t } = useTranslation();
 
   const fetchApps = async () => {
     try {
@@ -51,7 +53,6 @@ export const ConnectedAppsCard: FunctionComponent = () => {
     await fetchApps();
   };
 
-  const formatDate = (date: string) => new Date(date).toLocaleString(language);
   const appName = (app: ConnectedApp) => app.client.name ?? app.client.host ?? t`An app`;
 
   return (
@@ -75,8 +76,8 @@ export const ConnectedAppsCard: FunctionComponent = () => {
                   <div className="text-sm text-muted-foreground">
                     {app.client.host ? <>{t`Identified by ${app.client.host}`} · </> : null}
 
-                    {t`Connected ${formatDate(app.connectedAt)}`} ·{" "}
-                    {app.lastUsedAt ? t`Last used ${formatDate(app.lastUsedAt)}` : t`Not used yet`}
+                    {t`Connected ${formatDateTime(app.connectedAt)}`} ·{" "}
+                    {app.lastUsedAt ? t`Last used ${formatDateTime(app.lastUsedAt)}` : t`Not used yet`}
                   </div>
 
                   <ul className="text-sm">
