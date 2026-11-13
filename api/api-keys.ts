@@ -5,16 +5,14 @@ import { actionFailure, actionSuccess } from "@recommand/lib/utils";
 import { Server } from "@recommand/lib/api";
 import { createApiKey, deleteApiKey, getApiKeys, getApiKeyCreationStatus } from "@core/data/api-keys";
 import { requireTeamAccess } from "@core/lib/auth-middleware";
+import { MAX_API_KEY_EXPIRES_IN_SECONDS } from "@core/lib/api-key-expiry";
 import { audit } from "@core/lib/audit";
 
 const server = new Server();
 
-// Long enough for any key, and short enough for the expiry to stay a valid date
-const MAX_EXPIRES_IN_SECONDS = 100 * 365 * 24 * 60 * 60;
-
 export const createApiKeyBodySchema = z.discriminatedUnion("type", [
   z.object({
-    expiresInSeconds: z.number().int().min(1).max(MAX_EXPIRES_IN_SECONDS).optional().openapi({
+    expiresInSeconds: z.number().int().min(1).max(MAX_API_KEY_EXPIRES_IN_SECONDS).optional().openapi({
       description: "Seconds until the key expires. Without it, the key doesn't expire.",
     }),
     name: z.string(),
@@ -25,7 +23,7 @@ export const createApiKeyBodySchema = z.discriminatedUnion("type", [
       .number()
       .int()
       .min(1)
-      .max(MAX_EXPIRES_IN_SECONDS)
+      .max(MAX_API_KEY_EXPIRES_IN_SECONDS)
       .default(24 * 60 * 60)
       .openapi({ description: "Seconds until the key expires." }),
     name: z.string(),

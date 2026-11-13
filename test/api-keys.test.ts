@@ -23,9 +23,10 @@ describe('creating an API key', () => {
     expect(createApiKeyBodySchema.parse({ name: 'Key', type: 'jwt' })).toEqual({ expiresInSeconds: 86_400, name: 'Key', type: 'jwt' });
   });
 
-  test('refuses an expiry that is fractional, not positive or past any valid date', () => {
+  test('accepts an expiry up to 100 years, and refuses one that is longer, fractional or not positive', () => {
     ['basic', 'jwt'].forEach((type) => {
-      [1.5, 0, 1e15].forEach((expiresInSeconds) => {
+      expect(createApiKeyBodySchema.safeParse({ expiresInSeconds: 3_153_600_000, name: 'Key', type }).success).toBe(true);
+      [3_153_600_001, 1.5, 0, -1].forEach((expiresInSeconds) => {
         expect(createApiKeyBodySchema.safeParse({ expiresInSeconds, name: 'Key', type }).success).toBe(false);
       });
     });

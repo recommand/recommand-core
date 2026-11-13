@@ -40,6 +40,7 @@ import {
 import { useTranslation } from "@core/hooks/use-translation";
 import { useDataTableState } from "@core/hooks/use-data-table-state";
 import { DataTablePagination } from "@core/components/data-table/pagination";
+import { MAX_API_KEY_EXPIRES_IN_SECONDS } from "@core/lib/api-key-expiry";
 
 const client = rc<ApiKeys>("core");
 
@@ -60,7 +61,7 @@ export default function Page() {
   const hasExpiration = keyType === "jwt" || basicKeyExpires;
   const [isLoading, setIsLoading] = useState(true);
   const [newKey, setNewKey] = useState<
-    | { key: string; secret: string; type: "basic" }
+    | { expiresAt: Date | null; key: string; secret: string; type: "basic" }
     | { jwt: string; type: "jwt"; expiresAt: Date }
     | null
   >(null);
@@ -140,6 +141,11 @@ export default function Page() {
     checkCreationPermission();
   }, [fetchApiKeys, checkCreationPermission]);
 
+  // The server refuses a key that would last longer, so the form says so first
+  const isExpirationTooLong =
+    hasExpiration &&
+    parseInt(expirationDuration.trim(), 10) * (expirationUnit === "days" ? 86_400 : 3_600) > MAX_API_KEY_EXPIRES_IN_SECONDS;
+
   const isValidExpirationDuration = () => {
     if (!hasExpiration) {
       return true;
@@ -148,7 +154,8 @@ export default function Page() {
     const trimmed = expirationDuration.trim();
     if (trimmed === "") return false;
     const num = parseInt(trimmed, 10);
-    return !isNaN(num) && num > 0 && num.toString() === trimmed;
+
+    return !isNaN(num) && num > 0 && num.toString() === trimmed && !isExpirationTooLong;
   };
 
   const handleCreateKey = async (e: React.FormEvent) => {
@@ -203,8 +210,10 @@ export default function Page() {
       };
       setApiKeys((prev) => [...prev, newApiKey]);
       setNewKeyName("");
+      setBasicKeyExpires(false);
       if (keyType === "basic" && "secret" in json.apiKey) {
         setNewKey({
+          expiresAt: json.apiKey.expiresAt ? new Date(json.apiKey.expiresAt) : null,
           key: json.apiKey.id,
           secret: json.apiKey.secret,
           type: "basic",
@@ -267,7 +276,8 @@ export default function Page() {
       cell: ({ row }) => {
         const expiresAt = row.getValue("expiresAt") as Date | null;
         if (!expiresAt) return t`Never`;
-        const isExpired = new Date(expiresAt) < new Date();
+        // A key is refused from the instant it expires
+        const isExpired = new Date(expiresAt) <= new Date();
         return (
           <span className={isExpired ? "text-destructive font-medium" : ""}>
             {new Date(expiresAt).toLocaleString(language)}
@@ -453,6 +463,10 @@ export default function Page() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {isExpirationTooLong ? (
+                  <p className="text-sm text-destructive">{t`An API key can last at most 100 years.`}</p>
+                ) : null}
               </div>
             ) : null}
           </div>
@@ -533,6 +547,15 @@ export default function Page() {
                       </Button>
                     </div>
                   </div>
+
+                  {newKey.expiresAt ? (
+                    <div>
+                      <label className="text-sm font-medium">{t`Expires At`}</label>
+
+                      <Input className="font-mono" readOnly value={newKey.expiresAt.toLocaleString(language)} />
+                    </div>
+                  ) : null}
+
                   <Collapsible>
                     <CollapsibleTrigger asChild>
                       <Button
