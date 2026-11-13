@@ -21,6 +21,7 @@ process.env.JWT_SECRET = "api-key-grants-test-only-signing-key";
 const pool = new Pool({ connectionString: databaseUrl });
 const { db } = await import("@recommand/db");
 const { default: apiKeys } = await import("../../api/api-keys");
+const { default: permissions } = await import("../../api/permissions");
 const { createSession } = await import("../../lib/session");
 const { sign } = await import("../../lib/jwt");
 const { requireTeamAccess } = await import("../../lib/auth-middleware");
@@ -49,6 +50,7 @@ app.get("/login/:userId", async (c) => {
 app.get("/:teamId/read", requireTeamAccess(), requirePermission("test.read"), (c) => c.json({ ok: true }));
 app.get("/:teamId/manage", requireTeamAccess(), requirePermission("core.team.manage"), (c) => c.json({ ok: true }));
 app.route("/", apiKeys);
+app.route("/", permissions);
 
 const seed = async () => {
   await pool.query(`INSERT INTO users (id, email, password_hash, is_admin) VALUES
@@ -260,6 +262,17 @@ describe("API-key grants", () => {
     const { body } = await create("basic", ["test.read"]);
     await Promise.all([update(body.apiKey.id, ["test.write"]), app.request(`/one/api-keys/${body.apiKey.id}`, { headers: await cookie(), method: "DELETE" })]);
     expect((await pool.query("SELECT * FROM principal_permissions WHERE principal_id = $1", [body.apiKey.id])).rows).toEqual([]);
+  });
+  test("a key gives and takes members only the permissions it holds itself", async () => {
+    const { body } = await create("basic", ["core.team.manage", "test.read"]);
+    const headers = { ...credentials(body.apiKey), "Content-Type": "application/json" };
+    const grant = async (permissionId: string) => (await app.request("/auth/teams/one/members/other/permissions", { body: JSON.stringify({ permissionId }), headers, method: "POST" })).status;
+    const revoke = async (permissionId: string) => (await app.request(`/auth/teams/one/members/other/permissions/${permissionId}`, { headers, method: "DELETE" })).status;
+    expect(await grant("test.write")).toBe(403);
+    expect(await grant("test.read")).toBe(200);
+    await pool.query("INSERT INTO user_permissions (user_id, team_id, permission_id) VALUES ('other', 'one', 'test.write')");
+    expect(await revoke("test.write")).toBe(403);
+    expect(await revoke("test.read")).toBe(200);
   });
   test("invalid updates leave existing grants intact", async () => {
     const { body } = await create("basic", ["test.read"]);
