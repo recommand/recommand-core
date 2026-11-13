@@ -250,6 +250,17 @@ describe("API-key grants", () => {
       expect(await getApiKeyPermissionIds(body.apiKey.id)).toEqual([]);
     });
   });
+  test("simultaneous updates leave one of the lists, not both", async () => {
+    const { body } = await create("basic", []);
+    const responses = await Promise.all([update(body.apiKey.id, ["test.read"]), update(body.apiKey.id, ["test.write"])]);
+    expect(responses.map((response) => response.status)).toEqual([200, 200]);
+    expect([["test.read"], ["test.write"]]).toContainEqual(await getApiKeyPermissionIds(body.apiKey.id));
+  });
+  test("an update racing a deletion leaves no grants", async () => {
+    const { body } = await create("basic", ["test.read"]);
+    await Promise.all([update(body.apiKey.id, ["test.write"]), app.request(`/one/api-keys/${body.apiKey.id}`, { headers: await cookie(), method: "DELETE" })]);
+    expect((await pool.query("SELECT * FROM principal_permissions WHERE principal_id = $1", [body.apiKey.id])).rows).toEqual([]);
+  });
   test("invalid updates leave existing grants intact", async () => {
     const { body } = await create("basic", ["test.read"]);
     expect((await update(body.apiKey.id, ["test.global"])).status).toBe(400);

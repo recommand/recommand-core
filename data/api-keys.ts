@@ -97,8 +97,9 @@ export const setApiKeyPermissions = async (input: {
     apiKeyId: string;
     permissionIds: string[];
     teamId: string;
-}) => {
-    const apiKey = await getApiKey(input.apiKeyId);
+}) => db.transaction(async (tx) => {
+    // Locking the key makes simultaneous changes, and a deletion, wait for each other
+    const [apiKey] = await tx.select().from(apiKeys).where(eq(apiKeys.id, input.apiKeyId)).for("update");
     // Only the key's owner can change it, as only they can list and delete it
     if (!apiKey || apiKey.teamId !== input.teamId || apiKey.userId !== input.actorUserId) {
         return null;
@@ -112,10 +113,10 @@ export const setApiKeyPermissions = async (input: {
         principalId: apiKey.id,
         principalType: "api_key",
         teamId: input.teamId,
-    });
+    }, tx);
 
     return { ...apiKey, permissionIds };
-};
+});
 
 /** The team permissions a user can put on their own key: what they hold, and no more than the key they act with. */
 export const getAvailableApiKeyPermissions = async (userId: string, teamId: string, actorApiKeyId?: string): Promise<Permission[]> => {
