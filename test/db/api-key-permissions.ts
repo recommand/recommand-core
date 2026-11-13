@@ -21,6 +21,7 @@ process.env.JWT_SECRET = "api-key-grants-test-only-signing-key";
 const pool = new Pool({ connectionString: databaseUrl });
 const { db } = await import("@recommand/db");
 const { default: apiKeys } = await import("../../api/api-keys");
+const { default: core } = await import("../../index");
 const { default: permissions } = await import("../../api/permissions");
 const { createSession } = await import("../../lib/session");
 const { sign } = await import("../../lib/jwt");
@@ -30,6 +31,7 @@ const { registerPermission } = await import("../../lib/permissions");
 const { deleteExpiredApiKeyPermissions, getApiKeyPermissionIds, setApiKeyPermissions } = await import("../../data/api-keys");
 const { hasPrincipalPermission } = await import("../../data/principal-permissions");
 const { addTeamMember, removeTeamMember } = await import("../../data/team-members");
+const { createTeam } = await import("../../data/teams");
 
 const CORE_MEMBER_PERMISSIONS = [
   "core.api_keys.delete",
@@ -366,5 +368,73 @@ describe("API-key grants", () => {
     await addTeamMember("one", "joiner");
     const rows = await pool.query("SELECT permission_id FROM user_permissions WHERE user_id = 'joiner' AND team_id = 'one' ORDER BY 1");
     expect(rows.rows.map((row) => row.permission_id)).toEqual(CORE_MEMBER_PERMISSIONS);
+  });
+});
+
+// Every team route Core mounts, with the permission it requires
+const TEAM_ROUTE_PERMISSIONS: Record<string, string> = {
+  "DELETE /:teamId/api-keys/:apiKeyId": "core.api_keys.delete",
+  "DELETE /:teamId/rules/:id": "core.rules.delete",
+  "DELETE /auth/teams/:teamId": "core.team.manage",
+  "DELETE /auth/teams/:teamId/logo": "core.team.manage",
+  "DELETE /auth/teams/:teamId/members/:userId": "core.team.manage",
+  "DELETE /auth/teams/:teamId/members/:userId/permissions/:permissionId": "core.team.manage",
+  "GET /:teamId/api-keys": "core.api_keys.read",
+  "GET /:teamId/api-keys/available-permissions": "core.api_keys.write",
+  "GET /:teamId/api-keys/is-creation-permitted": "core.api_keys.read",
+  "GET /:teamId/event-types": "core.rules.read",
+  "GET /:teamId/event-types/:type": "core.rules.read",
+  "GET /:teamId/rules": "core.rules.read",
+  "GET /:teamId/rules/:id": "core.rules.read",
+  "GET /:teamId/rules/:id/deliveries": "core.rules.read",
+  "GET /auth/teams/:teamId/members": "core.members.read",
+  "GET /auth/teams/:teamId/members/:userId/permissions": "core.team.manage",
+  "GET /auth/teams/:teamId/members/:userId/permissions/:permissionId": "core.team.manage",
+  "GET /auth/teams/:teamId/permissions": "core.team.manage",
+  "PATCH /:teamId/rules/:id": "core.rules.write",
+  "POST /:teamId/api-keys": "core.api_keys.write",
+  "POST /:teamId/rules": "core.rules.write",
+  "POST /:teamId/rules/:id/deliveries/:ruleActionDeliveryId/retry": "core.rules.write",
+  "POST /auth/teams/:teamId/logo": "core.team.manage",
+  "POST /auth/teams/:teamId/members": "core.team.manage",
+  "POST /auth/teams/:teamId/members/:userId/permissions": "core.team.manage",
+  "PUT /:teamId/api-keys/:apiKeyId/permissions": "core.api_keys.write",
+  "PUT /auth/teams/:teamId": "core.team.manage",
+};
+
+describe("Core team routes", () => {
+  beforeEach(async () => {
+    await pool.query("TRUNCATE users, teams, principal_permissions CASCADE");
+    await seed();
+  });
+  test("the table lists every team route Core mounts", () => {
+    const mounted = new Set(core.routes.filter((route) => route.method !== "ALL" && route.path.includes(":teamId")).map((route) => `${route.method} ${route.path}`));
+    expect([...mounted].toSorted()).toEqual(Object.keys(TEAM_ROUTE_PERMISSIONS).toSorted());
+  });
+  test("each team route refuses a key without its permission, naming it", async () => {
+    const { body } = await create("basic", []);
+    const headers = { ...credentials(body.apiKey), "Content-Type": "application/json" };
+    const refusals = await Promise.all(Object.keys(TEAM_ROUTE_PERMISSIONS).map(async (route) => {
+      const [method, path] = route.split(" ") as [string, string];
+      const response = await core.request(path.replace(":teamId", "one").replace(/:\w+/g, "unknown"), {
+        body: ["GET", "DELETE"].includes(method) ? undefined : "{}",
+        headers,
+        method,
+      });
+      const json = (await response.json()) as any;
+
+      return [route, response.status, json.code, JSON.stringify(json.errors).includes(TEAM_ROUTE_PERMISSIONS[route]!)];
+    }));
+    expect(refusals).toEqual(Object.keys(TEAM_ROUTE_PERMISSIONS).map((route) => [route, 403, "insufficient_permission", true]));
+  });
+  test("the creator of a team gets the member permissions and can manage it", async () => {
+    const team = await createTeam("owner", { name: "Three" });
+    const { rows } = await pool.query("SELECT permission_id FROM user_permissions WHERE team_id = $1 ORDER BY permission_id", [team.id]);
+    expect(rows.map((row) => row.permission_id)).toEqual([...CORE_MEMBER_PERMISSIONS, "core.team.manage"].toSorted());
+  });
+  test("an admin can put every team permission on a key", async () => {
+    const response = await app.request("/one/api-keys/available-permissions", { headers: await cookie("admin") });
+    const ids = ((await response.json()) as any).permissions.map((permission: any) => permission.id);
+    expect(ids).toEqual([...CORE_MEMBER_PERMISSIONS, "core.team.manage", "test.other", "test.read", "test.write"].toSorted());
   });
 });
