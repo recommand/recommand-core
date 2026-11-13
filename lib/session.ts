@@ -9,7 +9,7 @@ import { verify, sign } from "./jwt";
 import { addMilliseconds } from "date-fns";
 import { db } from "@recommand/db";
 import { sessions, teamMembers, users } from "@core/db/schema";
-import { and, eq, isNull, ne } from "drizzle-orm";
+import { and, desc, eq, gt, isNull, ne } from "drizzle-orm";
 import type { Tx } from "@core/data/rules/db";
 
 const cookie = {
@@ -23,14 +23,23 @@ const cookie = {
   duration: 14 * 24 * 60 * 60 * 1000, // 14 days in milliseconds
 };
 
+// How stale a session's `lastSeenAt` may get, so most requests don't write it
+const lastSeenInterval = 10 * 60 * 1_000;
+
 
 type SessionUser = { id: string; isAdmin: boolean; language?: string };
 
 export const createSession = async (c: Context, user: SessionUser) => {
-  const expires = addMilliseconds(new Date(), cookie.duration);
+  const now = new Date();
+  const expires = addMilliseconds(now, cookie.duration);
   const [session] = await db
     .insert(sessions)
-    .values({ expiresAt: expires, userId: user.id })
+    .values({
+      expiresAt: expires,
+      lastSeenAt: now,
+      userAgent: c.req.header("User-Agent")?.slice(0, 512) ?? null,
+      userId: user.id,
+    })
     .returning({ id: sessions.id });
 
   await setSessionCookie(c, session.id, user, expires);
@@ -172,6 +181,30 @@ export const revokeUserSessions = async (
     ));
 };
 
+/** A user's sessions that are neither revoked nor expired, most recently used first. */
+export const listUserSessions = async (userId: string) =>
+  db
+    .select({
+      createdAt: sessions.createdAt,
+      expiresAt: sessions.expiresAt,
+      id: sessions.id,
+      lastSeenAt: sessions.lastSeenAt,
+      userAgent: sessions.userAgent,
+    })
+    .from(sessions)
+    .where(and(eq(sessions.userId, userId), isNull(sessions.revokedAt), gt(sessions.expiresAt, new Date())))
+    .orderBy(desc(sessions.lastSeenAt));
+
+/** Ends one of a user's sessions. False when the user has no such active session. */
+export const revokeUserSession = async (userId: string, sessionId: string): Promise<boolean> => {
+  const revoked = await db
+    .update(sessions)
+    .set({ revokedAt: new Date() })
+    .where(and(eq(sessions.id, sessionId), eq(sessions.userId, userId), isNull(sessions.revokedAt)))
+    .returning({ id: sessions.id });
+  return revoked.length > 0;
+};
+
 export async function deleteSession(c: Context) {
   const payload = await readSessionCookie(c);
   if (typeof payload?.sid === "string") {
@@ -203,6 +236,7 @@ const findActiveSession = async (sessionId: string) => {
     .select({
       expiresAt: sessions.expiresAt,
       id: sessions.id,
+      lastSeenAt: sessions.lastSeenAt,
       revokedAt: sessions.revokedAt,
       userId: sessions.userId,
     })
@@ -237,6 +271,9 @@ async function verifySessionCookie(c: Context): Promise<Session | null> {
   if (!user) return null;
 
   if (storedSession) {
+    if (!storedSession.lastSeenAt || Date.now() - storedSession.lastSeenAt.getTime() >= lastSeenInterval) {
+      await db.update(sessions).set({ lastSeenAt: new Date() }).where(eq(sessions.id, storedSession.id));
+    }
     c.set("session", { expiresAt: storedSession.expiresAt, id: storedSession.id } satisfies CurrentSession);
   }
 

@@ -1,3 +1,4 @@
+import { describeRoute } from "hono-openapi";
 import { zodValidator } from "@recommand/lib/zod-validator";
 import { z } from "zod";
 import { actionFailure, actionSuccess } from "@recommand/lib/utils";
@@ -9,7 +10,14 @@ import bcrypt from "bcrypt";
 import { requireAuth } from "@core/lib/auth-middleware";
 import { withTranslation } from "@core/lib/translation-middleware";
 import { toSupportedLanguage } from "@core/lib/translations-server";
-import { getCurrentSession, refreshSession, revokeUserSessions } from "@core/lib/session";
+import {
+  getCurrentSession,
+  listUserSessions,
+  refreshSession,
+  revokeUserSession,
+  revokeUserSessions,
+} from "@core/lib/session";
+import { describeErrorResponse, describeSuccessResponse } from "@core/lib/api-docs";
 import { audit } from "@core/lib/audit";
 
 const server = new Server();
@@ -143,6 +151,142 @@ const _changePassword = server.put(
   }
 );
 
-export type Account = typeof _updateProfile | typeof _changePassword;
+const sessionSchema = z
+  .object({
+    createdAt: z.string().datetime().openapi({ description: "When the session signed in." }),
+    expiresAt: z.string().datetime(),
+    id: z.string(),
+    isCurrent: z.boolean().openapi({ description: "Whether this is the session making the request." }),
+    lastSeenAt: z.string().datetime().nullable().openapi({ description: "When the session was last used, updated at most every ten minutes." }),
+    userAgent: z.string().nullable().openapi({ description: "The User-Agent the session signed in with." }),
+  })
+  .openapi({ ref: "AccountSession" });
+
+const _getSessions = server.get(
+  "/account/sessions",
+  describeRoute({
+    description: "List the user's active sessions, most recently used first.",
+    hide: true,
+    operationId: "listAccountSessions",
+    responses: {
+      ...describeSuccessResponse("The active sessions", z.object({ sessions: z.array(sessionSchema) })),
+      ...describeErrorResponse(401, "The user isn't signed in"),
+      ...describeErrorResponse(500, "Failed to list the sessions"),
+    },
+    summary: "List Sessions",
+    tags: ["Account"],
+  }),
+  requireAuth(),
+  withTranslation(),
+  async (c) => {
+    const t = c.get("t");
+    try {
+      const userId = c.get("user")?.id;
+      if (!userId) {
+        return c.json(actionFailure(t`Unauthorized`), 401);
+      }
+
+      const currentSessionId = getCurrentSession(c)?.id;
+      const sessions = await listUserSessions(userId);
+      return c.json(actionSuccess({
+        sessions: sessions.map((session) => ({ ...session, isCurrent: session.id === currentSessionId })),
+      }));
+    } catch (e) {
+      console.error(e);
+      return c.json(actionFailure(t`Internal server error`), 500);
+    }
+  }
+);
+
+const _revokeSession = server.delete(
+  "/account/sessions/:sessionId",
+  describeRoute({
+    description: "Sign out one of the user's sessions.",
+    hide: true,
+    operationId: "revokeAccountSession",
+    responses: {
+      ...describeSuccessResponse("The session was signed out"),
+      ...describeErrorResponse(401, "The user isn't signed in"),
+      ...describeErrorResponse(404, "The user has no such active session"),
+      ...describeErrorResponse(500, "Failed to sign out the session"),
+    },
+    summary: "Sign Out a Session",
+    tags: ["Account"],
+  }),
+  requireAuth(),
+  withTranslation(),
+  async (c) => {
+    const t = c.get("t");
+    try {
+      const userId = c.get("user")?.id;
+      if (!userId) {
+        return c.json(actionFailure(t`Unauthorized`), 401);
+      }
+
+      const sessionId = c.req.param("sessionId");
+      if (!(await revokeUserSession(userId, sessionId))) {
+        return c.json(actionFailure(t`Session not found`), 404);
+      }
+      await audit(c, {
+        action: "revoke_access",
+        objectId: sessionId,
+        objectType: "core.session",
+        subsystem: "core.account",
+      });
+
+      return c.json(actionSuccess());
+    } catch (e) {
+      console.error(e);
+      return c.json(actionFailure(t`Internal server error`), 500);
+    }
+  }
+);
+
+const _revokeOtherSessions = server.delete(
+  "/account/sessions",
+  describeRoute({
+    description: "Sign out every session of the user except the one making the request.",
+    hide: true,
+    operationId: "revokeOtherAccountSessions",
+    responses: {
+      ...describeSuccessResponse("The other sessions were signed out"),
+      ...describeErrorResponse(401, "The user isn't signed in"),
+      ...describeErrorResponse(500, "Failed to sign out the other sessions"),
+    },
+    summary: "Sign Out Other Sessions",
+    tags: ["Account"],
+  }),
+  requireAuth(),
+  withTranslation(),
+  async (c) => {
+    const t = c.get("t");
+    try {
+      const userId = c.get("user")?.id;
+      if (!userId) {
+        return c.json(actionFailure(t`Unauthorized`), 401);
+      }
+
+      await revokeUserSessions(userId, { except: getCurrentSession(c)?.id });
+      await audit(c, {
+        action: "revoke_access",
+        metadata: { scope: "other_sessions" },
+        objectType: "core.session",
+        subsystem: "core.account",
+      });
+
+      return c.json(actionSuccess());
+    } catch (e) {
+      console.error(e);
+      return c.json(actionFailure(t`Internal server error`), 500);
+    }
+  }
+);
+
+export type Account =
+  | typeof _updateProfile
+  | typeof _changePassword
+  | typeof _getSessions
+  | typeof _revokeSession
+  | typeof _revokeOtherSessions;
 
 export default server;

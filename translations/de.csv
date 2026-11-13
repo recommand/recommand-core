@@ -416,3 +416,20 @@ Türkçe,Türkisch
 日本語,Japanisch
 Delete this team,Dieses Team löschen
 Are you sure you want to delete the team "{0}"? Its setup has not been finished yet. This action cannot be undone.,Möchten Sie das Team „{0}“ wirklich löschen? Seine Einrichtung ist noch nicht abgeschlossen. Diese Aktion kann nicht rückgängig gemacht werden.
+Sessions,Sitzungen
+Where you're signed in. Sign out of any session you don't recognize.,Wo Sie angemeldet sind. Melden Sie jede Sitzung ab\, die Sie nicht erkennen.
+No active sessions,Keine aktiven Sitzungen
+This session,Diese Sitzung
+Signed in {0},Angemeldet am {0}
+Last active {0},Zuletzt aktiv am {0}
+{0} on {1},{0} auf {1}
+Unknown device,Unbekanntes Gerät
+Sign out,Abmelden
+Sign out all other sessions,Alle anderen Sitzungen abmelden
+Every other browser signed in to your account will be signed out.,Alle anderen Browser\, in denen Sie angemeldet sind\, werden abgemeldet.
+Session signed out,Sitzung abgemeldet
+Other sessions signed out,Andere Sitzungen abgemeldet
+Failed to load sessions,Sitzungen konnten nicht geladen werden
+Failed to sign out the session,Sitzung konnte nicht abgemeldet werden
+Failed to sign out the other sessions,Andere Sitzungen konnten nicht abgemeldet werden
+Session not found,Sitzung nicht gefunden
