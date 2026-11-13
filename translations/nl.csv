@@ -312,6 +312,8 @@ Light mode,Lichtmodus
 Loading rules...,Regels laden...
 Logo,Logo
 Magyar,Hongaars
+API key permissions,API-sleutelrechten
+This key can only receive permissions its creator has.,Deze sleutel kan alleen rechten krijgen die de maker heeft.
 Manage Team,Team beheren
 Manage the team and its members,Het team en de teamleden beheren
 More,Meer
@@ -382,6 +384,7 @@ Suomi,Fins
 Svenska,Zweeds
 Target URL,Doel-URL
 Team permissions,Teamrechten
+This member manages the team\, so they can give themselves any of these permissions.,Dit lid beheert het team en kan zichzelf dus elk van deze rechten geven.
 These permissions apply to this user across all teams. Only administrators can manage them.,Deze rechten gelden voor deze gebruiker in alle teams. Alleen beheerders kunnen ze beheren.
 this team,dit team
 Toggle columns,Kolommen tonen of verbergen
@@ -416,3 +419,24 @@ Public signup is disabled. Ask an existing user to invite you to their team.,Ope
 Public signup is disabled. Ask an existing user to invite you.,Openbare registratie is uitgeschakeld. Vraag een bestaande gebruiker om je uit te nodigen.
 Delete this team,Dit team verwijderen
 Are you sure you want to delete the team "{0}"? Its setup has not been finished yet. This action cannot be undone.,Weet je zeker dat je het team "{0}" wilt verwijderen? De configuratie ervan is nog niet afgerond. Deze actie kan niet ongedaan worden gemaakt.
+Select all,Alles selecteren
+Select none,Niets selecteren
+Delete API keys,API-sleutels verwijderen
+Read API keys,API-sleutels bekijken
+See API keys and the permissions they hold,API-sleutels en hun rechten bekijken
+Manage API keys,API-sleutels beheren
+Create API keys and change their permissions,API-sleutels aanmaken en hun rechten wijzigen
+Read members,Teamleden bekijken
+Delete rules,Regels verwijderen
+Read rules,Regels bekijken
+See automation rules\, their deliveries and the events they can react to,Automatiseringsregels\, hun leveringen en de events waarop ze kunnen reageren bekijken
+Manage rules,Regels beheren
+Create and change automation rules\, and retry their deliveries,Automatiseringsregels aanmaken en wijzigen\, en hun leveringen opnieuw proberen
+Delete API keys\, which stops every client that uses them,API-sleutels verwijderen\, waardoor elke client die ze gebruikt stopt met werken
+See who is in the team\, with their email addresses,Zien wie er in het team zit\, met hun e-mailadressen
+Delete automation rules\, so they no longer react to events,Automatiseringsregels verwijderen\, zodat ze niet meer op events reageren
+API keys,API-sleutels
+Members,Teamleden
+Rules,Regels
+Other,Overige
+Permissions updated,Rechten bijgewerkt

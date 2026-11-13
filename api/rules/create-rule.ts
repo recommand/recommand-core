@@ -1,4 +1,5 @@
 import { requireTeamAccess } from "@core/lib/auth-middleware";
+import { requirePermission } from "@core/lib/permissions/permission-middleware";
 import { Server } from "@recommand/lib/api";
 import { actionFailure, actionSuccess } from "@recommand/lib/utils";
 import { zodValidator } from "@recommand/lib/zod-validator";
@@ -30,6 +31,7 @@ const createRuleRouteDescription = describeRoute({
 const _createRuleMinimal = server.post(
   "/rules",
   requireTeamAccess(),
+  requirePermission("core.rules.write"),
   createRuleRouteDescription,
   zodValidator("json", createRuleApiSchema),
   _createRuleImplementation
@@ -38,6 +40,7 @@ const _createRuleMinimal = server.post(
 const _createRule = server.post(
   "/:teamId/rules",
   requireTeamAccess(),
+  requirePermission("core.rules.write"),
   describeRoute({ hide: true }),
   zodValidator("param", teamIdParamSchema),
   zodValidator("json", createRuleApiSchema),

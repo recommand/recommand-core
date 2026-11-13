@@ -1,0 +1,320 @@
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import { readdir, readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+import { Pool } from "pg";
+import { Hono } from "hono";
+import bcrypt from "bcrypt";
+import type { AuthenticatedUserContext } from "../../lib/auth-middleware";
+
+const databaseUrl = process.env.CORE_TEST_DATABASE_URL;
+if (!databaseUrl) {
+  throw new Error("CORE_TEST_DATABASE_URL is required");
+}
+const url = new URL(databaseUrl);
+if (!["localhost", "127.0.0.1"].includes(url.hostname) || !url.pathname.endsWith("_test")) {
+  throw new Error("Use a disposable localhost database ending in _test");
+}
+process.env.DATABASE_URL = databaseUrl;
+process.env.JWT_SECRET = "api-key-grants-test-only-signing-key";
+const pool = new Pool({ connectionString: databaseUrl });
+const { db } = await import("@recommand/db");
+const { default: apiKeys } = await import("../../api/api-keys");
+const { createSession } = await import("../../lib/session");
+const { sign } = await import("../../lib/jwt");
+const { requireTeamAccess } = await import("../../lib/auth-middleware");
+const { requirePermission } = await import("../../lib/permissions/permission-middleware");
+const { registerPermission } = await import("../../lib/permissions");
+const { getApiKeyPermissionIds, setApiKeyPermissions } = await import("../../data/api-keys");
+const { hasPrincipalPermission } = await import("../../data/principal-permissions");
+const { addTeamMember, removeTeamMember } = await import("../../data/team-members");
+
+const CORE_MEMBER_PERMISSIONS = [
+  "core.api_keys.delete",
+  "core.api_keys.read",
+  "core.api_keys.write",
+  "core.members.read",
+  "core.rules.delete",
+  "core.rules.read",
+  "core.rules.write",
+];
+const migration = fileURLToPath(new URL("../../db/drizzle/20261109000549_naive_revanche.sql", import.meta.url));
+const app = new Hono<AuthenticatedUserContext>();
+app.get("/login/:userId", async (c) => {
+  await createSession(c, { id: c.req.param("userId"), isAdmin: false });
+  return c.json({ ok: true });
+});
+app.get("/:teamId/read", requireTeamAccess(), requirePermission("test.read"), (c) => c.json({ ok: true }));
+app.get("/:teamId/manage", requireTeamAccess(), requirePermission("core.team.manage"), (c) => c.json({ ok: true }));
+app.route("/", apiKeys);
+
+const seed = async () => {
+  await pool.query(`INSERT INTO users (id, email, password_hash, is_admin) VALUES
+    ('owner', 'owner@example.com', 'unused', false),
+    ('other', 'other@example.com', 'unused', false),
+    ('admin', 'admin@example.com', 'unused', true)`);
+  await pool.query("INSERT INTO teams (id, name) VALUES ('one', 'One'), ('two', 'Two')");
+  await pool.query(`INSERT INTO team_members (team_id, user_id) VALUES
+    ('one', 'owner'), ('two', 'owner'), ('one', 'other')`);
+  await pool.query(`INSERT INTO user_permissions (user_id, team_id, permission_id) VALUES
+    ('owner', 'one', 'core.team.manage'), ('owner', 'one', 'test.read'),
+    ('owner', 'one', 'test.write'), ('owner', 'two', 'test.other')`);
+  await pool.query(`INSERT INTO user_permissions (user_id, team_id, permission_id)
+    SELECT members.user_id, members.team_id, permissions.id FROM team_members AS members
+    CROSS JOIN (VALUES ('core.api_keys.delete'), ('core.api_keys.read'), ('core.api_keys.write')) AS permissions(id)`);
+};
+const cookie = async (userId = "owner") => {
+  const response = await app.request(`/login/${userId}`);
+  return { Cookie: response.headers.get("set-cookie")!.split(";")[0]! };
+};
+const create = async (type: "basic" | "jwt", permissionIds?: string[], headers?: Record<string, string>, teamId = "one") => {
+  const response = await app.request(`/${teamId}/api-keys`, {
+    body: JSON.stringify({ expiresInSeconds: 3_600, name: "Test key", permissionIds, type }),
+    headers: { ...(headers ?? await cookie()), "Content-Type": "application/json" },
+    method: "POST",
+  });
+  return { body: await response.json() as any, response };
+};
+const credentials = (key: any): Record<string, string> => {
+  return key.type === "basic"
+    ? { Authorization: `Basic ${btoa(`${key.id}:${key.secret}`)}` }
+    : { Authorization: `Bearer ${key.jwt}` };
+};
+const update = async (keyId: string, permissionIds: string[], headers?: Record<string, string>, teamId = "one") => {
+  return app.request(`/${teamId}/api-keys/${keyId}/permissions`, {
+    body: JSON.stringify({ permissionIds }),
+    headers: { ...(headers ?? await cookie()), "Content-Type": "application/json" },
+    method: "PUT",
+  });
+};
+const read = async (headers: Record<string, string>, teamId = "one") => {
+  return (await app.request(`/${teamId}/read`, { headers })).status;
+};
+
+beforeAll(async () => {
+  await pool.query("DROP SCHEMA public CASCADE; CREATE SCHEMA public");
+  for (const name of ["framework", "core"]) {
+    const directory = new URL(`../../../${name}/db/drizzle/`, import.meta.url);
+    for (const file of (await readdir(directory)).filter((file) => file.endsWith(".sql")).toSorted()) {
+      await pool.query(await readFile(new URL(file, directory), "utf8"));
+    }
+  }
+});
+afterAll(async () => {
+  await pool.end();
+  await db.$client.end();
+});
+
+describe("grant migration", () => {
+  test("fresh installation creates an empty grant table", async () => {
+    expect((await pool.query("SELECT * FROM principal_permissions")).rows).toEqual([]);
+  });
+  test("existing members and keys keep what they could do, admins' keys included", async () => {
+    await pool.query("DROP TABLE principal_permissions; DROP TYPE principal_types");
+    await seed();
+    const expiresAt = new Date(Date.now() + 3600_000);
+    const jwt = await sign({ jti: "legacy_jwt", sub: "owner", teamId: "one" }, expiresAt);
+    await pool.query(`INSERT INTO api_keys (id, name, user_id, team_id, type, secret_hash, expires_at) VALUES
+      ('legacy_basic', 'Legacy basic', 'owner', 'one', 'basic', $1, NULL),
+      ('legacy_jwt', 'Legacy JWT', 'owner', 'one', 'jwt', '', $2),
+      ('legacy_admin', 'Legacy admin', 'admin', 'one', 'basic', 'unused', NULL)`,
+      [await bcrypt.hash("legacy-secret", 4), expiresAt]);
+    await pool.query(await readFile(migration, "utf8"));
+    const members = await pool.query("SELECT user_id, permission_id FROM user_permissions WHERE team_id = 'one' AND permission_id LIKE 'core.%' AND permission_id <> 'core.team.manage' ORDER BY 1, 2");
+    expect(members.rows).toEqual(["other", "owner"].flatMap((user_id) => CORE_MEMBER_PERMISSIONS.map((permission_id) => ({ permission_id, user_id }))));
+    await Promise.all(["legacy_basic", "legacy_jwt"].map(async (id) => {
+      expect((await getApiKeyPermissionIds(id, "one")).toSorted()).toEqual([...CORE_MEMBER_PERMISSIONS, "core.team.manage", "test.read", "test.write"]);
+      // Stored in the key's own team only
+      expect((await pool.query("SELECT DISTINCT team_id FROM principal_permissions WHERE principal_id = $1", [id])).rows).toEqual([{ team_id: "one" }]);
+    }));
+    expect(await read({ Authorization: `Basic ${btoa("legacy_basic:legacy-secret")}` })).toBe(200);
+    expect(await read({ Authorization: `Bearer ${jwt}` })).toBe(200);
+    expect((await getApiKeyPermissionIds("legacy_admin", "one")).toSorted()).toEqual([...CORE_MEMBER_PERMISSIONS, "core.team.manage"]);
+    expect(await hasPrincipalPermission({ apiKeyId: "legacy_admin", ownerUserId: "admin", type: "api_key" }, "one", "core.team.manage")).toBe(true);
+  });
+});
+
+["test.read", "test.write", "test.other"].forEach((id) => {
+  registerPermission({ hasAdminPrerequisite: false, id, name: id, prerequisiteActorPermissionIds: ["core.team.manage"], scope: "team" });
+});
+registerPermission({ hasAdminPrerequisite: true, id: "test.global", name: "Global", prerequisiteActorPermissionIds: [], scope: "global" });
+
+describe("API-key grants", () => {
+  beforeEach(async () => {
+    await pool.query("TRUNCATE users, teams, principal_permissions CASCADE");
+    await seed();
+  });
+  (["basic", "jwt"] as const).forEach((type) => {
+    test(`${type}: requires both a key grant and the owner's current permission`, async () => {
+      const { response, body } = await create(type, ["test.read"]);
+      expect(response.status).toBe(200);
+      const headers = credentials(body.apiKey);
+      expect(await read(headers)).toBe(200);
+      expect((await app.request("/one/manage", { headers })).status).toBe(403);
+      await pool.query("DELETE FROM user_permissions WHERE user_id = 'owner' AND team_id = 'one' AND permission_id = 'test.read'");
+      expect(await read(headers)).toBe(403);
+      expect(await getApiKeyPermissionIds(body.apiKey.id, "one")).toEqual(["test.read"]);
+    });
+    test(`${type}: empty grants deny permissions and updates take effect immediately`, async () => {
+      const { body } = await create(type, []);
+      const headers = credentials(body.apiKey);
+      expect(await read(headers)).toBe(403);
+      expect((await update(body.apiKey.id, ["test.read", "test.read"])).status).toBe(200);
+      expect(await read(headers)).toBe(200);
+      expect(await getApiKeyPermissionIds(body.apiKey.id, "one")).toEqual(["test.read"]);
+      expect((await update(body.apiKey.id, [])).status).toBe(200);
+      expect(await read(headers)).toBe(403);
+    });
+    test(`${type}: grants are isolated by team`, async () => {
+      const { body } = await create(type, ["test.read"]);
+      expect(await read(credentials(body.apiKey), "two")).toBe(401);
+      expect((await update(body.apiKey.id, [], undefined, "two")).status).toBe(404);
+      expect(await getApiKeyPermissionIds(body.apiKey.id, "one")).toEqual(["test.read"]);
+    });
+    test(`${type}: missing owner membership and deleted keys deny access`, async () => {
+      const { body } = await create(type, ["test.read"]);
+      const headers = credentials(body.apiKey);
+      await pool.query("DELETE FROM team_members WHERE user_id = 'owner' AND team_id = 'one'");
+      expect(await read(headers)).toBe(401);
+      await pool.query("INSERT INTO team_members (user_id, team_id) VALUES ('owner', 'one')");
+      expect(await read(headers)).toBe(200);
+      await pool.query("DELETE FROM api_keys WHERE id = $1", [body.apiKey.id]);
+      expect(await read(headers)).toBe(401);
+    });
+    test(`${type}: restricted callers cannot elevate themselves or create a stronger key`, async () => {
+      const { body } = await create(type, ["core.api_keys.write", "test.read"]);
+      const headers = credentials(body.apiKey);
+      expect((await update(body.apiKey.id, ["core.api_keys.write", "core.team.manage", "test.read"], headers)).status).toBe(403);
+      const attempted = await create(type, ["core.team.manage"], headers);
+      expect(attempted.response.status).toBe(403);
+      expect((await pool.query("SELECT id FROM api_keys")).rows).toHaveLength(1);
+      const inherited = await create(type, undefined, headers);
+      expect(inherited.response.status).toBe(200);
+      expect(inherited.body.apiKey.permissionIds.toSorted()).toEqual(["core.api_keys.write", "test.read"]);
+    });
+    test(`${type}: omitted grants default to the owner's permissions`, async () => {
+      const { response, body } = await create(type);
+      expect(response.status).toBe(200);
+      expect(body.apiKey.permissionIds.toSorted()).toEqual(["core.api_keys.delete", "core.api_keys.read", "core.api_keys.write", "core.team.manage", "test.read", "test.write"]);
+    });
+    test(`${type}: invalid and global grants do not leave an orphaned key`, async () => {
+      await Promise.all(["unknown", "test.global"].map(async (id) => {
+        expect((await create(type, [id])).response.status).toBe(400);
+      }));
+      expect((await pool.query("SELECT id FROM api_keys")).rows).toEqual([]);
+      expect((await pool.query("SELECT * FROM principal_permissions")).rows).toEqual([]);
+    });
+    test(`${type}: an admin-owned key still needs an explicit grant`, async () => {
+      const { body } = await create(type, [], await cookie("admin"));
+      const headers = credentials(body.apiKey);
+      expect(await read(headers)).toBe(403);
+      expect((await update(body.apiKey.id, ["test.read"], await cookie("admin"))).status).toBe(200);
+      expect(await read(headers)).toBe(200);
+    });
+
+    test(`${type}: an admin's key carries its grants to the other teams it can reach`, async () => {
+      const { body } = await create(type, ["test.read"], await cookie("admin"));
+      const headers = credentials(body.apiKey);
+      expect(await read(headers, "two")).toBe(200);
+      expect((await app.request("/two/manage", { headers })).status).toBe(403);
+    });
+  });
+  test("the owner cannot give their key permissions they lack", async () => {
+    const { body } = await create("basic", []);
+    await pool.query("DELETE FROM user_permissions WHERE user_id = 'owner' AND team_id = 'one' AND permission_id = 'test.write'");
+    expect((await update(body.apiKey.id, ["test.write"])).status).toBe(403);
+  });
+  test("only the key's owner can change its permissions, as only they can list and delete it", async () => {
+    const { body } = await create("basic", ["test.read"]);
+    await pool.query("INSERT INTO user_permissions (user_id, team_id, permission_id) VALUES ('other', 'one', 'core.team.manage')");
+    expect((await update(body.apiKey.id, [], await cookie("other"))).status).toBe(404);
+    expect((await update(body.apiKey.id, [], await cookie("admin"))).status).toBe(404);
+    expect(await getApiKeyPermissionIds(body.apiKey.id, "one")).toEqual(["test.read"]);
+  });
+  (["basic", "jwt"] as const).forEach((type) => {
+    test(`${type}: a team manager's key cannot change another member's key`, async () => {
+      const { body: target } = await create(type, ["test.read"]);
+      await pool.query("INSERT INTO user_permissions (user_id, team_id, permission_id) VALUES ('other', 'one', 'core.team.manage')");
+      const { body: caller } = await create(type, ["core.api_keys.write", "core.team.manage"], await cookie("other"));
+      expect((await update(target.apiKey.id, [], credentials(caller.apiKey))).status).toBe(404);
+      expect(await getApiKeyPermissionIds(target.apiKey.id, "one")).toEqual(["test.read"]);
+    });
+    test(`${type}: an owner can revoke their own key's grants using that key`, async () => {
+      const { body } = await create(type, ["core.api_keys.write", "test.read"]);
+      expect((await update(body.apiKey.id, [], credentials(body.apiKey))).status).toBe(200);
+      expect(await getApiKeyPermissionIds(body.apiKey.id, "one")).toEqual([]);
+    });
+  });
+  test("invalid updates leave existing grants intact", async () => {
+    const { body } = await create("basic", ["test.read"]);
+    expect((await update(body.apiKey.id, ["test.global"])).status).toBe(400);
+    expect((await update(body.apiKey.id, ["unknown"])).status).toBe(400);
+    expect(await getApiKeyPermissionIds(body.apiKey.id, "one")).toEqual(["test.read"]);
+  });
+  test("failed grant insertion rolls back the key and grant deletion", async () => {
+    const { body } = await create("basic", ["test.read"]);
+    await pool.query(`CREATE FUNCTION reject_test_grants() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'injected grant failure'; END $$;
+      CREATE TRIGGER reject_test_grants BEFORE INSERT ON principal_permissions FOR EACH ROW EXECUTE FUNCTION reject_test_grants()`);
+    try {
+      await expect(setApiKeyPermissions({ actorUserId: "owner", apiKeyId: body.apiKey.id, permissionIds: ["test.write"], teamId: "one" })).rejects.toThrow();
+      expect(await getApiKeyPermissionIds(body.apiKey.id, "one")).toEqual(["test.read"]);
+      expect((await create("basic", ["test.read"])).response.status).toBe(500);
+      expect((await pool.query("SELECT id FROM api_keys")).rows).toHaveLength(1);
+    } finally {
+      await pool.query("DROP TRIGGER reject_test_grants ON principal_permissions; DROP FUNCTION reject_test_grants()");
+    }
+  });
+  test("listing keys includes their grants and preserves browser authorization", async () => {
+    const { body } = await create("basic", ["test.read"]);
+    const headers = await cookie();
+    expect(await read(headers)).toBe(200);
+    const response = await app.request("/one/api-keys", { headers });
+    const json = await response.json() as any;
+    expect(json.apiKeys.map((key: any) => [key.id, key.permissionIds])).toEqual([[body.apiKey.id, ["test.read"]]]);
+  });
+  test("a missing permission answers 403 with insufficient_permission", async () => {
+    const { body } = await create("basic", []);
+    const response = await app.request("/one/read", { headers: credentials(body.apiKey) });
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({
+      code: "insufficient_permission",
+      errors: { root: ["This operation needs the test.read permission."] },
+      success: false,
+    });
+  });
+  test("a member who can't manage the team puts their own permissions on their key", async () => {
+    const headers = await cookie("other");
+    const { response, body } = await create("basic", ["core.api_keys.read"], headers);
+    expect(response.status).toBe(200);
+    expect(body.apiKey.permissionIds).toEqual(["core.api_keys.read"]);
+    expect((await create("basic", ["test.read"], headers)).response.status).toBe(403);
+    const inherited = await create("basic", undefined, headers);
+    expect(inherited.body.apiKey.permissionIds.toSorted()).toEqual(["core.api_keys.delete", "core.api_keys.read", "core.api_keys.write"]);
+  });
+  test("available permissions are the caller's own, and no more than the key used", async () => {
+    const available = async (headers: Record<string, string>) => {
+      const response = await app.request("/one/api-keys/available-permissions", { headers });
+      return ((await response.json()) as any).permissions.map((permission: any) => permission.id);
+    };
+    expect(await available(await cookie("other"))).toEqual(["core.api_keys.delete", "core.api_keys.read", "core.api_keys.write"]);
+    const { body } = await create("basic", ["core.api_keys.write", "test.read"]);
+    expect(await available(credentials(body.apiKey))).toEqual(["core.api_keys.write", "test.read"]);
+  });
+  test("deleting a key deletes its grants", async () => {
+    const { body } = await create("basic", ["test.read"]);
+    const response = await app.request(`/one/api-keys/${body.apiKey.id}`, { headers: await cookie(), method: "DELETE" });
+    expect(response.status).toBe(200);
+    expect((await pool.query("SELECT * FROM principal_permissions")).rows).toEqual([]);
+  });
+  test("removing a member deletes their keys' grants", async () => {
+    await create("basic", ["test.read"]);
+    await create("basic", ["test.other"], undefined, "two");
+    await removeTeamMember("one", "owner");
+    expect((await pool.query("SELECT team_id, permission_id FROM principal_permissions")).rows).toEqual([{ permission_id: "test.other", team_id: "two" }]);
+  });
+  test("a member who joins gets the permissions members had before they existed", async () => {
+    await pool.query("INSERT INTO users (id, email, password_hash) VALUES ('joiner', 'joiner@example.com', 'unused')");
+    await addTeamMember("one", "joiner");
+    const rows = await pool.query("SELECT permission_id FROM user_permissions WHERE user_id = 'joiner' AND team_id = 'one' ORDER BY 1");
+    expect(rows.rows.map((row) => row.permission_id)).toEqual(CORE_MEMBER_PERMISSIONS);
+  });
+});

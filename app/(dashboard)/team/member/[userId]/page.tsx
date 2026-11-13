@@ -1,3 +1,4 @@
+import { PermissionChecklist } from "@core/components/api-keys/permission-checklist";
 import { PageTemplate } from "@core/components/page-template";
 import { rc } from "@recommand/lib/client";
 import type { Permissions } from "@core/api/permissions";
@@ -6,10 +7,11 @@ import { useEffect, useState, useCallback } from "react";
 import { toast } from "@core/components/ui/sonner";
 import { stringifyActionFailure } from "@recommand/lib/utils";
 import { useActiveTeam, useUser } from "@core/hooks/user";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, Info } from "lucide-react";
 import { useParams, Link } from "react-router";
 import { Checkbox } from "@core/components/ui/checkbox";
 import { Label } from "@core/components/ui/label";
+import { Alert, AlertDescription } from "@core/components/ui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@core/components/ui/card";
 import { useTranslation } from "@core/hooks/use-translation";
 
@@ -20,6 +22,7 @@ type PermissionWithGrantable = {
   id: string;
   name: string;
   description?: string;
+  resource?: string;
 };
 
 type UserPermission = {
@@ -140,53 +143,48 @@ export default function UserPermissionsPage() {
     return userGlobalPermissions.some((p) => p.permissionId === permissionId);
   };
 
-  const handlePermissionToggle = async (permissionId: string, currentlyHas: boolean) => {
-    if (!activeTeam?.id || !userId) return;
+  const handlePermissionsChange = async (permissionIds: string[]) => {
+    if (!activeTeam?.id || !userId) {
+      return;
+    }
+    const current = userPermissions.map((permission) => permission.permissionId);
+    const granted = permissionIds.filter((id) => !current.includes(id));
+    const revoked = current.filter((id) => !permissionIds.includes(id));
+    setPendingPermissions(new Set([...granted, ...revoked]));
 
-    // Add to pending set
-    setPendingPermissions((prev) => new Set([...prev, permissionId]));
+    const grant = async (permissionId: string) => {
+      const res = await permissionsClient["auth"]["teams"][":teamId"]["members"][":userId"]["permissions"].$post({
+        param: { teamId: activeTeam.id, userId },
+        json: { permissionId },
+      });
+      const json = await res.json();
+      if (!json.success) {
+        throw new Error(stringifyActionFailure(json.errors));
+      }
+      if (json.permission) {
+        const permission = json.permission;
+        setUserPermissions((prev) => [...prev, permission]);
+      }
+    };
+    const revoke = async (permissionId: string) => {
+      const res = await permissionsClient["auth"]["teams"][":teamId"]["members"][":userId"]["permissions"][":permissionId"].$delete({
+        param: { teamId: activeTeam.id, userId, permissionId },
+      });
+      const json = await res.json();
+      if (!json.success) {
+        throw new Error(stringifyActionFailure(json.errors));
+      }
+      setUserPermissions((prev) => prev.filter((p) => p.permissionId !== permissionId));
+    };
 
     try {
-      if (currentlyHas) {
-        // Revoke permission
-        const res = await permissionsClient["auth"]["teams"][":teamId"]["members"][":userId"]["permissions"][":permissionId"].$delete({
-          param: { teamId: activeTeam.id, userId, permissionId },
-        });
-        const json = await res.json();
-
-        if (!json.success) {
-          throw new Error(stringifyActionFailure(json.errors));
-        }
-
-        setUserPermissions((prev) => prev.filter((p) => p.permissionId !== permissionId));
-        toast.success(t`Permission revoked`);
-      } else {
-        // Grant permission
-        const res = await permissionsClient["auth"]["teams"][":teamId"]["members"][":userId"]["permissions"].$post({
-          param: { teamId: activeTeam.id, userId },
-          json: { permissionId },
-        });
-        const json = await res.json();
-
-        if (!json.success) {
-          throw new Error(stringifyActionFailure(json.errors));
-        }
-
-        if (json.permission) {
-          setUserPermissions((prev) => [...prev, json.permission]);
-        }
-        toast.success(t`Permission granted`);
-      }
+      await Promise.all([...granted.map(grant), ...revoked.map(revoke)]);
+      toast.success(t`Permissions updated`);
     } catch (error) {
-      console.error("Error toggling permission:", error);
+      console.error("Error updating permissions:", error);
       toast.error(error instanceof Error ? t(error.message) : t`Failed to update permission`);
     } finally {
-      // Remove from pending set
-      setPendingPermissions((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(permissionId);
-        return newSet;
-      });
+      setPendingPermissions(new Set());
     }
   };
 
@@ -270,51 +268,23 @@ export default function UserPermissionsPage() {
               {t`Select which permissions this team member should have within ${activeTeam?.name ?? t`this team`}.`}
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            {allPermissions.length === 0 ? (
-              <p className="text-muted-foreground text-center py-4">
-                {t`No permissions are available to manage.`}
-              </p>
-            ) : (
-              <div className="space-y-4">
-                {allPermissions.map((permission) => {
-                  const has = hasPermission(permission.id);
-                  const isPending = pendingPermissions.has(permission.id);
-                  const isDisabled = isPending;
+          <CardContent className="space-y-4">
+            {hasPermission("core.team.manage") ? (
+              <Alert>
+                <Info />
 
-                  return (
-                    <div
-                      key={permission.id}
-                      className={`flex items-start gap-3 ${isDisabled && !isPending ? "opacity-60" : ""}`}
-                    >
-                      <div className="pt-0.5">
-                        {isPending ? (
-                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                        ) : (
-                          <Checkbox
-                            id={permission.id}
-                            checked={has}
-                            disabled={isDisabled}
-                            onCheckedChange={() => handlePermissionToggle(permission.id, has)}
-                          />
-                        )}
-                      </div>
-                      <div className="flex-1 space-y-0.5">
-                        <Label
-                          htmlFor={permission.id}
-                          className={`text-sm font-medium cursor-pointer ${isDisabled ? "cursor-not-allowed" : ""}`}
-                        >
-                          {t(permission.name)}
-                        </Label>
-                        {permission.description && (
-                          <p className="text-sm text-muted-foreground">{t(permission.description)}</p>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                <AlertDescription>{t`This member manages the team, so they can give themselves any of these permissions.`}</AlertDescription>
+              </Alert>
+            ) : null}
+            <PermissionChecklist
+              // A change made while another saves would start from permissions about to change
+              disabled={pendingPermissions.size > 0}
+              idPrefix="member"
+              onChange={handlePermissionsChange}
+              pendingIds={[...pendingPermissions]}
+              permissions={allPermissions}
+              selectedIds={userPermissions.map((permission) => permission.permissionId)}
+            />
           </CardContent>
         </Card>
 

@@ -1,7 +1,8 @@
-import { apiKeys, teamMembers, userPermissions, users } from "@core/db/schema";
+import { apiKeys, principalPermissions, teamMembers, userPermissions, users } from "@core/db/schema";
 import { emitBackendEvent, CORE_BACKEND_EVENTS } from "@core/lib/backend-events";
+import { getTeamJoinPermissions } from "@core/lib/permissions";
 import { db } from "@recommand/db";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 
 export type MinimalTeamMember = typeof teamMembers.$inferSelect & {
   user: {
@@ -38,18 +39,34 @@ export async function getMinimalTeamMembers(teamId: string): Promise<MinimalTeam
 }
 
 export async function addTeamMember(teamId: string, userId: string) {
-  const res = await db
-    .insert(teamMembers)
-    .values({ teamId, userId })
-    .returning();
+  const res = await db.transaction(async (tx) => {
+    const members = await tx
+      .insert(teamMembers)
+      .values({ teamId, userId })
+      .returning();
+    const joinPermissions = getTeamJoinPermissions();
+    if (joinPermissions.length > 0) {
+      await tx
+        .insert(userPermissions)
+        .values(joinPermissions.map((permission) => ({ permissionId: permission.id, teamId, userId })))
+        .onConflictDoNothing();
+    }
+    return members;
+  });
   await emitBackendEvent(CORE_BACKEND_EVENTS.TEAM_MEMBER_ADDED, { teamId, userId });
   return res;
 }
 
 export async function removeTeamMember(teamId: string, userId: string) {
   const res = await db.transaction(async (tx) => {
-    await tx.delete(apiKeys)
-      .where(and(eq(apiKeys.teamId, teamId), eq(apiKeys.userId, userId)));
+    const memberKeys = and(eq(apiKeys.teamId, teamId), eq(apiKeys.userId, userId));
+    // Grants name their key without a foreign key, so they go first
+    await tx.delete(principalPermissions)
+      .where(and(
+        eq(principalPermissions.principalType, "api_key"),
+        inArray(principalPermissions.principalId, tx.select({ id: apiKeys.id }).from(apiKeys).where(memberKeys)),
+      ));
+    await tx.delete(apiKeys).where(memberKeys);
     await tx.delete(userPermissions)
       .where(and(eq(userPermissions.teamId, teamId), eq(userPermissions.userId, userId)));
     return tx.delete(teamMembers)

@@ -1,4 +1,5 @@
 import { type AuthenticatedTeamContext, type AuthenticatedUserContext, requireTeamAccess } from "@core/lib/auth-middleware";
+import { requirePermission } from "@core/lib/permissions/permission-middleware";
 import { Server, type Context } from "@recommand/lib/api";
 import { actionFailure, actionSuccess } from "@recommand/lib/utils";
 import { zodValidator } from "@recommand/lib/zod-validator";
@@ -42,6 +43,7 @@ type ListRulesContext = Context<
 const _listRulesMinimal = server.get(
   "/rules",
   requireTeamAccess(),
+  requirePermission("core.rules.read"),
   listRulesRouteDescription,
   zodValidator("query", listRulesQuerySchema),
   _listRulesImplementation
@@ -50,6 +52,7 @@ const _listRulesMinimal = server.get(
 const _listRules = server.get(
   "/:teamId/rules",
   requireTeamAccess(),
+  requirePermission("core.rules.read"),
   describeRoute({ hide: true }),
   zodValidator("param", teamIdParamSchema),
   zodValidator("query", listRulesQuerySchema),
