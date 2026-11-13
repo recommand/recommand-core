@@ -41,18 +41,33 @@ export const createApiKeyBodySchema = z.discriminatedUnion("type", [
   }),
 ]);
 
-/** The status for permissions that can't be put on a key, or null for any other error. */
-const permissionErrorStatus = (error: unknown) => {
+/** The answer for permissions that can't be put on a key, or null for any other error. */
+const permissionFailure = (error: unknown) => {
   if (error instanceof PermissionNotRegisteredError || error instanceof InvalidPermissionScopeError) {
-    return 400;
+    return { body: actionFailure(error), status: 400 as const };
   }
 
   if (error instanceof NotAuthorizedError) {
-    return 403;
+    // The caller asked for a permission they don't hold, so it answers like a missing one
+    return { body: { ...actionFailure(error), code: "insufficient_permission" as const }, status: 403 as const };
   }
 
   return null;
 };
+
+const apiKeyTypeSchema = z.enum(["basic", "jwt"]).openapi({ description: "How the key authenticates.", ref: "ApiKeyType" });
+
+const createdApiKeySchema = z
+  .object({
+    expiresAt: z.string().nullable().openapi({ description: "When the key expires, or `null` if it doesn't." }),
+    id: z.string().openapi({ description: "The API key's id." }),
+    jwt: z.string().optional().openapi({ description: "The token of a `jwt` key, only returned now." }),
+    name: z.string().openapi({ description: "The key's name." }),
+    permissionIds: z.array(z.string()).openapi({ description: "The ids of the team permissions the key holds." }),
+    secret: z.string().optional().openapi({ description: "The secret of a `basic` key, only returned now." }),
+    type: apiKeyTypeSchema,
+  })
+  .openapi({ ref: "CreatedApiKey" });
 
 const permissionIdsSchema = z.array(z.string()).openapi({ description: "The ids of the team permissions the key holds." });
 
@@ -100,6 +115,24 @@ const _createApiKey = server.post(
   "/:teamId/api-keys",
   requireTeamAccess(),
   requirePermission("core.api_keys.write"),
+  describeRoute({
+    description: "Create an API key for the caller in the team. Without `permissionIds`, it gets all of the caller's team permissions, and no more than the key they authenticate with.",
+    hide: true,
+    operationId: "createApiKey",
+    responses: {
+      ...describeSuccessResponse("The key was created", z.object({ apiKey: createdApiKeySchema })),
+      ...describeErrorResponse(400, "A permission is unknown or not a team permission"),
+      // Replaces the 403 `requirePermission` documents, so it names that cause too
+      ...describeErrorResponse(
+        403,
+        "The credential lacks the `core.api_keys.write` permission, or one of the permissions asked for.",
+        insufficientPermissionBody
+      ),
+      ...describeErrorResponse(500, "Failed to create the key"),
+    },
+    summary: "Create API Key",
+    tags: ["API Keys"],
+  }),
   zodValidator(
     "param",
     z.object({
@@ -134,9 +167,9 @@ const _createApiKey = server.post(
       });
       return c.json(actionSuccess({ apiKey }));
     } catch (error) {
-      const status = permissionErrorStatus(error);
-      if (status) {
-        return c.json(actionFailure(error as Error), status);
+      const failure = permissionFailure(error);
+      if (failure) {
+        return c.json(failure.body, failure.status);
       }
 
       return c.json(actionFailure(error as Error), 500);
@@ -260,9 +293,9 @@ const _setApiKeyPermissions = server.put(
 
       return c.json(actionSuccess({ apiKey: { id: updated.id, permissionIds: updated.permissionIds } }));
     } catch (error) {
-      const status = permissionErrorStatus(error);
-      if (status) {
-        return c.json(actionFailure(error as Error), status);
+      const failure = permissionFailure(error);
+      if (failure) {
+        return c.json(failure.body, failure.status);
       }
 
       return c.json(actionFailure(error as Error), 500);
