@@ -163,6 +163,7 @@ const _createApiKey = server.post(
           name: apiKey.name,
           type: apiKey.type,
           expiresAt: apiKey.expiresAt?.toISOString() ?? null,
+          permissionIds: apiKey.permissionIds,
         },
       });
       return c.json(actionSuccess({ apiKey }));
@@ -285,6 +286,9 @@ const _setApiKeyPermissions = server.put(
         action: "update",
         after: {
           permissionIds: updated.permissionIds,
+        },
+        before: {
+          permissionIds: updated.previousPermissionIds,
         },
         objectId: updated.id,
         objectType: "core.api_key",
