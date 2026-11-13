@@ -1,3 +1,4 @@
+import type { Context } from "hono";
 import { createMiddleware } from "hono/factory";
 import { describeRoute } from "hono-openapi";
 import { z } from "zod";
@@ -18,6 +19,22 @@ export const insufficientPermissionBody = z.object({
       "Set when the credential lacks the permission the operation requires; the message names it. Other `403` responses of the operation come without it.",
   }),
 });
+
+/** Whether the request's user, or the API key it authenticated with, holds the team permission in its team. */
+export const hasRequestPermission = async <E extends AuthenticatedUserContext>(c: Context<E>, permissionId: string) => {
+  const user = c.var.user;
+  const teamId = c.get("team")?.id;
+  if (!user || !teamId) {
+    return false;
+  }
+
+  const apiKey = c.get("apiKey");
+  const principal = apiKey
+    ? { apiKeyId: apiKey.id, ownerIsAdmin: user.isAdmin, ownerUserId: user.id, teamId: apiKey.teamId, type: "api_key" as const }
+    : { type: "user" as const, userId: user.id };
+
+  return hasPrincipalPermission(principal, teamId, permissionId);
+};
 
 /**
  * Lets the request through when its user, or the API key it authenticated with, holds the team permission.
@@ -52,11 +69,7 @@ export function requirePermission(permissionId: string) {
       return c.json(actionFailure("Unauthorized"), 401);
     }
 
-    const apiKey = c.get("apiKey");
-    const principal = apiKey
-      ? { apiKeyId: apiKey.id, ownerIsAdmin: user.isAdmin, ownerUserId: user.id, teamId: apiKey.teamId, type: "api_key" as const }
-      : { type: "user" as const, userId: user.id };
-    if (!(await hasPrincipalPermission(principal, teamId, permissionId))) {
+    if (!(await hasRequestPermission(c, permissionId))) {
       await audit(c, {
         action: "authorize",
         subsystem: "core.permissions",
