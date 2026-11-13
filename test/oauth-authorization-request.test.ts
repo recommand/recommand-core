@@ -12,6 +12,7 @@ registerPermission({ id: "test.undelegated", name: "Undelegated", prerequisiteAc
 
 const client: OAuthClient = {
   allowedPermissions: null,
+  authorizedAt: null,
   clientUri: null,
   createdAt: new Date(),
   disabledAt: null,

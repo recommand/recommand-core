@@ -27,9 +27,7 @@ export const createAuthorizationCode = async (input: {
   userId: string;
 }): Promise<string> => {
   const code = randomBytes(32).toString("base64url");
-  await db
-    .delete(oauthAuthorizationCodes)
-    .where(lt(oauthAuthorizationCodes.expiresAt, new Date(Date.now() - AUTHORIZATION_CODE_RETENTION)));
+  await deleteExpiredAuthorizationCodes();
   await db.insert(oauthAuthorizationCodes).values({
     ...input,
     codeHash: hashAuthorizationCode(code),
@@ -45,6 +43,13 @@ export type AuthorizationCodeRedemption =
   | { authorization: AuthorizationCode; type: "redeemed" }
   | { authorization: AuthorizationCode; type: "reused" }
   | { type: "invalid" };
+
+/** Deletes the codes kept past their retention, which nothing recognizes any more. */
+export const deleteExpiredAuthorizationCodes = async (): Promise<void> => {
+  await db
+    .delete(oauthAuthorizationCodes)
+    .where(lt(oauthAuthorizationCodes.expiresAt, new Date(Date.now() - AUTHORIZATION_CODE_RETENTION)));
+};
 
 /**
  * Marks the code used and returns what it was issued for. Marking it in one
