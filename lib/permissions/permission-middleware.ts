@@ -73,7 +73,7 @@ export function requirePermission(permissionId: string) {
     await next();
   });
   const documentation = describeRoute({
-    responses: describeErrorResponse(403, `The credential lacks the \`${permissionId}\` permission.`, insufficientPermissionBody),
+    responses: describeErrorResponse(403, `The credential lacks the \`${permissionId}\` permission, or the team can't use this operation.`, insufficientPermissionBody),
     // OpenAPI 3.1 lets a requirement on any scheme list the roles it needs, so an API
     // key, Basic or JWT, documents the permission the route checks
     security: [{ httpBasic: [permissionId] }, { jwt: [permissionId] }],

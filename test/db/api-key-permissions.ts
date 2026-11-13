@@ -194,6 +194,7 @@ describe("API-key grants", () => {
       expect((await update(body.apiKey.id, ["core.api_keys.write", "core.team.manage", "test.read"], headers)).status).toBe(403);
       const attempted = await create(type, ["core.team.manage"], headers);
       expect(attempted.response.status).toBe(403);
+      expect(attempted.body.code).toBe("insufficient_permission");
       expect((await pool.query("SELECT id FROM api_keys")).rows).toHaveLength(1);
       const inherited = await create(type, undefined, headers);
       expect(inherited.response.status).toBe(200);
