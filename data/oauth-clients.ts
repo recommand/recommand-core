@@ -1,4 +1,4 @@
-import { oauthClients } from "@core/db/schema";
+import { oauthAuthorizationCodes, oauthClients, oauthGrants } from "@core/db/schema";
 import type { ClientMetadata, ClientMetadataDocument, Fetch } from "@core/lib/oauth/client-metadata";
 import {
   ClientMetadataUnavailableError,
@@ -7,7 +7,7 @@ import {
 } from "@core/lib/oauth/client-metadata";
 import type { Lookup } from "@core/lib/oauth/network";
 import { db } from "@recommand/db";
-import { eq } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, lt, notExists, or } from "drizzle-orm";
 
 export type OAuthClient = typeof oauthClients.$inferSelect;
 
@@ -104,4 +104,38 @@ export const findRequestClient = async (clientId: string | undefined): Promise<O
   const [stored] = await db.select().from(oauthClients).where(eq(oauthClients.id, clientId)).limit(1);
 
   return stored && !stored.disabledAt ? stored : null;
+};
+
+// How long a client without grants is kept, so one a user is about to authorize doesn't disappear
+const UNUSED_CLIENT_LIFETIME = 30 * 24 * 60 * 60 * 1_000;
+
+/**
+ * Deletes the clients no user has a grant or a code for, and that haven't changed
+ * for 30 days: registered clients nobody ever authorized, and metadata documents
+ * whose apps were disconnected, which are fetched again when someone authorizes
+ * them. A registered client a user authorized stays, since its app may keep the
+ * `client_id` and has no way to learn that it should register again. A disabled
+ * client stays too, so disabling it can't be undone by waiting. Returns how many it
+ * deleted.
+ */
+export const deleteUnusedClients = async (): Promise<number> => {
+  const deleted = await db
+    .delete(oauthClients)
+    .where(
+      and(
+        isNull(oauthClients.disabledAt),
+        or(isNotNull(oauthClients.metadataFetchedAt), isNull(oauthClients.authorizedAt)),
+        lt(oauthClients.updatedAt, new Date(Date.now() - UNUSED_CLIENT_LIFETIME)),
+        notExists(db.select({ id: oauthGrants.id }).from(oauthGrants).where(eq(oauthGrants.clientId, oauthClients.id))),
+        notExists(
+          db
+            .select({ clientId: oauthAuthorizationCodes.clientId })
+            .from(oauthAuthorizationCodes)
+            .where(eq(oauthAuthorizationCodes.clientId, oauthClients.id))
+        )
+      )
+    )
+    .returning({ id: oauthClients.id });
+
+  return deleted.length;
 };

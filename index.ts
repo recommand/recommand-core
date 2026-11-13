@@ -16,6 +16,7 @@ import teamLogo from "./api/team-logo";
 import manifest from "./api/manifest";
 import rules from "./api/rules";
 import { initializeApiKeyCronJobs } from "./data/api-key-cron";
+import { initializeOAuthClientCronJobs } from "./data/oauth-client-cron";
 import { initializeRuleCronJobs } from "./data/rules/cron";
 import { forbidFraming } from "./lib/oauth/frame";
 
@@ -28,6 +29,7 @@ export async function init(app: RecommandApp, server: Server) {
   logger.info("Initializing core app");
   await initializeRuleCronJobs(logger);
   initializeApiKeyCronJobs(logger);
+  initializeOAuthClientCronJobs(logger);
   // The key set and the OAuth metadata live under `/.well-known/`, outside the API's prefix
   server.route("/", jwks);
   server.route("/", oauthMetadata);

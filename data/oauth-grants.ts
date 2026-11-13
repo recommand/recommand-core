@@ -75,6 +75,10 @@ export const createGrant = async (input: {
         userId: input.userId,
       })
       .returning();
+    await tx
+      .update(oauthClients)
+      .set({ authorizedAt: new Date() })
+      .where(and(eq(oauthClients.id, input.client.id), isNull(oauthClients.authorizedAt)));
     await tx.insert(principalPermissions).values(
       [...permissionIdsByTeam].flatMap(([teamId, granted]) =>
         granted.map((permissionId) => ({

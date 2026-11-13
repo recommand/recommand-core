@@ -159,6 +159,8 @@ export const oauthClients = pgTable("oauth_clients", {
     .$defaultFn(() => "dcr_" + ulid()),
   // Null: every permission a client of this kind may be granted
   allowedPermissions: text("allowed_permissions").array(),
+  // When a user first authorized the client, after which a registered client is never deleted
+  authorizedAt: timestamp("authorized_at", { withTimezone: true }),
   clientUri: text("client_uri"),
   disabledAt: timestamp("disabled_at", { withTimezone: true }),
   grantTypes: text("grant_types").notNull().array().notNull(),
