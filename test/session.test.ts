@@ -338,6 +338,33 @@ describe('managing sessions', () => {
     expect((await app.request('/team_test/data', { headers: other })).status).toBe(401);
     expect((await app.request('/team_test/data', { headers: current })).status).toBe(200);
   });
+  test("lists only the user's own sessions that haven't ended, the ones without a last use last", async () => {
+    const current = { Cookie: await cookie() };
+    const inAnHour = new Date(Date.now() + 3_600_000).toISOString();
+    sqlite
+      .prepare('INSERT INTO sessions (id, user_id, expires_at, created_at) VALUES (?, ?, ?, ?), (?, ?, ?, ?), (?, ?, ?, ?)')
+      .run(
+        'ses_someone_else', 'user_other', inAnHour, new Date().toISOString(),
+        'ses_expired', 'user_test', new Date(Date.now() - 1_000).toISOString(), new Date().toISOString(),
+        'ses_never_seen', 'user_test', inAnHour, new Date().toISOString()
+      );
+    const ids = (await listSessions(current)).map((session) => session.id);
+    expect(ids).toHaveLength(2);
+    expect(ids.at(-1)).toBe('ses_never_seen');
+  });
+  test("aren't open to API keys", async () => {
+    await cookie();
+    const response = await app.request('/account/sessions', { headers: { Authorization: `Basic ${btoa('key_test:secret')}` } });
+    expect(response.status).toBe(403);
+  });
+  test('last use is only recorded again after ten minutes', async () => {
+    const headers = { Cookie: await cookie() };
+    const recently = new Date(Date.now() - 300_000).toISOString();
+    sqlite.prepare('UPDATE sessions SET last_seen_at = ?').run(recently);
+    await app.request('/team_test/data', { headers });
+    const [session] = await listSessions(headers);
+    expect(new Date(session.lastSeenAt).toISOString()).toBe(recently);
+  });
   test('last use is recorded once it is more than ten minutes old', async () => {
     const headers = { Cookie: await cookie() };
     const longAgo = new Date(Date.now() - 3_600_000).toISOString();

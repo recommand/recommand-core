@@ -24,6 +24,8 @@ export type AuthenticatedTeamContext = {
 };
 
 export type AuthOptions = {
+  /** Only a signed-in browser session passes, not an API key: for what a user manages about their own account. */
+  browserSessionOnly?: boolean;
   extensions?: SessionVerificationExtension[];
 };
 
@@ -42,6 +44,19 @@ export function requireAuth(options: AuthOptions = {}) {
         reasonCode: "unauthenticated",
       });
       return c.json(actionFailure("Unauthorized"), 401);
+    }
+
+    if (options.browserSessionOnly && c.get("authenticationMethod") !== "cookie") {
+      await audit(c, {
+        action: "authorize",
+        objectId: c.req.path,
+        objectType: "core.route",
+        outcome: "denied",
+        reasonCode: "browser_session_required",
+        subsystem: "core.auth",
+      });
+
+      return c.json(actionFailure("Only a signed-in browser session can use this endpoint"), 403);
     }
 
     // Successfully authenticated, continue to next middleware

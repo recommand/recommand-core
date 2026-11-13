@@ -171,12 +171,13 @@ const _getSessions = server.get(
     responses: {
       ...describeSuccessResponse("The active sessions", z.object({ sessions: z.array(sessionSchema) })),
       ...describeErrorResponse(401, "The user isn't signed in"),
+      ...describeErrorResponse(403, "Only a signed-in browser session can list the sessions"),
       ...describeErrorResponse(500, "Failed to list the sessions"),
     },
     summary: "List Sessions",
     tags: ["Account"],
   }),
-  requireAuth(),
+  requireAuth({ browserSessionOnly: true }),
   withTranslation(),
   async (c) => {
     const t = c.get("t");
@@ -209,13 +210,14 @@ const _revokeSession = server.delete(
     responses: {
       ...describeSuccessResponse("The session was signed out"),
       ...describeErrorResponse(401, "The user isn't signed in"),
+      ...describeErrorResponse(403, "Only a signed-in browser session can sign out a session"),
       ...describeErrorResponse(404, "The user has no such active session"),
       ...describeErrorResponse(500, "Failed to sign out the session"),
     },
     summary: "Sign Out a Session",
     tags: ["Account"],
   }),
-  requireAuth(),
+  requireAuth({ browserSessionOnly: true }),
   withTranslation(),
   async (c) => {
     const t = c.get("t");
@@ -255,12 +257,13 @@ const _revokeOtherSessions = server.delete(
     responses: {
       ...describeSuccessResponse("The other sessions were signed out"),
       ...describeErrorResponse(401, "The user isn't signed in"),
+      ...describeErrorResponse(403, "Only a signed-in browser session can sign out sessions"),
       ...describeErrorResponse(500, "Failed to sign out the other sessions"),
     },
     summary: "Sign Out Other Sessions",
     tags: ["Account"],
   }),
-  requireAuth(),
+  requireAuth({ browserSessionOnly: true }),
   withTranslation(),
   async (c) => {
     const t = c.get("t");

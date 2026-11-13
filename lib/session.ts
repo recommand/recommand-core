@@ -9,7 +9,7 @@ import { verify, sign } from "./jwt";
 import { addMilliseconds } from "date-fns";
 import { db } from "@recommand/db";
 import { sessions, teamMembers, users } from "@core/db/schema";
-import { and, desc, eq, gt, isNull, ne } from "drizzle-orm";
+import { and, desc, eq, gt, isNull, ne, sql } from "drizzle-orm";
 import type { Tx } from "@core/data/rules/db";
 
 const cookie = {
@@ -192,7 +192,8 @@ export const listUserSessions = async (userId: string) =>
     })
     .from(sessions)
     .where(and(eq(sessions.userId, userId), isNull(sessions.revokedAt), gt(sessions.expiresAt, new Date())))
-    .orderBy(desc(sessions.lastSeenAt));
+    // A session from before `lastSeenAt` was recorded goes after the ones that have it
+    .orderBy(sql`${sessions.lastSeenAt} DESC NULLS LAST`, desc(sessions.createdAt));
 
 /** Ends one of a user's sessions. False when the user has no such active session. */
 export const revokeUserSession = async (userId: string, sessionId: string): Promise<boolean> => {
@@ -272,7 +273,12 @@ async function verifySessionCookie(c: Context): Promise<Session | null> {
 
   if (storedSession) {
     if (!storedSession.lastSeenAt || Date.now() - storedSession.lastSeenAt.getTime() >= lastSeenInterval) {
-      await db.update(sessions).set({ lastSeenAt: new Date() }).where(eq(sessions.id, storedSession.id));
+      // Only informs the sessions list, so a failed write doesn't sign the user out
+      await db
+        .update(sessions)
+        .set({ lastSeenAt: new Date() })
+        .where(eq(sessions.id, storedSession.id))
+        .catch((error) => console.error("Failed to record when a session was last used", error));
     }
 
     c.set("session", { expiresAt: storedSession.expiresAt, id: storedSession.id } satisfies CurrentSession);

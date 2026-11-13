@@ -25,7 +25,8 @@ type Session = {
 
 export const SessionsCard: FunctionComponent = () => {
   const { formatDateTime } = useDateFormat();
-  const [sessions, setSessions] = useState<Session[]>([]);
+  // Null until they've loaded, so the card doesn't claim there are none
+  const [sessions, setSessions] = useState<Session[] | null>(null);
   const { t } = useTranslation();
 
   const fetchSessions = async () => {
@@ -96,7 +97,7 @@ export const SessionsCard: FunctionComponent = () => {
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {sessions.length === 0 ? (
+        {sessions === null ? null : sessions.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t`No active sessions`}</p>
         ) : (
           <ul className="divide-y">
@@ -123,7 +124,7 @@ export const SessionsCard: FunctionComponent = () => {
           </ul>
         )}
 
-        {sessions.some((session) => !session.isCurrent) ? (
+        {sessions?.some((session) => !session.isCurrent) ? (
           <ConfirmDialog
             confirmButtonText={t`Sign out`}
             description={t`Every other browser signed in to your account will be signed out.`}
