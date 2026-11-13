@@ -1,0 +1,1 @@
+ALTER TABLE "oauth_grants" ALTER COLUMN "client_id" DROP NOT NULL;

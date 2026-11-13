@@ -114,7 +114,7 @@ export const apiKeys = pgTable(
   (table) => [index("api_keys_secret_hash_idx").using("hash", table.secretHash)]
 );
 
-export const principalTypes = pgEnum("principal_types", ["api_key", "installation"]);
+export const principalTypes = pgEnum("principal_types", ["api_key", "installation", "oauth_grant"]);
 
 export const principalPermissions = pgTable(
   "principal_permissions",
@@ -144,6 +144,116 @@ export const principalPermissions = pgTable(
       table.teamId
     ),
   ]
+);
+
+export const oauthClientKinds = pgEnum("oauth_client_kinds", ["dynamic"]);
+
+export const oauthClients = pgTable("oauth_clients", {
+  // A metadata document's URL, or the ID this server gives a registered client:
+  // it can't choose one, so none looks like a URL or like a client this server
+  // knows from elsewhere
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => "dcr_" + ulid()),
+  // Null: every permission a client of this kind may be granted
+  allowedPermissions: text("allowed_permissions").array(),
+  clientUri: text("client_uri"),
+  disabledAt: timestamp("disabled_at", { withTimezone: true }),
+  grantTypes: text("grant_types").notNull().array().notNull(),
+  kind: oauthClientKinds("kind").notNull(),
+  logoUri: text("logo_uri"),
+  // When the stored copy was last checked against the client's metadata document
+  metadataFetchedAt: timestamp("metadata_fetched_at", { withTimezone: true }),
+  name: text("name"),
+  redirectUris: text("redirect_uris").notNull().array().notNull(),
+  tokenEndpointAuthMethod: text("token_endpoint_auth_method").notNull(),
+
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: autoUpdateTimestamp(),
+});
+
+// A code is stored hashed and used once; the grant is only made when it is
+// exchanged, so consent that is never completed leaves no grant behind
+export const oauthAuthorizationCodes = pgTable("oauth_authorization_codes", {
+  codeHash: text("code_hash").primaryKey(),
+  codeChallenge: text("code_challenge").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  permissionIds: text("permission_ids").notNull().array().notNull(),
+  redirectUri: text("redirect_uri").notNull(),
+  resources: text("resources").notNull().array().notNull(),
+  // Set when a code is presented again before its grant was recorded
+  reusedAt: timestamp("reused_at", { withTimezone: true }),
+  teamIds: text("team_ids").notNull().array().notNull(),
+  // A used code is kept, so presenting it again deletes the grant it was
+  // exchanged for
+  usedAt: timestamp("used_at", { withTimezone: true }),
+
+  clientId: text("client_id")
+    .references(() => oauthClients.id, { onDelete: "cascade" })
+    .notNull(),
+  grantId: text("grant_id").references(() => oauthGrants.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Who a grant acts for: the user who consented
+export const oauthGrantPrincipalTypes = pgEnum("oauth_grant_principal_types", ["user"]);
+
+// The teams and permissions of a grant are its `principal_permissions` rows
+export const oauthGrants = pgTable("oauth_grants", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => "grt_" + ulid()),
+  // When the client last used the grant, written at most every ten minutes
+  lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+  principalType: oauthGrantPrincipalTypes("principal_type").notNull(),
+
+  // Null for the JWT bearer flow (RFC 7523), where a team's own key signs the assertion
+  clientId: text("client_id").references(() => oauthClients.id, { onDelete: "cascade" }),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
+
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: autoUpdateTimestamp(),
+});
+
+// Tokens are stored hashed. An access token lasts an hour at most, and is checked
+// against this table on every request, so revoking its grant ends it at once.
+export const oauthAccessTokens = pgTable(
+  "oauth_access_tokens",
+  {
+    tokenHash: text("token_hash").primaryKey(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    resources: text("resources").notNull().array().notNull(),
+
+    grantId: text("grant_id")
+      .references(() => oauthGrants.id, { onDelete: "cascade" })
+      .notNull(),
+
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index("oauth_access_tokens_grant_id_idx").on(table.grantId)]
+);
+
+// A refresh token is replaced on every use; `used_at` keeps the replaced ones,
+// so presenting one again is recognized as a stolen token
+export const oauthRefreshTokens = pgTable(
+  "oauth_refresh_tokens",
+  {
+    tokenHash: text("token_hash").primaryKey(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    resources: text("resources").notNull().array().notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+
+    grantId: text("grant_id")
+      .references(() => oauthGrants.id, { onDelete: "cascade" })
+      .notNull(),
+
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index("oauth_refresh_tokens_grant_id_idx").on(table.grantId)]
 );
 
 export const auditEvents = pgTable("audit_events", {

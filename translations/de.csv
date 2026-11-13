@@ -440,3 +440,36 @@ Members,Mitglieder
 Rules,Regeln
 Other,Sonstige
 Permissions updated,Berechtigungen aktualisiert
+Allow,Zulassen
+An app,Eine App
+App disconnected,App getrennt
+Apps you allowed to access your teams. Disconnect any app you no longer use.,Apps\, denen Sie Zugriff auf Ihre Teams gewährt haben. Trennen Sie Apps\, die Sie nicht mehr verwenden.
+Connected app not found,Verbundene App nicht gefunden
+Connected apps,Verbundene Apps
+Connected {0},Verbunden am {0}
+Disconnect,Trennen
+Disconnect {0},{0} trennen
+Failed to disconnect the app,Die App konnte nicht getrennt werden
+Failed to load connected apps,Verbundene Apps konnten nicht geladen werden
+Identified by {0},Identifiziert durch {0}
+Last used {0},Zuletzt verwendet am {0}
+No connected apps,Keine verbundenen Apps
+Not used yet,Noch nicht verwendet
+Nothing can be granted in this team,In diesem Team kann nichts gewährt werden
+Only continue if you started this yourself,Fahren Sie nur fort\, wenn Sie dies selbst gestartet haben
+Sign in again to continue,Melden Sie sich erneut an\, um fortzufahren
+This app returns to a program on your own computer. Any program can claim to be this app.,Diese App kehrt zu einem Programm auf Ihrem eigenen Computer zurück. Jedes Programm kann sich als diese App ausgeben.
+These start unticked\, so {0} only gets them if you choose to: {1}.,Diese sind zunächst nicht ausgewählt\, sodass {0} sie nur erhält\, wenn Sie sie auswählen: {1}.
+This request can't be handled,Diese Anfrage kann nicht bearbeitet werden
+Unverified app,Nicht verifizierte App
+Back to {0},Zurück zu {0}
+You'll be sent back to {0},Sie werden zu {0} zurückgeleitet
+You're not a member of any team.,Sie sind kein Mitglied eines Teams.
+{0} wants access to your teams,{0} möchte auf Ihre Teams zugreifen
+Choose what {0} can do,Wählen Sie aus\, was {0} tun darf
+Choose at least one permission,Wählen Sie mindestens eine Berechtigung
+Choose a permission for {0},Wählen Sie eine Berechtigung für {0}
+Choose at least one team,Wählen Sie mindestens ein Team
+Each team only gets the permissions you hold there.,Jedes Team erhält nur die Berechtigungen\, die Sie dort haben.
+Teams,Teams
+{0} will lose access to your teams right away.,{0} verliert sofort den Zugriff auf Ihre Teams.

@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { readdir, readFile } from "node:fs/promises";
+import { basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
 import { Hono } from "hono";
@@ -119,6 +120,15 @@ describe("grant migration", () => {
       ('legacy_admin', 'Legacy admin', 'admin', 'one', 'basic', 'unused', NULL)`,
       [await bcrypt.hash("legacy-secret", 4), expiresAt]);
     await pool.query(await readFile(migration, "utf8"));
+    // Later migrations' changes to the recreated enum run again too
+    const migrations = fileURLToPath(new URL("../../db/drizzle/", import.meta.url));
+    const later = (await readdir(migrations)).filter((file) => file.endsWith(".sql") && file > basename(migration)).toSorted();
+    for (const file of later) {
+      const statements = (await readFile(`${migrations}${file}`, "utf8")).split("--> statement-breakpoint");
+      for (const statement of statements.filter((sql) => sql.trim().startsWith('ALTER TYPE "public"."principal_types"'))) {
+        await pool.query(statement);
+      }
+    }
     const members = await pool.query("SELECT user_id, permission_id FROM user_permissions WHERE team_id = 'one' AND permission_id LIKE 'core.%' AND permission_id <> 'core.team.manage' ORDER BY 1, 2");
     expect(members.rows).toEqual(["other", "owner"].flatMap((user_id) => CORE_MEMBER_PERMISSIONS.map((permission_id) => ({ permission_id, user_id }))));
     await Promise.all(["legacy_basic", "legacy_jwt"].map(async (id) => {

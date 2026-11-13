@@ -1,3 +1,4 @@
+import { removeTeamFromGrants } from "@core/data/oauth-grants";
 import { teamMembers, teams, userPermissions, users } from "@core/db/schema";
 import { emitBackendEvent, CORE_BACKEND_EVENTS, type TeamDeletionEvent } from "@core/lib/backend-events";
 import { getTeamCreationPermissions } from "@core/lib/permissions";
@@ -129,7 +130,12 @@ export async function deleteTeam(teamId: string, options: { deletedBy?: string |
   // resources that need to be cleaned up first). A throwing listener aborts the
   // delete before any data is removed.
   await emitBackendEvent(CORE_BACKEND_EVENTS.TEAM_BEFORE_DELETE, event);
-  const deletedTeam = await db.delete(teams).where(eq(teams.id, teamId));
+  // The team's grant rows go with the team; this also deletes the grants left
+  // without a team
+  const deletedTeam = await db.transaction(async (tx) => {
+    await removeTeamFromGrants(teamId, { executor: tx });
+    return tx.delete(teams).where(eq(teams.id, teamId));
+  });
   await emitBackendEvent(CORE_BACKEND_EVENTS.TEAM_DELETED, event);
   return deletedTeam;
 }

@@ -1,12 +1,13 @@
 import { principalPermissions } from "@core/db/schema";
 import type { PermissionScope } from "@core/lib/permissions";
-import { getRegisteredPermission } from "@core/lib/permissions";
+import { getDelegablePermission, getRegisteredPermission } from "@core/lib/permissions";
 import { db } from "@recommand/db";
 import { and, eq, inArray } from "drizzle-orm";
 import {
   getGrantablePermissions,
   hasPermission,
   InvalidPermissionScopeError,
+  listMemberTeamPermissionIds,
   listOwnerTeamPermissionIds,
   NotAuthorizedError,
   PermissionNotRegisteredError,
@@ -14,7 +15,9 @@ import {
 
 export type ActorPrincipal =
   | { type: "user"; userId: string }
-  | { type: "api_key"; apiKeyId: string; ownerUserId: string };
+  | { type: "api_key"; apiKeyId: string; ownerUserId: string }
+  // `permissionIds`: what the grant holds in the team, when the request already loaded it
+  | { type: "oauth_grant"; grantId: string; permissionIds?: string[]; userId: string };
 
 export const hasPrincipalPermission = async (
   principal: ActorPrincipal,
@@ -41,10 +44,26 @@ export const hasPrincipalPermission = async (
     return hasPermission(principal.ownerUserId, teamId, permissionId);
   }
 
+  if (principal.type === "oauth_grant") {
+    // Also refuses a permission whose delegation changed after the consent
+    if (!getDelegablePermission(permissionId)) {
+      return false;
+    }
+    const granted = principal.permissionIds
+      ? principal.permissionIds.includes(permissionId)
+      : await hasStoredPrincipalPermission("oauth_grant", principal.grantId, teamId, permissionId);
+    if (!granted) {
+      return false;
+    }
+    // Unlike an API key, never through the admin bypass: an OAuth token carries
+    // at most what its user holds as a member of the team
+    return (await listMemberTeamPermissionIds(principal.userId, teamId)).includes(permissionId);
+  }
+
   throw new Error("Invalid principal type");
 };
 
-export type PrincipalType = "api_key";
+export type PrincipalType = "api_key" | "oauth_grant";
 export type PrincipalPermission = typeof principalPermissions.$inferSelect;
 
 // A key's permissions are stored in its own team and apply wherever the key may
