@@ -74,18 +74,19 @@ export async function createApiKey({
           name,
         });
     } else {
-        return await createBasicApiKey(user.id, teamId, name);
+        const expiresAt = expiresInSeconds ? addSeconds(new Date(), expiresInSeconds) : null;
+        return await createBasicApiKey(user.id, teamId, name, expiresAt);
     }
 }
 
-export async function createBasicApiKey(userId: string, teamId: string, name: string) {
+export async function createBasicApiKey(userId: string, teamId: string, name: string, expiresAt: Date | null = null) {
     const secret = crypto.randomUUID();
     const readableSecret = "secret_" + secret.replace(/-/g, "");
     const secretHash = await bcrypt.hash(readableSecret, 10);
 
     const res = await db
         .insert(apiKeys)
-        .values({ userId, teamId, name, type: "basic", secretHash })
+        .values({ expiresAt, name, secretHash, teamId, type: "basic", userId })
         .returning();
 
     return {

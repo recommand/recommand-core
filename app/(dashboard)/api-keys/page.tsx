@@ -11,6 +11,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { Button } from "@core/components/ui/button";
+import { Checkbox } from "@core/components/ui/checkbox";
 import { Input } from "@core/components/ui/input";
 import { Label } from "@core/components/ui/label";
 import { toast } from "@core/components/ui/sonner";
@@ -54,6 +55,9 @@ export default function Page() {
   const [keyType, setKeyType] = useState<"basic" | "jwt">("basic");
   const [expirationDuration, setExpirationDuration] = useState<string>("24");
   const [expirationUnit, setExpirationUnit] = useState<"hours" | "days">("hours");
+  // A JWT key always expires; a Basic key only when its creator asks for it
+  const [basicKeyExpires, setBasicKeyExpires] = useState(false);
+  const hasExpiration = keyType === "jwt" || basicKeyExpires;
   const [isLoading, setIsLoading] = useState(true);
   const [newKey, setNewKey] = useState<
     | { key: string; secret: string; type: "basic" }
@@ -137,7 +141,9 @@ export default function Page() {
   }, [fetchApiKeys, checkCreationPermission]);
 
   const isValidExpirationDuration = () => {
-    if (keyType === "basic") return true;
+    if (!hasExpiration) {
+      return true;
+    }
     const trimmed = expirationDuration.trim();
     if (trimmed === "") return false;
     const num = parseInt(trimmed, 10);
@@ -151,14 +157,14 @@ export default function Page() {
       return;
     }
 
-    if (keyType === "jwt" && !isValidExpirationDuration()) {
+    if (hasExpiration && !isValidExpirationDuration()) {
       toast.error(t`Please enter a valid expiration duration`);
       return;
     }
 
     try {
       let expiresInSeconds: number | undefined;
-      if (keyType === "jwt") {
+      if (hasExpiration) {
         const durationNum = parseInt(expirationDuration.trim(), 10);
         const hoursPerUnit = {
           hours: 1,
@@ -400,13 +406,24 @@ export default function Page() {
                 disabled={
                   !activeTeam?.id ||
                   !newKeyName.trim() ||
-                  (keyType === "jwt" && !isValidExpirationDuration())
+                  (hasExpiration && !isValidExpirationDuration())
                 }
               >
                 {t`Create API Key`}
               </Button>
             </div>
-            {keyType === "jwt" && (
+            {keyType === "basic" ? (
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={basicKeyExpires}
+                  id="basic-key-expires"
+                  onCheckedChange={(checked) => setBasicKeyExpires(checked === true)}
+                />
+
+                <Label htmlFor="basic-key-expires">{t`Let this key expire`}</Label>
+              </div>
+            ) : null}
+            {hasExpiration ? (
               <div className="space-y-2">
                 <Label htmlFor="expiration-duration">{t`API Key Expiration in`}</Label>
                 <div className="flex items-center gap-2">
@@ -434,7 +451,7 @@ export default function Page() {
                   </Select>
                 </div>
               </div>
-            )}
+            ) : null}
           </div>
         ) : null}
         <div className="rounded-lg border p-4 space-y-4 max-w-2xl bg-muted">
