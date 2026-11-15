@@ -45,7 +45,7 @@ A package registers a kind in code, like an event type:
 
 ```ts
 registerNotificationKind({
-  kind: "platform.approval.requested",
+  kind: "kernel.approval.requested",
   ui: { label: "Approval requests", group: "Approvals" },
   defaultChannels: ["email"],
   render: async ({ t, user, team }, notification) => {
@@ -79,7 +79,7 @@ registerNotificationKind({
 await notify({
   teamId,
   userIds,
-  kind: "platform.approval.requested",
+  kind: "kernel.approval.requested",
   subject: { type: "invoice", id },
   key: obligationId, // groups all messages about the same thing
   data, // input for render and onAction
