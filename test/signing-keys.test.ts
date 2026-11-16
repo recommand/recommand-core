@@ -105,6 +105,11 @@ describe("with settings that can't work", () => {
     expect((await getPublicKeySet()).keys).toHaveLength(1);
   });
 
+  test("refuses a published key that isn't an RSA key", async () => {
+    process.env.INTEGRATIONS_JWKS = JSON.stringify({ keys: [{ k: "c2VjcmV0", kty: "oct" }] });
+    await expect(getPublicKeySet()).rejects.toThrow("INTEGRATIONS_JWKS key 0 isn't an RSA key");
+  });
+
   test.each([
     ["not json", "SIGNING_KEYS isn't valid JSON"],
     ["{}", "SIGNING_KEYS needs a `keys` array with at least one key"],

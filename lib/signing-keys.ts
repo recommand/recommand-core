@@ -27,6 +27,15 @@ const toPem = (value: string) =>
     )
     .join("-----");
 
+// Only RSA keys sign and verify, so a key of another type can't be published either
+const assertRsaKeys = (keys: JWK[], setting: string) => {
+  keys.forEach((key, index) => {
+    if (key?.kty !== "RSA" || typeof key.n !== "string" || typeof key.e !== "string") {
+      throw new Error(`${setting} key ${index} isn't an RSA key`);
+    }
+  });
+};
+
 /**
  * Reads `SIGNING_KEYS`, a JSON Web Key Set (RFC 7517) of RS256 keys, and refuses one that
  * can't work. The errors name the key's position, never its material.
@@ -44,14 +53,17 @@ const parseSigningKeys = (value: string): JWK[] => {
     throw new Error("SIGNING_KEYS needs a `keys` array with at least one key");
   }
 
-  keys.forEach((key, index) => {
-    if (key?.kty !== "RSA" || typeof key.n !== "string" || typeof key.e !== "string") {
-      throw new Error(`SIGNING_KEYS key ${index} isn't an RSA key`);
-    }
-  });
+  assertRsaKeys(keys, "SIGNING_KEYS");
   if (typeof keys[0].d !== "string") {
     throw new Error("SIGNING_KEYS key 0 signs, so it needs its private members");
   }
+
+  return keys;
+};
+
+const parseIntegrationKeys = (value: string): JWK[] => {
+  const { keys } = JSON.parse(value) as JSONWebKeySet;
+  assertRsaKeys(keys, "INTEGRATIONS_JWKS");
 
   return keys;
 };
@@ -60,7 +72,9 @@ const parseSigningKeys = (value: string): JWK[] => {
  * `SIGNING_KEYS`: the first key, which needs its private members, signs, and every
  * one of them is published to verify with. Rotating means adding the next key after
  * the current one, moving it to the front once verifiers have fetched it, and
- * removing the old one when nothing it signed is still valid.
+ * removing the old one when nothing it signed is still valid. A token without a `kid`
+ * only verifies while a single key is published, so a second key goes in once the
+ * tokens signed without one have expired.
  *
  * Without it, `INTEGRATIONS_PRIVATE_KEY` (a PKCS #8 PEM) signs and the keys in
  * `INTEGRATIONS_JWKS` are published, as before this setting existed.
@@ -69,7 +83,7 @@ const loadPublicKeys = async (): Promise<PublicKeys> => {
   const keys = process.env.SIGNING_KEYS
     ? parseSigningKeys(process.env.SIGNING_KEYS)
     : process.env.INTEGRATIONS_JWKS
-      ? (JSON.parse(process.env.INTEGRATIONS_JWKS) as JSONWebKeySet).keys
+      ? parseIntegrationKeys(process.env.INTEGRATIONS_JWKS)
       : [];
   const keySet = { keys: await Promise.all(keys.map(toPublicKey)) };
   const kids = keySet.keys.map((key) => key.kid);
