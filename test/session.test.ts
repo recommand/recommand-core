@@ -331,6 +331,13 @@ describe('managing sessions', () => {
     expect((await app.request('/account/sessions/ses_someone_else', { headers: current, method: 'DELETE' })).status).toBe(404);
     expect(sqlite.prepare("SELECT revoked_at FROM sessions WHERE id = 'ses_someone_else'").get()).toEqual({ revoked_at: null });
   });
+  test('an expired session answers 404', async () => {
+    const current = { Cookie: await cookie() };
+    sqlite
+      .prepare('INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)')
+      .run('ses_expired', 'user_test', new Date(Date.now() - 1_000).toISOString());
+    expect((await app.request('/account/sessions/ses_expired', { headers: current, method: 'DELETE' })).status).toBe(404);
+  });
   test('signing out every other session keeps the current one', async () => {
     const current = { Cookie: await cookie() };
     const other = { Cookie: await cookie() };

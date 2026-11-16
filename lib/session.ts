@@ -200,7 +200,7 @@ export const revokeUserSession = async (userId: string, sessionId: string): Prom
   const revoked = await db
     .update(sessions)
     .set({ revokedAt: new Date() })
-    .where(and(eq(sessions.id, sessionId), eq(sessions.userId, userId), isNull(sessions.revokedAt)))
+    .where(and(eq(sessions.id, sessionId), eq(sessions.userId, userId), isNull(sessions.revokedAt), gt(sessions.expiresAt, new Date())))
     .returning({ id: sessions.id });
 
   return revoked.length > 0;
