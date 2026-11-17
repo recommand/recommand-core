@@ -135,7 +135,7 @@ export const markRefused = (c: Context) => {
   c.set(REFUSED as never, true as never);
 };
 
-const failure = (c: Context, status: 400 | 409, message: string, code: string) => {
+const failure = (c: Context, status: 400 | 409 | 422, message: string, code: string) => {
   c.set(ANSWERED as never, true as never);
 
   return c.json({ ...actionFailure(message), code }, status);
@@ -186,14 +186,15 @@ const storeOutcome = async (c: Context, id: string) => {
  *   done what it was for before it failed, and running it again could do it twice.
  *   Only a request the route marks with `markRefused()` frees its key, since nothing
  *   happened.
- * - A different request under the same key gets `409` with `idempotency_conflict`.
+ * - A different request under the same key gets `422` with `idempotency_conflict`, as
+ *   the draft has it: the request itself is wrong for its key.
  *   A repeat while the first is running gets `409` with `idempotency_in_progress` and
  *   `Retry-After`. A repeat after the first ended without its response being stored,
  *   such as when the server stopped during it, gets `409` with
  *   `idempotency_outcome_unknown`: there's no response to repeat, and waiting won't
  *   change that answer.
- * - An invalid key gets `400` with `invalid_idempotency_key`, linking the route's
- *   documentation.
+ * - The `400` for an invalid key and the `422` for a key used for a different request
+ *   link the route's documentation.
  *
  * Where this departs from the draft: a bare key is taken next to the quoted String of
  * section 2.1, a request refused before anything happened frees its key for a
@@ -237,9 +238,11 @@ export const idempotent = (options: IdempotencyOptions) =>
       teamId: c.var.team.id,
     });
     if (reservation.outcome === "conflict") {
+      linkDocumentation(c, options.documentationUrl);
+
       return failure(
         c,
-        409,
+        422,
         `This ${IDEMPOTENCY_KEY_HEADER} was already used for a different request. Use a new key for a new request.`,
         "idempotency_conflict"
       );
@@ -294,7 +297,7 @@ export const idempotent = (options: IdempotencyOptions) =>
 /** The request header, for a route's OpenAPI `parameters`. */
 export const idempotencyKeyParameter = {
   description:
-    "A key that makes the request safe to retry: a repeat of the request under the same key returns the first response, whatever its status, instead of running again. Use a new key for every new request, such as a UUID or your own ID for what you send. Keys are 1 to 255 printable ASCII characters, scoped to your team, this operation and what it acts on, such as the company, and kept for at least 24 hours after the request finished. A different request under the same key, with another body or query or through another path, is refused with `409` and code `idempotency_conflict`; a JSON body is compared by its contents, so its whitespace and key order don't matter. A repeat while the first request is still running gets `409` with code `idempotency_in_progress` and a `Retry-After` header. A request refused before anything happened, such as one with invalid content, doesn't use up its key, so you can fix it and retry under the same key. After any other failure the key stays used until it expires, because the request may have taken effect, and a repeat gets the same failure again. A repeat of a request that ended without a response to repeat, such as one still unfinished after 10 minutes, gets `409` with code `idempotency_outcome_unknown`: check whether the first request took effect before sending again under a new key. The value may be sent bare or quoted, as the IETF draft defines it (https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header), and only once; an invalid key is refused with `400` and code `invalid_idempotency_key`.",
+    "A key that makes the request safe to retry: a repeat of the request under the same key returns the first response, whatever its status, instead of running again. Use a new key for every new request, such as a UUID or your own ID for what you send. Keys are 1 to 255 printable ASCII characters, scoped to your team, this operation and what it acts on, such as the company, and kept for at least 24 hours after the request finished. A different request under the same key, with another body or query or through another path, is refused with `422` and code `idempotency_conflict`; a JSON body is compared by its contents, so its whitespace and key order don't matter. A repeat while the first request is still running gets `409` with code `idempotency_in_progress` and a `Retry-After` header. A request refused before anything happened, such as one with invalid content, doesn't use up its key, so you can fix it and retry under the same key. After any other failure the key stays used until it expires, because the request may have taken effect, and a repeat gets the same failure again. A repeat of a request that ended without a response to repeat, such as one still unfinished after 10 minutes, gets `409` with code `idempotency_outcome_unknown`: check whether the first request took effect before sending again under a new key. The value may be sent bare or quoted, as the IETF draft defines it (https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header), and only once; an invalid key is refused with `400` and code `invalid_idempotency_key`.",
   in: "header" as const,
   name: IDEMPOTENCY_KEY_HEADER,
   required: false,
@@ -354,7 +357,7 @@ export const describeIdempotentValidationErrorResponse = (description: string) =
 
 const idempotencyFailureResponse = z.object({
   code: z
-    .enum(["idempotency_conflict", "idempotency_in_progress", "idempotency_outcome_unknown"])
+    .enum(["idempotency_in_progress", "idempotency_outcome_unknown"])
     .openapi({
       description: "Why the request was refused.",
     }),
@@ -364,7 +367,7 @@ const idempotencyFailureResponse = z.object({
 export const describeIdempotencyConflictResponse = () => {
   const response = describeErrorResponse(
     409,
-    "The `Idempotency-Key` was already used for a different request (`idempotency_conflict`), a request with it is still running (`idempotency_in_progress`, with `Retry-After`), or one ended without a response to repeat (`idempotency_outcome_unknown`).",
+    "A request with the `Idempotency-Key` is still running (`idempotency_in_progress`, with `Retry-After`), or one ended without a response to repeat (`idempotency_outcome_unknown`).",
     idempotencyFailureResponse
   );
 
@@ -377,6 +380,42 @@ export const describeIdempotencyConflictResponse = () => {
           schema: { examples: [5], minimum: 0, type: "integer" as const },
         },
       },
+    },
+  };
+};
+
+/**
+ * The `422` of an idempotent route: the route's own `422`, described by `bodySchema`,
+ * or an `Idempotency-Key` already used for a different request, with code
+ * `idempotency_conflict` and a `Link` to the documentation. The IETF draft answers that
+ * with `422` (`Idempotency-Key` draft 08, section 2.7), so a route that answers `422`
+ * itself tells the two apart by `code`. The route's own `422` is kept with the key and
+ * replayed like a success, with the same response headers.
+ *
+ * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Idempotency-Key
+ * @see https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-08#section-2.7
+ */
+export const describeIdempotentUnprocessableResponse = (
+  description: string,
+  bodySchema: z.AnyZodObject = z.object({})
+) => {
+  const response = describeErrorResponse(
+    422,
+    description,
+    bodySchema.extend({
+      code: z
+        .enum(["idempotency_conflict"])
+        .optional()
+        .openapi({
+          description: "Set when the `Idempotency-Key` was already used for a different request.",
+        }),
+    })
+  );
+
+  return {
+    422: {
+      ...response[422],
+      headers: { ...idempotencyResponseHeaders, ...documentationLinkHeader },
     },
   };
 };
