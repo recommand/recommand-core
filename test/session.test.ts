@@ -12,6 +12,7 @@ const passwordHash = await bcrypt.hash('old-password', 4);
 let currentUser: { id: string; isAdmin: boolean; language: string; passwordHash: string } | null;
 let member = true;
 let keyExists = true;
+let basicKeyExpiresAt: Date | null = null;
 // Sessions live in SQLite, so the session queries run as written.
 const sqlite = new Database(':memory:');
 sqlite.exec(
@@ -76,7 +77,8 @@ const key = {
 mock.module('@recommand/db', () => ({ db }));
 mock.module('@core/data/api-keys', () => ({
   getApiKey: async () => (keyExists ? key : null),
-  checkApiKey: async () => (keyExists && currentUser ? { user: currentUser, apiKey: key } : null),
+  checkApiKey: async () =>
+    keyExists && currentUser ? { user: currentUser, apiKey: { ...key, expiresAt: basicKeyExpiresAt, type: 'basic' } } : null,
 }));
 mock.module('@core/data/teams', () => ({
   createTeam: async () => {},
@@ -155,6 +157,7 @@ beforeEach(() => {
   currentUser = { id: 'user_test', isAdmin: false, language: 'en', passwordHash };
   member = true;
   keyExists = true;
+  basicKeyExpiresAt = null;
   sqlite.exec('DELETE FROM sessions');
 });
 
@@ -180,6 +183,12 @@ describe('credential scope and current authorization', () => {
     expect(
       (await app.request('/team_test/data', { headers: await bearer('other_user') })).status,
     ).toBe(401);
+  });
+  test('a Basic key works until its expiry date, and not after', async () => {
+    basicKeyExpiresAt = new Date(Date.now() + 60_000);
+    expect((await app.request('/team_test/data', { headers: basic })).status).toBe(200);
+    basicKeyExpiresAt = new Date(Date.now() - 1_000);
+    expect((await app.request('/team_test/data', { headers: basic })).status).toBe(401);
   });
   test('deleted JWT keys are rejected', async () => {
     keyExists = false;

@@ -11,6 +11,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { Button } from "@core/components/ui/button";
+import { Checkbox } from "@core/components/ui/checkbox";
 import { Input } from "@core/components/ui/input";
 import { Label } from "@core/components/ui/label";
 import { toast } from "@core/components/ui/sonner";
@@ -39,6 +40,7 @@ import {
 import { useTranslation } from "@core/hooks/use-translation";
 import { useDataTableState } from "@core/hooks/use-data-table-state";
 import { DataTablePagination } from "@core/components/data-table/pagination";
+import { MAX_API_KEY_EXPIRES_IN_SECONDS } from "@core/lib/api-key-expiry";
 
 const client = rc<ApiKeys>("core");
 
@@ -54,9 +56,12 @@ export default function Page() {
   const [keyType, setKeyType] = useState<"basic" | "jwt">("basic");
   const [expirationDuration, setExpirationDuration] = useState<string>("24");
   const [expirationUnit, setExpirationUnit] = useState<"hours" | "days">("hours");
+  // A JWT key always expires; a Basic key only when its creator asks for it
+  const [basicKeyExpires, setBasicKeyExpires] = useState(false);
+  const hasExpiration = keyType === "jwt" || basicKeyExpires;
   const [isLoading, setIsLoading] = useState(true);
   const [newKey, setNewKey] = useState<
-    | { key: string; secret: string; type: "basic" }
+    | { expiresAt: Date | null; key: string; secret: string; type: "basic" }
     | { jwt: string; type: "jwt"; expiresAt: Date }
     | null
   >(null);
@@ -136,12 +141,21 @@ export default function Page() {
     checkCreationPermission();
   }, [fetchApiKeys, checkCreationPermission]);
 
+  // The server refuses a key that would last longer, so the form says so first
+  const isExpirationTooLong =
+    hasExpiration &&
+    parseInt(expirationDuration.trim(), 10) * (expirationUnit === "days" ? 86_400 : 3_600) > MAX_API_KEY_EXPIRES_IN_SECONDS;
+
   const isValidExpirationDuration = () => {
-    if (keyType === "basic") return true;
+    if (!hasExpiration) {
+      return true;
+    }
+
     const trimmed = expirationDuration.trim();
     if (trimmed === "") return false;
     const num = parseInt(trimmed, 10);
-    return !isNaN(num) && num > 0 && num.toString() === trimmed;
+
+    return !isNaN(num) && num > 0 && num.toString() === trimmed && !isExpirationTooLong;
   };
 
   const handleCreateKey = async (e: React.FormEvent) => {
@@ -151,14 +165,14 @@ export default function Page() {
       return;
     }
 
-    if (keyType === "jwt" && !isValidExpirationDuration()) {
+    if (hasExpiration && !isValidExpirationDuration()) {
       toast.error(t`Please enter a valid expiration duration`);
       return;
     }
 
     try {
       let expiresInSeconds: number | undefined;
-      if (keyType === "jwt") {
+      if (hasExpiration) {
         const durationNum = parseInt(expirationDuration.trim(), 10);
         const hoursPerUnit = {
           hours: 1,
@@ -196,8 +210,10 @@ export default function Page() {
       };
       setApiKeys((prev) => [...prev, newApiKey]);
       setNewKeyName("");
+      setBasicKeyExpires(false);
       if (keyType === "basic" && "secret" in json.apiKey) {
         setNewKey({
+          expiresAt: json.apiKey.expiresAt ? new Date(json.apiKey.expiresAt) : null,
           key: json.apiKey.id,
           secret: json.apiKey.secret,
           type: "basic",
@@ -260,7 +276,8 @@ export default function Page() {
       cell: ({ row }) => {
         const expiresAt = row.getValue("expiresAt") as Date | null;
         if (!expiresAt) return t`Never`;
-        const isExpired = new Date(expiresAt) < new Date();
+        // A key is refused from the instant it expires
+        const isExpired = new Date(expiresAt) <= new Date();
         return (
           <span className={isExpired ? "text-destructive font-medium" : ""}>
             {new Date(expiresAt).toLocaleString(language)}
@@ -400,13 +417,26 @@ export default function Page() {
                 disabled={
                   !activeTeam?.id ||
                   !newKeyName.trim() ||
-                  (keyType === "jwt" && !isValidExpirationDuration())
+                  (hasExpiration && !isValidExpirationDuration())
                 }
               >
                 {t`Create API Key`}
               </Button>
             </div>
-            {keyType === "jwt" && (
+
+            {keyType === "basic" ? (
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={basicKeyExpires}
+                  id="basic-key-expires"
+                  onCheckedChange={(checked) => setBasicKeyExpires(checked === true)}
+                />
+
+                <Label htmlFor="basic-key-expires">{t`Let this key expire`}</Label>
+              </div>
+            ) : null}
+
+            {hasExpiration ? (
               <div className="space-y-2">
                 <Label htmlFor="expiration-duration">{t`API Key Expiration in`}</Label>
                 <div className="flex items-center gap-2">
@@ -433,8 +463,12 @@ export default function Page() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {isExpirationTooLong ? (
+                  <p className="text-sm text-destructive">{t`An API key can last at most 100 years.`}</p>
+                ) : null}
               </div>
-            )}
+            ) : null}
           </div>
         ) : null}
         <div className="rounded-lg border p-4 space-y-4 max-w-2xl bg-muted">
@@ -513,6 +547,15 @@ export default function Page() {
                       </Button>
                     </div>
                   </div>
+
+                  {newKey.expiresAt ? (
+                    <div>
+                      <label className="text-sm font-medium">{t`Expires At`}</label>
+
+                      <Input className="font-mono" readOnly value={newKey.expiresAt.toLocaleString(language)} />
+                    </div>
+                  ) : null}
+
                   <Collapsible>
                     <CollapsibleTrigger asChild>
                       <Button
