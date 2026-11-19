@@ -37,15 +37,14 @@ beforeEach(() => {
   delete process.env.INTEGRATIONS_JWKS;
 });
 
-describe("with a private key and a published key set", () => {
-  beforeEach(async () => {
-    process.env.INTEGRATIONS_PRIVATE_KEY = await exportPKCS8(current.privateKey);
-    process.env.INTEGRATIONS_JWKS = JSON.stringify({ keys: [await publicJwk(current.publicKey)] });
+describe("with one key", () => {
+  beforeEach(() => {
+    process.env.SIGNING_KEYS = JSON.stringify({ keys: [privateJwk] });
   });
 
-  test("names the published key after its thumbprint", async () => {
+  test("names the key after its thumbprint", async () => {
     const kid = await calculateJwkThumbprint(await exportJWK(current.publicKey));
-    expect(await getPublicKeySet()).toEqual({ keys: [{ ...(await publicJwk(current.publicKey)), kid }] });
+    expect(await getPublicKeySet()).toEqual({ keys: [{ ...publicOnly, kid }] });
     expect((await getSigningKey()).kid).toBe(kid);
   });
 
@@ -55,19 +54,9 @@ describe("with a private key and a published key set", () => {
     expect(await verifies(jwt)).toBe(true);
   });
 
-  test("reads a private key whose line breaks became spaces", async () => {
-    process.env.INTEGRATIONS_PRIVATE_KEY = (await exportPKCS8(current.privateKey)).replaceAll("\n", " ");
-    expect(await verifies(await sign())).toBe(true);
-  });
-
-  test("keeps the `kid` the published key already has", async () => {
-    process.env.INTEGRATIONS_JWKS = JSON.stringify({ keys: [{ ...(await publicJwk(current.publicKey)), kid: "first" }] });
+  test("keeps the `kid` the key already has", async () => {
+    process.env.SIGNING_KEYS = JSON.stringify({ keys: [{ ...privateJwk, kid: "first" }] });
     expect((await getSigningKey()).kid).toBe("first");
-  });
-
-  test("signs without a `kid` when no published key matches, as before", async () => {
-    process.env.INTEGRATIONS_JWKS = JSON.stringify({ keys: [await publicJwk(next.publicKey)] });
-    expect((await getSigningKey()).kid).toBeUndefined();
   });
 });
 
@@ -99,15 +88,9 @@ describe("with a key set to rotate", () => {
 
 describe("with settings that can't work", () => {
   test("still publishes and verifies when the private key is broken", async () => {
-    process.env.INTEGRATIONS_PRIVATE_KEY = "-----BEGIN PRIVATE KEY----- broken -----END PRIVATE KEY-----";
-    process.env.INTEGRATIONS_JWKS = JSON.stringify({ keys: [await publicJwk(current.publicKey)] });
+    process.env.SIGNING_KEYS = JSON.stringify({ keys: [{ ...publicOnly, d: "broken" }] });
     await expect(getSigningKey()).rejects.toThrow();
     expect((await getPublicKeySet()).keys).toHaveLength(1);
-  });
-
-  test("refuses a published key that isn't an RSA key", async () => {
-    process.env.INTEGRATIONS_JWKS = JSON.stringify({ keys: [{ k: "c2VjcmV0", kty: "oct" }] });
-    await expect(getPublicKeySet()).rejects.toThrow("INTEGRATIONS_JWKS key 0 isn't an RSA key");
   });
 
   test.each([
@@ -126,6 +109,13 @@ describe("with settings that can't work", () => {
 });
 
 test("has nothing to sign with or publish without settings", async () => {
+  await expect(getSigningKey()).rejects.toThrow("No signing key is configured");
+  expect(await getPublicKeySet()).toEqual({ keys: [] });
+});
+
+test("ignores the integration key settings", async () => {
+  process.env.INTEGRATIONS_PRIVATE_KEY = await exportPKCS8(current.privateKey);
+  process.env.INTEGRATIONS_JWKS = JSON.stringify({ keys: [publicOnly] });
   await expect(getSigningKey()).rejects.toThrow("No signing key is configured");
   expect(await getPublicKeySet()).toEqual({ keys: [] });
 });
