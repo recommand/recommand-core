@@ -51,6 +51,7 @@ app.get("/login/:userId", async (c) => {
   return c.json({ ok: true });
 });
 app.get("/:teamId/read", requireTeamAccess(), requirePermission("test.read"), (c) => c.json({ ok: true }));
+app.get("/team", requireTeamAccess(), (c) => c.json({ team: c.get("team")?.id ?? null }));
 app.get("/:teamId/manage", requireTeamAccess(), requirePermission("core.team.manage"), (c) => c.json({ ok: true }));
 app.route("/", apiKeys);
 app.route("/", permissions);
@@ -166,6 +167,14 @@ describe("API-key grants", () => {
       await pool.query("DELETE FROM user_permissions WHERE user_id = 'owner' AND team_id = 'one' AND permission_id = 'test.read'");
       expect(await read(headers)).toBe(403);
       expect(await getApiKeyPermissionIds(body.apiKey.id)).toEqual(["test.read"]);
+    });
+    test(`${type}: may name only its own team with the Recommand-Team header`, async () => {
+      const { body } = await create(type, ["test.read"]);
+      const headers = credentials(body.apiKey);
+      const own = await app.request("/team", { headers: { ...headers, "Recommand-Team": "one" } });
+      expect(await own.json()).toEqual({ team: "one" });
+      const statuses = await Promise.all(["two", "unknown"].map(async (team) => (await app.request("/team", { headers: { ...headers, "Recommand-Team": team } })).status));
+      expect(statuses).toEqual([404, 404]);
     });
     test(`${type}: empty grants deny permissions and updates take effect immediately`, async () => {
       const { body } = await create(type, []);

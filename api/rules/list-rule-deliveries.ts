@@ -30,7 +30,7 @@ const listRuleDeliveriesRouteDescription = describeRoute({
 
 const _listRuleDeliveriesMinimal = server.get(
   "/rules/:id/deliveries",
-  requireTeamAccess(),
+  requireTeamAccess({ documentTeamHeader: true }),
   requirePermission("core.rules.read"),
   listRuleDeliveriesRouteDescription,
   zodValidator("param", ruleIdParamSchema),

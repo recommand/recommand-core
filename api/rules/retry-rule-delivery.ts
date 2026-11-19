@@ -28,7 +28,7 @@ const retryRuleDeliveryRouteDescription = describeRoute({
 
 const _retryRuleDeliveryMinimal = server.post(
   "/rules/:id/deliveries/:ruleActionDeliveryId/retry",
-  requireTeamAccess(),
+  requireTeamAccess({ documentTeamHeader: true }),
   requirePermission("core.rules.write"),
   retryRuleDeliveryRouteDescription,
   zodValidator("param", deliveryParamSchema),

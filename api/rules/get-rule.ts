@@ -28,7 +28,7 @@ const getRuleRouteDescription = describeRoute({
 
 const _getRuleMinimal = server.get(
   "/rules/:id",
-  requireTeamAccess(),
+  requireTeamAccess({ documentTeamHeader: true }),
   requirePermission("core.rules.read"),
   getRuleRouteDescription,
   zodValidator("param", ruleIdParamSchema),

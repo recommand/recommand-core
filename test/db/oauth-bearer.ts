@@ -68,8 +68,8 @@ const tokenFor = async (userId: string, teamIds: string[], permissionIds: string
 
   return { accessToken, grant };
 };
-const call = (path: string, token?: string) =>
-  app.request(path, token ? { headers: { Authorization: `Bearer ${token}` } } : {});
+const call = (path: string, token?: string, team?: string) =>
+  app.request(path, { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(team ? { "Recommand-Team": team } : {}) } });
 
 describe("an OAuth access token", () => {
   test("reaches the teams of its grant, with the permissions it was granted", async () => {
@@ -85,6 +85,40 @@ describe("an OAuth access token", () => {
     expect(response.status).toBe(400);
     expect((await response.json()).code).toBe("team_required");
     expect((await call("/things/unknown", accessToken)).status).toBe(400);
+  });
+
+  test("names its team with the Recommand-Team header when the grant covers several", async () => {
+    const { accessToken } = await tokenFor("member", ["one", "two"], ["test.read"]);
+    const response = await call("/team", accessToken, "two");
+    expect(await response.json()).toEqual({ team: "two" });
+    expect(response.headers.get("Vary")).toContain("Recommand-Team");
+  });
+
+  test("answers a team outside its grant like one that doesn't exist", async () => {
+    const { accessToken } = await tokenFor("member", ["one", "two"], ["test.read"]);
+    await pool.query("INSERT INTO teams (id, name) VALUES ('three', 'Three')");
+    const statuses = await Promise.all(["three", "unknown"].map(async (team) => (await call("/team", accessToken, team)).status));
+    expect(statuses).toEqual([404, 404]);
+  });
+
+  test("refuses a header that names another team than the path, never applying it", async () => {
+    const { accessToken } = await tokenFor("member", ["one", "two"], ["test.read"]);
+    const [byTeam, byThing] = await Promise.all([call("/one/access", accessToken, "two"), call("/things/thing-one", accessToken, "two")]);
+    expect([byTeam.status, (await byTeam.json()).code, byThing.status, (await byThing.json()).code]).toEqual([400, "team_mismatch", 400, "team_mismatch"]);
+    expect(await (await call("/one/access", accessToken, "one")).json()).toEqual({ team: "one" });
+  });
+
+  test("is refused a team outside its grant before a header is compared, so it can't learn which team holds what", async () => {
+    const { accessToken } = await tokenFor("member", ["one"], ["test.read"]);
+    const response = await call("/things/thing-two", accessToken, "one");
+    expect(response.status).toBe(403);
+    expect((await response.json()).code).not.toBe("team_mismatch");
+  });
+
+  test("with a grant for one team, may only name that team", async () => {
+    const { accessToken } = await tokenFor("member", ["one"], ["test.read"]);
+    expect(await (await call("/team", accessToken, "one")).json()).toEqual({ team: "one" });
+    expect((await call("/team", accessToken, "two")).status).toBe(404);
   });
 
   test("asks for a permission it wasn't granted", async () => {

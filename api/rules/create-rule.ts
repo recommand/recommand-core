@@ -30,7 +30,7 @@ const createRuleRouteDescription = describeRoute({
 
 const _createRuleMinimal = server.post(
   "/rules",
-  requireTeamAccess(),
+  requireTeamAccess({ documentTeamHeader: true }),
   requirePermission("core.rules.write"),
   createRuleRouteDescription,
   zodValidator("json", createRuleApiSchema),
