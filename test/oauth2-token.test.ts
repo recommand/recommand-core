@@ -35,6 +35,5 @@ describe("the JWT bearer token endpoint", () => {
   test("keeps its responses out of caches", async () => {
     const { response } = await requestToken({ assertion: "not-a-jwt", grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer" });
     expect(response.headers.get("Cache-Control")).toBe("no-store");
-    expect(response.headers.get("Pragma")).toBe("no-cache");
   });
 });

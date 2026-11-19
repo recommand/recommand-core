@@ -25,7 +25,6 @@ const tokenSchema = z.object({
 const standardTokenResponses = createMiddleware(async (c, next) => {
     await next();
     c.res.headers.set("Cache-Control", "no-store");
-    c.res.headers.set("Pragma", "no-cache");
     if (c.res.status !== 400) {
         return;
     }
