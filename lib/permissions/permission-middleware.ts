@@ -6,7 +6,7 @@ import "zod-openapi/extend";
 import type { AuthenticatedUserContext } from "../auth-middleware";
 import { actionFailure } from "@recommand/lib/utils";
 import { hasGlobalPermission } from "@core/data/permissions";
-import { hasPrincipalPermission } from "@core/data/principal-permissions";
+import { hasPrincipalPermission, listPrincipalTeamPermissionIds } from "@core/data/principal-permissions";
 import { describeErrorResponse } from "@core/lib/api-docs";
 import { verifySession } from "../session";
 import { audit } from "@core/lib/audit";
@@ -34,6 +34,26 @@ export const hasRequestPermission = async <E extends AuthenticatedUserContext>(c
     : { type: "user" as const, userId: user.id };
 
   return hasPrincipalPermission(principal, teamId, permissionId);
+};
+
+/**
+ * The team permissions the request's API key holds in its own team, sorted by id, or `undefined` when the request
+ * didn't authenticate with a key: a signed-in user holds permissions per team, and such a request names no team.
+ */
+export const listRequestPermissionIds = async <E extends AuthenticatedUserContext>(c: Context<E>) => {
+  const apiKey = c.get("apiKey");
+  const user = c.var.user;
+  if (!apiKey || !user) {
+    return undefined;
+  }
+
+  return listPrincipalTeamPermissionIds({
+    apiKeyId: apiKey.id,
+    ownerIsAdmin: user.isAdmin,
+    ownerUserId: user.id,
+    teamId: apiKey.teamId,
+    type: "api_key",
+  });
 };
 
 /**
