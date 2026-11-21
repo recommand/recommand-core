@@ -4,6 +4,8 @@ import { verifySession, type AuthenticationMethod, type SessionVerificationExten
 import { actionFailure } from "@recommand/lib/utils";
 import { getTeam, isMember, type Team } from "@core/data/teams";
 import { audit } from "@core/lib/audit";
+import type { RequestGrant } from "@core/lib/oauth/bearer";
+import { presentsBearerToken, setBearerChallenge } from "@core/lib/oauth/bearer";
 
 export type AuthenticatedUserContext = {
   Variables: {
@@ -18,6 +20,8 @@ export type AuthenticatedUserContext = {
       teamId: string;
     } | null;
     authenticationMethod: AuthenticationMethod;
+    // Set for an OAuth access token: the grant it was issued for
+    grant: RequestGrant | null;
   };
 };
 
@@ -48,6 +52,10 @@ export function requireAuth(options: AuthOptions = {}) {
         reasonCode: "unauthenticated",
       });
       return c.json(actionFailure("Unauthorized"), 401);
+    }
+
+    if (c.get("grant")) {
+      return refuseOAuthToken(c);
     }
 
     if (options.browserSessionOnly && c.get("authenticationMethod") !== "cookie") {
@@ -84,6 +92,11 @@ export function requireAdmin() {
       return c.json(actionFailure("Unauthorized"), 401);
     }
 
+    // An OAuth token never carries admin access
+    if (c.get("grant")) {
+      return refuseOAuthToken(c);
+    }
+
     // Fetch user data
     const user: { id: string; isAdmin: boolean } | null = c.get("user");
     if (!user?.isAdmin) {
@@ -103,23 +116,57 @@ export function requireAdmin() {
   });
 }
 
+/**
+ * Answers a request made with an OAuth access token on a route that isn't open
+ * to OAuth clients, such as one that acts for the user rather than a team.
+ */
+export const refuseOAuthToken = async (c: Context) => {
+  await audit(c, {
+    action: "authorize",
+    objectId: c.req.path,
+    objectType: "core.route",
+    outcome: "denied",
+    reasonCode: "oauth_token_refused",
+    subsystem: "core.auth",
+  });
+
+  return c.json(actionFailure("This endpoint can't be used with an OAuth access token"), 403);
+};
+
 export type TeamAccessOptions = {
   param?: string;
   getTeamId?: (c: Context) => string;
+  /**
+   * The team of what the request names, such as a company, for an OAuth grant
+   * when the path has no team: a grant can cover several teams.
+   */
+  findTeamId?: (c: Context) => Promise<string | null>;
   extensions?: SessionVerificationExtension[];
 };
 
-export type TeamAccessDenialReason = "not_team_member" | "team_id_mismatch" | "unauthenticated";
+export type TeamAccessDenialReason = "not_in_grant" | "not_team_member" | "team_id_mismatch" | "unauthenticated";
 
 export type TeamAccess = { allowed: true } | { allowed: false; reason: TeamAccessDenialReason };
 
 /**
- * Decides whether a verified session may act on a team. A credential bound to a
- * team (an API key or an integration token) reaches only that team, any other
- * session only the teams its user is a member of. Admins reach every team.
+ * Decides whether a verified session may act on a team. An OAuth access token
+ * reaches the teams of its grant while its user is still a member, never through
+ * admin access. A credential bound to a team (an API key or an integration
+ * token) reaches only that team, any other session only the teams its user is a
+ * member of. Admins reach every team.
  */
 export const checkTeamAccess = async (c: Context, teamId: string): Promise<TeamAccess> => {
   const user: { id: string | null; isAdmin: boolean } | null = c.get("user");
+  const grant: RequestGrant | null = c.get("grant") ?? null;
+  if (grant) {
+    if (!user?.id || !(await isMember(user.id, teamId))) {
+      return { allowed: false, reason: "not_team_member" };
+    }
+
+    // A team is part of the grant when the grant holds a permission there
+    return (grant.permissionIdsByTeam.get(teamId) ?? []).length > 0 ? { allowed: true } : { allowed: false, reason: "not_in_grant" };
+  }
+
   if (user?.isAdmin) {
     return { allowed: true };
   }
@@ -150,14 +197,30 @@ export function requireTeamAccess(options: TeamAccessOptions = {}) {
           objectId: c.req.path,
           reasonCode: "unauthenticated",
         });
+        // Tells a client whose bearer token didn't authenticate it that the token is invalid
+        setBearerChallenge(c, presentsBearerToken(c) ? { error: "invalid_token" } : {});
+
         return c.json(actionFailure("Unauthorized"), 401);
       }
 
       const teamIdFromRequest: string | undefined = options.getTeamId ? options.getTeamId(c) : c.req.param(options.param ?? "teamId");
       const credentialTeamId: string | null = c.get("teamId");
-      // A team-bound credential addresses its own team unless the request names one
-      const teamId = teamIdFromRequest || credentialTeamId;
+      const grant: RequestGrant | null = c.get("grant") ?? null;
+      const grantTeamIds = grant ? [...grant.permissionIdsByTeam.keys()] : [];
+      // A team-bound credential addresses its own team unless the request names
+      // one. A grant addresses the team of what the request names, or its only team.
+      const teamId =
+        teamIdFromRequest ||
+        credentialTeamId ||
+        (grant ? ((await options.findTeamId?.(c)) ?? (grantTeamIds.length === 1 ? grantTeamIds[0] : null)) : null);
       if (!teamId) {
+        if (grantTeamIds.length > 1) {
+          return c.json(
+            { ...actionFailure("This OAuth grant covers several teams, so the request has to name one"), code: "team_required" as const },
+            400
+          );
+        }
+
         return c.json(actionFailure("Team ID is required"), 400);
       }
 
@@ -169,9 +232,18 @@ export function requireTeamAccess(options: TeamAccessOptions = {}) {
           outcome: "denied",
           objectType: "core.team",
           objectId: teamId,
-          ...(access.reason !== "unauthenticated" && { teamId: credentialTeamId ?? teamId }),
+          // A grant has no team of its own, and the team it asked for isn't one it reaches
+          ...(access.reason !== "unauthenticated" && !grant ? { teamId: credentialTeamId ?? teamId } : {}),
           reasonCode: access.reason,
         });
+        // The user can grant the client a team they're a member of on the consent screen,
+        // but not another team, so only the first asks for it
+        if (grant) {
+          setBearerChallenge(c, access.reason === "not_in_grant" ? { error: "insufficient_scope" } : {});
+
+          return c.json(actionFailure("This team isn't part of the OAuth grant"), 403);
+        }
+
         return c.json(
           actionFailure(
             access.reason === "team_id_mismatch"

@@ -3,14 +3,13 @@ import { actionFailure, actionSuccess } from "@recommand/lib/utils";
 import { Server } from "@recommand/lib/api";
 import { createJwtApiKey } from "@core/data/api-keys";
 import { jwtVerifyClientSignedJWT } from "@core/data/oauth";
+import { JWT_BEARER_GRANT_TYPE } from "@core/lib/oauth/jwt-bearer";
 import { addSeconds, fromUnixTime, differenceInSeconds } from "date-fns";
 import { zodValidator } from "@recommand/lib/zod-validator";
 import { describeRoute } from "hono-openapi";
 import { createMiddleware } from "hono/factory";
 
 const server = new Server();
-
-const JWT_BEARER_GRANT_TYPE = "urn:ietf:params:oauth:grant-type:jwt-bearer";
 
 const tokenSchema = z.object({
     grant_type: z.enum([JWT_BEARER_GRANT_TYPE]),
@@ -81,6 +80,7 @@ const _token = server.post(
             }))
         }catch(error){
             console.error(error);
+
             return c.json(actionFailure("Error while generating token"), 500);
         }
     }

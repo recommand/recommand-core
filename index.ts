@@ -4,6 +4,8 @@ import { Logger } from "@recommand/lib/logger";
 import auth from "api/auth";
 import apiKeys from "api/api-keys";
 import oauth from "api/oauth";
+import jwks from "./api/jwks";
+import oauthMetadata from "./api/oauth/metadata";
 import onboarding from "./api/onboarding";
 import teamMembers from "./api/team-members";
 import permissions from "./api/permissions";
@@ -14,7 +16,9 @@ import teamLogo from "./api/team-logo";
 import manifest from "./api/manifest";
 import rules from "./api/rules";
 import { initializeApiKeyCronJobs } from "./data/api-key-cron";
+import { initializeOAuthClientCronJobs } from "./data/oauth-client-cron";
 import { initializeRuleCronJobs } from "./data/rules/cron";
+import { forbidFraming } from "./lib/oauth/frame";
 
 let logger: Logger;
 
@@ -25,6 +29,12 @@ export async function init(app: RecommandApp, server: Server) {
   logger.info("Initializing core app");
   await initializeRuleCronJobs(logger);
   initializeApiKeyCronJobs(logger);
+  initializeOAuthClientCronJobs(logger);
+  // The key set and the OAuth metadata live under `/.well-known/`, outside the API's prefix
+  server.route("/", jwks);
+  server.route("/", oauthMetadata);
+  // The consent screen is a page of the app, served after the packages initialize
+  server.use("/oauth/authorize", forbidFraming);
 }
 
 server.route("/", auth);
