@@ -1,16 +1,20 @@
 import { apiKeys, teams, users } from "@core/db/schema";
 import { db } from "@recommand/db";
-import { and, eq } from "drizzle-orm";
+import { and, eq, getTableColumns } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import { addSeconds } from "date-fns";
 import { sign } from "@core/lib/jwt";
 import { ulid } from "ulid";
 
 export type ApiKey = typeof apiKeys.$inferSelect;
+/** An API key as clients see it: without the hash of its secret. */
+export type PublicApiKey = Omit<ApiKey, "secretHash">;
 
-export async function getApiKeys(userId: string, teamId: string) {
+const { secretHash: _secretHash, ...publicApiKeyColumns } = getTableColumns(apiKeys);
+
+export async function getApiKeys(userId: string, teamId: string): Promise<PublicApiKey[]> {
     return await db
-        .select()
+        .select(publicApiKeyColumns)
         .from(apiKeys)
         .where(and(eq(apiKeys.userId, userId), eq(apiKeys.teamId, teamId)));
 }
@@ -88,7 +92,7 @@ export async function createBasicApiKey(userId: string, teamId: string, name: st
     const res = await db
         .insert(apiKeys)
         .values({ expiresAt, name, secretHash, teamId, type: "basic", userId })
-        .returning();
+        .returning(publicApiKeyColumns);
 
     return {
         ...res[0],
@@ -119,7 +123,7 @@ export async function createJwtApiKey({user, teamId, expiresInSeconds, expiratio
     const res = await db
         .insert(apiKeys)
         .values({ id, userId: user.id, teamId, name, type: "jwt", secretHash: "", expiresAt: expires })
-        .returning();
+        .returning(publicApiKeyColumns);
     return {
         ...res[0],
         jwt,

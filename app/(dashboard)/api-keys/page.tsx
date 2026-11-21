@@ -16,7 +16,7 @@ import { Input } from "@core/components/ui/input";
 import { Label } from "@core/components/ui/label";
 import { toast } from "@core/components/ui/sonner";
 import { stringifyActionFailure } from "@recommand/lib/utils";
-import type { ApiKey } from "@core/data/api-keys";
+import type { PublicApiKey } from "@core/data/api-keys";
 import { useActiveTeam } from "@core/hooks/user";
 import { Trash2, Loader2, Copy, ChevronDown, AlertCircle } from "lucide-react";
 import { ColumnHeader } from "@core/components/data-table/column-header";
@@ -51,7 +51,7 @@ type CreationPermissionState =
   | { status: "check_failed" };
 
 export default function Page() {
-  const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
+  const [apiKeys, setApiKeys] = useState<PublicApiKey[]>([]);
   const [newKeyName, setNewKeyName] = useState("");
   const [keyType, setKeyType] = useState<"basic" | "jwt">("basic");
   const [expirationDuration, setExpirationDuration] = useState<string>("24");
@@ -200,7 +200,6 @@ export default function Page() {
         name: json.apiKey.name,
         teamId: json.apiKey.teamId,
         userId: json.apiKey.userId,
-        secretHash: json.apiKey.secretHash,
         type: json.apiKey.type,
         expiresAt: json.apiKey.expiresAt
           ? new Date(json.apiKey.expiresAt)
@@ -231,7 +230,7 @@ export default function Page() {
     }
   };
 
-  const columns: ColumnDef<ApiKey>[] = [
+  const columns: ColumnDef<PublicApiKey>[] = [
     {
       accessorKey: "name",
       header: ({ column }) => <ColumnHeader column={column} title={t`Name`} />,
