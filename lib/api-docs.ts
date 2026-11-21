@@ -152,7 +152,7 @@ const invalidInputDetail = inputDetail
  * field is optional, because a 400 the route raises itself answers with the
  * plain error body.
  */
-const validationErrorResponse = errorResponse
+export const validationErrorResponse = errorResponse
   .extend({
     invalidInputDetails: z
       .array(invalidInputDetail)

@@ -367,3 +367,29 @@ export const ruleActionDeliveries = pgTable("rule_action_deliveries", {
   ),
   index("rule_action_deliveries_ready_idx").on(table.status, table.retryAt),
 ]);
+
+export const idempotencyKeyStatusEnum = pgEnum("idempotency_key_status", ["in_progress", "completed", "outcome_unknown"]);
+
+export const idempotencyKeys = pgTable("idempotency_keys", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => "idk_" + ulid()),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  fingerprint: text("fingerprint").notNull(),
+  key: text("key").notNull(),
+  responseBody: text("response_body"),
+  responseContentType: text("response_content_type"),
+  responseStatus: integer("response_status"),
+  scope: text("scope").notNull(),
+  status: idempotencyKeyStatusEnum("status").notNull().default("in_progress"),
+
+  teamId: text("team_id")
+    .references(() => teams.id, { onDelete: "cascade" })
+    .notNull(),
+
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: autoUpdateTimestamp(),
+}, (table) => [
+  uniqueIndex("idempotency_keys_team_scope_key_idx").on(table.teamId, table.scope, table.key),
+  index("idempotency_keys_expires_at_idx").on(table.expiresAt),
+]);

@@ -193,7 +193,7 @@ const callTool = async (c: RequestContext, tool: McpTool, teamIds: string[], arg
   }
 
   try {
-    return success(await tool.handler({ team }, input));
+    return success(await tool.handler({ request: c, team }, input));
   } catch (error) {
     if (error instanceof McpToolError) {
       return failure(error.message, error.code ? { code: error.code } : {});
