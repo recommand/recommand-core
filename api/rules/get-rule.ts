@@ -1,4 +1,5 @@
 import { requireTeamAccess } from "@core/lib/auth-middleware";
+import { requirePermission } from "@core/lib/permissions/permission-middleware";
 import { Server } from "@recommand/lib/api";
 import { actionFailure, actionSuccess } from "@recommand/lib/utils";
 import { zodValidator } from "@recommand/lib/zod-validator";
@@ -28,6 +29,7 @@ const getRuleRouteDescription = describeRoute({
 const _getRuleMinimal = server.get(
   "/rules/:id",
   requireTeamAccess(),
+  requirePermission("core.rules.read"),
   getRuleRouteDescription,
   zodValidator("param", ruleIdParamSchema),
   _getRuleImplementation
@@ -36,6 +38,7 @@ const _getRuleMinimal = server.get(
 const _getRule = server.get(
   "/:teamId/rules/:id",
   requireTeamAccess(),
+  requirePermission("core.rules.read"),
   describeRoute({ hide: true }),
   zodValidator("param", ruleIdParamSchemaWithTeamId),
   _getRuleImplementation

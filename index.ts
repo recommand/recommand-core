@@ -13,6 +13,7 @@ import account from "./api/account";
 import teamLogo from "./api/team-logo";
 import manifest from "./api/manifest";
 import rules from "./api/rules";
+import { initializeApiKeyCronJobs } from "./data/api-key-cron";
 import { initializeRuleCronJobs } from "./data/rules/cron";
 
 let logger: Logger;
@@ -23,6 +24,7 @@ export async function init(app: RecommandApp, server: Server) {
   logger = new Logger(app);
   logger.info("Initializing core app");
   await initializeRuleCronJobs(logger);
+  initializeApiKeyCronJobs(logger);
 }
 
 server.route("/", auth);

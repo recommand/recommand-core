@@ -54,6 +54,16 @@ async function isUserAdmin(userId: string): Promise<boolean> {
   return user?.isAdmin ?? false;
 }
 
+const isTeamMember = async (userId: string, teamId: string): Promise<boolean> => {
+  const membership = await db
+    .select()
+    .from(teamMembers)
+    .where(and(eq(teamMembers.userId, userId), eq(teamMembers.teamId, teamId)))
+    .limit(1);
+
+  return membership.length > 0;
+};
+
 async function canAccessTeamPermissions(
   userId: string,
   teamId: string,
@@ -62,13 +72,7 @@ async function canAccessTeamPermissions(
     return true;
   }
 
-  const membership = await db
-    .select()
-    .from(teamMembers)
-    .where(and(eq(teamMembers.userId, userId), eq(teamMembers.teamId, teamId)))
-    .limit(1);
-
-  return membership.length > 0;
+  return isTeamMember(userId, teamId);
 }
 
 function assertPermissionScope(
@@ -408,8 +412,8 @@ export async function hasPermission(
     return true;
   }
 
-  const canAccess = await canAccessTeamPermissions(userId, teamId);
-  if (!canAccess) {
+  // Admins returned above, so membership is all that's left to check
+  if (!(await isTeamMember(userId, teamId))) {
     return false;
   }
 
@@ -427,6 +431,19 @@ export async function hasPermission(
 
   return result.length > 0;
 }
+
+export const listOwnerTeamPermissionIds = async (
+  userId: string,
+  teamId: string
+): Promise<string[]> => {
+  if (await isUserAdmin(userId)) {
+    return getRegisteredPermissionsByScope("team").map((permission) => permission.id);
+  }
+
+  const permissions = await getUserPermissionsForTeam(userId, teamId);
+
+  return permissions.map((permission) => permission.permissionId);
+};
 
 export async function getUserPermissionsForTeam(
   userId: string,

@@ -26,6 +26,7 @@ function generateSecureToken(): string {
 const _getTeamMembers = server.get(
   "/auth/teams/:teamId/members",
   requireTeamAccess(),
+  requirePermission("core.members.read"),
   withTranslation(),
   zodValidator(
     "param",
