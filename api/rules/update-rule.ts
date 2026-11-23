@@ -1,4 +1,5 @@
 import { requireTeamAccess } from "@core/lib/auth-middleware";
+import { requirePermission } from "@core/lib/permissions/permission-middleware";
 import { Server } from "@recommand/lib/api";
 import { actionFailure, actionSuccess } from "@recommand/lib/utils";
 import { zodValidator } from "@recommand/lib/zod-validator";
@@ -31,6 +32,7 @@ const updateRuleRouteDescription = describeRoute({
 const _updateRuleMinimal = server.patch(
   "/rules/:id",
   requireTeamAccess(),
+  requirePermission("core.rules.write"),
   updateRuleRouteDescription,
   zodValidator("param", ruleIdParamSchema),
   zodValidator("json", updateRuleSchema),
@@ -40,6 +42,7 @@ const _updateRuleMinimal = server.patch(
 const _updateRule = server.patch(
   "/:teamId/rules/:id",
   requireTeamAccess(),
+  requirePermission("core.rules.write"),
   describeRoute({ hide: true }),
   zodValidator("param", ruleIdParamSchemaWithTeamId),
   zodValidator("json", updateRuleSchema),
