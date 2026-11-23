@@ -3,9 +3,9 @@ import { cn } from '@core/lib/utils';
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from 'lucide-react';
 import * as React from 'react';
 
-type SelectProps = Omit<SelectPrimitive.Root.Props<string>, 'onValueChange'> & {
+type SelectProps<Value extends string> = Omit<SelectPrimitive.Root.Props<Value>, 'onValueChange'> & {
   /** Called with the chosen value. Clearing the selection is not reported. */
-  onValueChange?: (value: string) => void;
+  onValueChange?: (value: Value) => void;
 };
 
 /**
@@ -13,10 +13,15 @@ type SelectProps = Omit<SelectPrimitive.Root.Props<string>, 'onValueChange'> & {
  * leave it out and the labels are read from the `SelectItem`s among the
  * children.
  */
-function Select({ items, onValueChange, children, ...props }: SelectProps) {
+function Select<Value extends string = string>({
+  items,
+  onValueChange,
+  children,
+  ...props
+}: SelectProps<Value>) {
   const labels = React.useMemo(() => items ?? collectItemLabels(children), [items, children]);
   return (
-    <SelectPrimitive.Root<string>
+    <SelectPrimitive.Root<Value>
       items={labels}
       onValueChange={(value) => {
         if (value !== null) onValueChange?.(value);

@@ -16,8 +16,9 @@ import {
 import { verify, sign } from "./jwt";
 import { addMilliseconds } from "date-fns";
 import { db } from "@recommand/db";
-import { teamMembers, users } from "@core/db/schema";
-import { and, eq } from "drizzle-orm";
+import { sessions, teamMembers, users } from "@core/db/schema";
+import { and, desc, eq, gt, isNull, ne, sql } from "drizzle-orm";
+import type { Tx } from "@core/data/rules/db";
 
 const cookie = {
   name: "session",
@@ -30,24 +31,61 @@ const cookie = {
   duration: 14 * 24 * 60 * 60 * 1000, // 14 days in milliseconds
 };
 
+// How stale a session's `lastSeenAt` may get, so most requests don't write it
+const lastSeenInterval = 10 * 60 * 1_000;
 
-export async function createSession(
-  c: Context,
-  user: { id: string; isAdmin: boolean; language?: string }
-) {
-  const expires = addMilliseconds(new Date(), cookie.duration);
-  const session = await sign({
+type SessionUser = { id: string; isAdmin: boolean; language?: string };
+
+export const createSession = async (c: Context, user: SessionUser) => {
+  const now = new Date();
+  const expires = addMilliseconds(now, cookie.duration);
+  const [session] = await db
+    .insert(sessions)
+    .values({
+      expiresAt: expires,
+      lastSeenAt: now,
+      userAgent: c.req.header("User-Agent")?.slice(0, 512) ?? null,
+      userId: user.id,
+    })
+    .returning({ id: sessions.id });
+
+  await setSessionCookie(c, session.id, user, expires);
+};
+
+/** The stored session behind the current request's cookie, if it has one. */
+type CurrentSession = { expiresAt: Date; id: string };
+
+export const getCurrentSession = (c: Context): CurrentSession | null => {
+  return c.get("session") ?? null;
+};
+
+/**
+ * Signs the cookie of the current browser session again with fresh user data.
+ * The session itself, and when it expires, stay the same.
+ */
+export const refreshSession = async (c: Context, user: SessionUser) => {
+  const session = getCurrentSession(c);
+  if (!session) {
+    return;
+  }
+
+  await setSessionCookie(c, session.id, user, session.expiresAt);
+};
+
+const setSessionCookie = async (c: Context, sessionId: string, user: SessionUser, expires: Date) => {
+  const token = await sign({
+    sid: sessionId,
     userId: user.id,
     isAdmin: user.isAdmin,
     language: user.language ?? "en",
     expires,
   }, expires);
 
-  await setSignedCookie(c, cookie.name, session, process.env.JWT_SECRET!, {
+  await setSignedCookie(c, cookie.name, token, process.env.JWT_SECRET!, {
     ...cookie.options,
     expires,
   });
-}
+};
 
 export type InstallationSession = {
   id: string;
@@ -163,11 +201,63 @@ export async function verifySession(
   return result;
 }
 
+/**
+ * Ends every stored session of a user, except `except` when given, such as the
+ * session that is changing the password.
+ */
+export const revokeUserSessions = async (
+  userId: string,
+  { except, executor = db }: { except?: string | null; executor?: Tx | typeof db } = {}
+) => {
+  await executor
+    .update(sessions)
+    .set({ revokedAt: new Date() })
+    .where(and(
+      eq(sessions.userId, userId),
+      isNull(sessions.revokedAt),
+      except ? ne(sessions.id, except) : undefined,
+    ));
+};
+
+/** A user's sessions that are neither revoked nor expired, most recently used first. */
+export const listUserSessions = async (userId: string) =>
+  db
+    .select({
+      createdAt: sessions.createdAt,
+      expiresAt: sessions.expiresAt,
+      id: sessions.id,
+      lastSeenAt: sessions.lastSeenAt,
+      userAgent: sessions.userAgent,
+    })
+    .from(sessions)
+    .where(and(eq(sessions.userId, userId), isNull(sessions.revokedAt), gt(sessions.expiresAt, new Date())))
+    // A session from before `lastSeenAt` was recorded goes after the ones that have it
+    .orderBy(sql`${sessions.lastSeenAt} DESC NULLS LAST`, desc(sessions.createdAt));
+
+/** Ends one of a user's sessions. False when the user has no such active session. */
+export const revokeUserSession = async (userId: string, sessionId: string): Promise<boolean> => {
+  const revoked = await db
+    .update(sessions)
+    .set({ revokedAt: new Date() })
+    .where(and(eq(sessions.id, sessionId), eq(sessions.userId, userId), isNull(sessions.revokedAt), gt(sessions.expiresAt, new Date())))
+    .returning({ id: sessions.id });
+
+  return revoked.length > 0;
+};
+
 export async function deleteSession(c: Context) {
+  const payload = await readSessionCookie(c);
+  if (typeof payload?.sid === "string") {
+    await db
+      .update(sessions)
+      .set({ revokedAt: new Date() })
+      .where(and(eq(sessions.id, payload.sid), isNull(sessions.revokedAt)));
+  }
+
   deleteCookie(c, cookie.name, cookie.options);
 }
 
-async function verifySessionCookie(c: Context): Promise<Session | null> {
+const readSessionCookie = async (c: Context) => {
   const sessionCookie = await getSignedCookie(
     c,
     process.env.JWT_SECRET!,
@@ -178,8 +268,38 @@ async function verifySessionCookie(c: Context): Promise<Session | null> {
     return null;
   }
 
-  const session = await verify(sessionCookie);
+  return verify(sessionCookie);
+};
+
+const findActiveSession = async (sessionId: string) => {
+  const [session] = await db
+    .select({
+      expiresAt: sessions.expiresAt,
+      id: sessions.id,
+      lastSeenAt: sessions.lastSeenAt,
+      revokedAt: sessions.revokedAt,
+      userId: sessions.userId,
+    })
+    .from(sessions)
+    .where(eq(sessions.id, sessionId))
+    .limit(1);
+  if (!session || session.revokedAt || session.expiresAt <= new Date()) {
+    return null;
+  }
+
+  return session;
+};
+
+async function verifySessionCookie(c: Context): Promise<Session | null> {
+  const session = await readSessionCookie(c);
   if (!session?.userId) {
+    return null;
+  }
+
+  // A cookie signed before sessions were stored has no `sid`. It stays valid
+  // until it expires, at most 14 days after it was signed.
+  const storedSession = session.sid === undefined ? null : await findActiveSession(session.sid as string);
+  if (session.sid !== undefined && storedSession?.userId !== session.userId) {
     return null;
   }
 
@@ -189,6 +309,19 @@ async function verifySessionCookie(c: Context): Promise<Session | null> {
     .where(eq(users.id, session.userId as string))
     .limit(1);
   if (!user) return null;
+
+  if (storedSession) {
+    if (!storedSession.lastSeenAt || Date.now() - storedSession.lastSeenAt.getTime() >= lastSeenInterval) {
+      // Only informs the sessions list, so a failed write doesn't sign the user out
+      await db
+        .update(sessions)
+        .set({ lastSeenAt: new Date() })
+        .where(eq(sessions.id, storedSession.id))
+        .catch((error) => console.error("Failed to record when a session was last used", error));
+    }
+
+    c.set("session", { expiresAt: storedSession.expiresAt, id: storedSession.id } satisfies CurrentSession);
+  }
 
   return {
     userId: user.id,
@@ -320,6 +453,11 @@ async function verifyBasicAuth(c: Context): Promise<Session | null> {
   const [apiKeyId, secret] = credentials.split(":");
   const apiKey = await checkApiKey(apiKeyId, secret);
   if (!apiKey) {
+    return null;
+  }
+
+  // A Basic key without an expiry date doesn't expire
+  if (apiKey.apiKey.expiresAt && apiKey.apiKey.expiresAt <= new Date()) {
     return null;
   }
 

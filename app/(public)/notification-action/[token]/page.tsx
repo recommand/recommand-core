@@ -26,7 +26,7 @@ export default function NotificationActionPage() {
   const [link, setLink] = useState<ActionLink | null>(null);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
 
-  const loginUrl = `/login?redirect=${encodeURIComponent(location.pathname + location.search)}`;
+  const loginUrl = `/login?${new URLSearchParams({ returnTo: location.pathname + location.search })}`;
 
   const load = useCallback(async () => {
     try {

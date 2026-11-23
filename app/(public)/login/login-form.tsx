@@ -15,6 +15,7 @@ import { type FormEvent, useState } from "react";
 import { cn } from "../../../lib/utils";
 import { useUserStore } from "../../../lib/user-store";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { toLocalPath } from "@core/lib/return-to";
 import { useTranslation } from "@core/hooks/use-translation";
 import { useUIConfig } from "../../../lib/ui-config-store";
 import { usePublicSignupEnabled } from "@core/hooks/use-manifest";
@@ -38,10 +39,7 @@ export function LoginForm({
     e.preventDefault();
     try {
       await login(email, password);
-      // Back to the page that sent the user here, for example an action link.
-      // Only a path on this site, never another site.
-      const redirect = searchParams.get("redirect");
-      navigate(redirect && /^\/(?![\/\\])/.test(redirect) ? redirect : "/");
+      navigate(toLocalPath(searchParams.get("returnTo"), window.location.origin) ?? "/");
     } catch (error) {
       toast.error(t`Login failed`, {
         description:

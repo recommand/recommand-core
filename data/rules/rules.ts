@@ -134,13 +134,12 @@ export async function getRule(teamId: string, ruleId: string) {
 
 export async function createRule(teamId: string, input: CreateRuleInput) {
   const parsed = createRuleSchema.parse(input);
-  const id = parsed.id ?? "rul_" + ulid();
   validateConditionForRule(parsed.eventType, parsed.condition ?? null);
 
   const [createdRule] = await db
     .insert(rules)
     .values({
-      id,
+      id: parsed.id,
       teamId,
       name: parsed.name,
       enabled: parsed.enabled ?? true,
@@ -316,7 +315,6 @@ export async function dispatchRulesForEvent(
     }
 
     const deliveries = parsedRule.actions.map((action, actionIndex) => ({
-      id: "rad_" + ulid(),
       ruleId: parsedRule.id,
       actionIndex,
       actionType: action.type,

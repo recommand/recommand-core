@@ -225,6 +225,27 @@
       "when": 1793319283283,
       "tag": "20261030001443_goofy_paibok",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1793199399704,
+      "tag": "20261028145639_curious_grandmaster",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1794589714259,
+      "tag": "20261113180834_unique_celestials",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1795118982489,
+      "tag": "20261119200942_open_morph",
+      "breakpoints": true
     }
   ]
 }

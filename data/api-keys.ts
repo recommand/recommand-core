@@ -157,7 +157,9 @@ export async function createApiKey({
           actorApiKeyId,
         });
     } else {
-        return await createBasicApiKey(user.id, teamId, name, permissionIds, actorApiKeyId);
+        const expiresAt = expiresInSeconds ? addSeconds(new Date(), expiresInSeconds) : null;
+
+        return await createBasicApiKey(user.id, teamId, name, permissionIds, actorApiKeyId, expiresAt);
     }
 }
 
@@ -166,7 +168,8 @@ export async function createBasicApiKey(
     teamId: string,
     name: string,
     permissionIds?: string[],
-    actorApiKeyId?: string
+    actorApiKeyId?: string,
+    expiresAt: Date | null = null
 ) {
     const secret = crypto.randomUUID();
     const readableSecret = "secret_" + secret.replace(/-/g, "");
@@ -175,7 +178,7 @@ export async function createBasicApiKey(
     return db.transaction(async (tx) => {
         const res = await tx
             .insert(apiKeys)
-            .values({ userId, teamId, name, type: "basic", secretHash })
+            .values({ expiresAt, name, secretHash, teamId, type: "basic", userId })
             .returning();
 
         const attached = await attachApiKeyPermissions({

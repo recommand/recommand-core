@@ -21,9 +21,23 @@ jobs:
         with:
           path: core
 
+      # A change that spans `core` and `framework` uses one branch name in both,
+      # so a pull request is tested against `framework`'s branch of the same name
+      # when it has one. Otherwise, and for pull requests from forks, the ref
+      # stays empty and `framework`'s default branch is checked out.
+      - id: framework-ref
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          if git ls-remote --exit-code --heads https://github.com/recommand/recommand-framework.git "refs/heads/$HEAD_REF" > /dev/null; then
+            echo "ref=$HEAD_REF" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/checkout@v4
         with:
           repository: recommand/recommand-framework
+          ref: ${{ steps.framework-ref.outputs.ref }}
           path: framework
 
       # One workspace over both packages installs a single copy of each shared

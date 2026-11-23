@@ -17,6 +17,7 @@ import installations from "./api/installations";
 import events from "./api/events";
 import notifications from "./api/notifications";
 import { initializeEventDataOffloadCronJobs } from "./data/event-data-offload";
+import { initializeIdempotencyKeyCronJobs } from "./data/idempotency-keys-cron";
 import { initializeRuleCronJobs } from "./data/rules/cron";
 import { initializeNotificationCronJobs } from "./data/notifications/cron";
 
@@ -27,6 +28,7 @@ const server = new Server();
 export async function init(app: RecommandApp, server: Server) {
   logger = new Logger(app);
   logger.info("Initializing core app");
+  await initializeIdempotencyKeyCronJobs(logger);
   await initializeRuleCronJobs(logger);
   await initializeEventDataOffloadCronJobs(logger);
   initializeNotificationCronJobs(logger);

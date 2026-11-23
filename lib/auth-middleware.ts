@@ -35,6 +35,8 @@ export type AuthenticatedTeamContext = {
 };
 
 export type AuthOptions = {
+  /** Only a signed-in browser session passes, not an API key: for what a user manages about their own account. */
+  browserSessionOnly?: boolean;
   extensions?: SessionVerificationExtension[];
 };
 
@@ -73,6 +75,19 @@ export function requireAuth(options: AuthOptions = {}) {
         reasonCode: "unauthenticated",
       });
       return c.json(actionFailure("Unauthorized"), 401);
+    }
+
+    if (options.browserSessionOnly && c.get("authenticationMethod") !== "cookie") {
+      await audit(c, {
+        action: "authorize",
+        objectId: c.req.path,
+        objectType: "core.route",
+        outcome: "denied",
+        reasonCode: "browser_session_required",
+        subsystem: "core.auth",
+      });
+
+      return c.json(actionFailure("Only a signed-in browser session can use this endpoint"), 403);
     }
 
     // Successfully authenticated, continue to next middleware
@@ -122,6 +137,39 @@ export type TeamAccessOptions = {
   installationOnly?: boolean;
 };
 
+export type TeamAccessDenialReason = "not_team_member" | "team_id_mismatch" | "unauthenticated";
+
+export type TeamAccess = { allowed: true } | { allowed: false; reason: TeamAccessDenialReason };
+
+/**
+ * Decides whether a verified session may act on a team. A credential bound to a
+ * team (an API key or an integration token) reaches only that team, a service
+ * session every team, any other session only the teams its user is a member of.
+ * Admins reach every team.
+ */
+export const checkTeamAccess = async (c: Context, teamId: string): Promise<TeamAccess> => {
+  const user: { id: string | null; isAdmin: boolean } | null = c.get("user");
+  if (user?.isAdmin) {
+    return { allowed: true };
+  }
+
+  const credentialTeamId: string | null = c.get("teamId");
+  if (credentialTeamId) {
+    return credentialTeamId === teamId ? { allowed: true } : { allowed: false, reason: "team_id_mismatch" };
+  }
+
+  // A service session (an installation or service token) acts on the team the request names
+  if (c.get("service")) {
+    return { allowed: true };
+  }
+
+  if (!user?.id) {
+    return { allowed: false, reason: "unauthenticated" };
+  }
+
+  return (await isMember(user.id, teamId)) ? { allowed: true } : { allowed: false, reason: "not_team_member" };
+};
+
 export function requireTeamAccess(options: TeamAccessOptions = {}) {
   return createMiddleware<AuthenticatedUserContext & AuthenticatedTeamContext>(
     async (c, next) => {
@@ -140,69 +188,32 @@ export function requireTeamAccess(options: TeamAccessOptions = {}) {
       }
 
       const teamIdFromRequest: string | undefined = options.getTeamId ? options.getTeamId(c) : c.req.param(options.param ?? "teamId");
-      let teamId: string | null = c.get("teamId");
-      const service = c.get("service");
-      if (!teamId) {
-        if (!teamIdFromRequest) {
-          return c.json(actionFailure("Team ID is required"), 400);
-        }
-
-        if (service) {
-          teamId = teamIdFromRequest;
-        } else {
-          // Get user from context
-          const user: { id: string; isAdmin: boolean } | null = c.get("user");
-          if (!user?.id) {
-            await audit(c, {
-              action: "authorize",
-              subsystem: "core.team_access",
-              outcome: "denied",
-              objectType: "core.team",
-              objectId: teamIdFromRequest,
-              reasonCode: "unauthenticated",
-            });
-            return c.json(actionFailure("Unauthorized"), 401);
-          }
-
-          // If the user is not authenticated via an API key, ensure they are a member of the team
-          // Admins bypass this check and can access any team
-          if (!user.isAdmin && !(await isMember(user.id, teamIdFromRequest))) {
-            await audit(c, {
-              action: "authorize",
-              subsystem: "core.team_access",
-              outcome: "denied",
-              objectType: "core.team",
-              objectId: teamIdFromRequest,
-              teamId: teamIdFromRequest,
-              reasonCode: "not_team_member",
-            });
-            return c.json(actionFailure("Unauthorized"), 401);
-          }
-
-          teamId = teamIdFromRequest;
-        }
-      }
-
+      const credentialTeamId: string | null = c.get("teamId");
+      // A team-bound credential addresses its own team unless the request names one
+      const teamId = teamIdFromRequest || credentialTeamId;
       if (!teamId) {
         return c.json(actionFailure("Team ID is required"), 400);
       }
 
-      if (teamIdFromRequest && teamIdFromRequest !== teamId && c.var.user?.isAdmin !== true) {
+      const access = await checkTeamAccess(c, teamId);
+      if (!access.allowed) {
         await audit(c, {
           action: "authorize",
           subsystem: "core.team_access",
           outcome: "denied",
           objectType: "core.team",
-          objectId: teamIdFromRequest,
-          teamId,
-          reasonCode: "team_id_mismatch",
+          objectId: teamId,
+          ...(access.reason !== "unauthenticated" && { teamId: credentialTeamId ?? teamId }),
+          reasonCode: access.reason,
         });
-        return c.json(actionFailure("Unauthorized: provided teamId does not match API key's teamId"), 401);
-      }
-
-      if(c.var.user?.isAdmin === true && teamIdFromRequest && teamIdFromRequest !== teamId) {
-        // If the user is an admin, allow them to access the team even if the provided teamId does not match the API key's teamId
-        teamId = teamIdFromRequest;
+        return c.json(
+          actionFailure(
+            access.reason === "team_id_mismatch"
+              ? "Unauthorized: provided teamId does not match API key's teamId"
+              : "Unauthorized"
+          ),
+          401
+        );
       }
 
       if (options.installationOnly && !c.get("installation")) {

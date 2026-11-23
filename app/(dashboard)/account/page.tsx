@@ -16,6 +16,7 @@ import { rc } from "@recommand/lib/client";
 import type { Languages } from "@core/api/languages";
 import type { Account } from "@core/api/account";
 import { stringifyActionFailure } from "@recommand/lib/utils";
+import { SessionsCard } from "./sessions-card";
 
 const languagesClient = rc<Languages>("core");
 const accountClient = rc<Account>("core");
@@ -185,6 +186,8 @@ export default function AccountPage() {
           </CardContent>
         </Card>
         <NotificationPreferencesCard />
+
+        <SessionsCard />
       </div>
     </PageTemplate>
   );

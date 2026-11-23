@@ -6,17 +6,47 @@ import { jwtVerifyClientSignedJWT } from "@core/data/oauth";
 import { addSeconds, fromUnixTime, differenceInSeconds } from "date-fns";
 import { zodValidator } from "@recommand/lib/zod-validator";
 import { describeRoute } from "hono-openapi";
+import { createMiddleware } from "hono/factory";
 
 const server = new Server();
 
+const JWT_BEARER_GRANT_TYPE = "urn:ietf:params:oauth:grant-type:jwt-bearer";
+
 const tokenSchema = z.object({
-    grant_type: z.enum(["urn:ietf:params:oauth:grant-type:jwt-bearer"]),
+    grant_type: z.enum([JWT_BEARER_GRANT_TYPE]),
     assertion: z.string().min(1),
 })
+
+/**
+ * Makes the token responses follow RFC 6749, section 5, alongside the fields
+ * they already have: they're never cached, and a failure also carries an
+ * OAuth `error` code and `error_description`.
+ */
+const standardTokenResponses = createMiddleware(async (c, next) => {
+    await next();
+    c.res.headers.set("Cache-Control", "no-store");
+    c.res.headers.set("Pragma", "no-cache");
+    if (c.res.status !== 400) {
+        return;
+    }
+
+    const body = await c.res.clone().json();
+    const form = await c.req.parseBody().catch(() => ({} as Record<string, unknown>));
+    const [error, description] =
+        form.grant_type !== undefined && form.grant_type !== JWT_BEARER_GRANT_TYPE
+            ? ["unsupported_grant_type", `Only the ${JWT_BEARER_GRANT_TYPE} grant type is supported`]
+            : body.invalidInputDetails
+                ? ["invalid_request", "The request needs a grant_type and an assertion"]
+                : ["invalid_grant", "The assertion could not be verified"];
+    const headers = new Headers(c.res.headers);
+    headers.delete("Content-Length");
+    c.res = new Response(JSON.stringify({ ...body, error, error_description: description }), { headers, status: 400 });
+});
 
 const _token = server.post(
     "/oauth2/token",
     describeRoute({ hide: true, security: [] }),
+    standardTokenResponses,
     zodValidator("form", tokenSchema),
     async (c) => {
         try{
