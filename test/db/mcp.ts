@@ -74,6 +74,18 @@ registerTool({
   operations: ["missingOperation"],
   title: "Broken",
 });
+registerTool({
+  annotations: { openWorldHint: false, readOnlyHint: true },
+  description: "Say who the call came from.",
+  handler: async ({ request }) => ({
+    apiKey: request.get("apiKey")?.id ?? null,
+    user: request.get("user")?.id ?? null,
+  }),
+  input: z.object({}),
+  name: "whoami",
+  operations: ["writeTest"],
+  title: "Who am I",
+});
 
 const app = new Hono<AuthenticatedUserContext>();
 app.route("/", mcp);
@@ -224,7 +236,13 @@ describe("the MCP endpoint", () => {
   test("lists the tools whose permissions the credential holds in one of its teams", async () => {
     expect(await listedTools(await bearer(["one", "two"], ["test.read"]))).toEqual(["list_teams", "echo"]);
     expect(await listedTools(await bearer(["two"], ["test.read", "test.write"]))).toEqual(["list_teams", "echo"]);
-    expect(await listedTools(await basic(["test.read", "test.write"]))).toEqual(["list_teams", "echo", "large_result", "copy"]);
+    expect(await listedTools(await basic(["test.read", "test.write"]))).toEqual([
+      "list_teams",
+      "echo",
+      "large_result",
+      "copy",
+      "whoami",
+    ]);
   });
 
   test("serves the 2026-07-28 protocol too", async () => {
@@ -320,6 +338,10 @@ describe("the MCP endpoint", () => {
     expect(await listedTools(authorization)).not.toContain("broken");
     const { error } = await message(authorization, "tools/call", { arguments: {}, name: "broken" });
     expect(error?.code).toBe(-32_603);
+  });
+
+  test("hands a tool the request it's called in", async () => {
+    expect((await callTool(await basic(["test.read", "test.write"]), "whoami")).structuredContent).toEqual({ apiKey: "key", user: "member" });
   });
 
   test("treats empty strings as not given", async () => {

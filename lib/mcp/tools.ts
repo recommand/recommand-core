@@ -1,5 +1,7 @@
 import type { Team } from "@core/data/teams";
+import type { AuthenticatedUserContext } from "@core/lib/auth-middleware";
 import { LIST_TEAMS_TOOL } from "@core/lib/mcp/definitions";
+import type { Context } from "hono";
 import type { generateSpecs } from "hono-openapi";
 import type { z } from "zod";
 
@@ -14,8 +16,14 @@ export type McpToolAnnotations =
   | { openWorldHint: boolean; readOnlyHint: true }
   | { destructiveHint: boolean; idempotentHint: boolean; openWorldHint: boolean; readOnlyHint: false };
 
-/** The team a tool call acts in. */
-export type McpToolContext = { team: Team };
+/**
+ * The team a tool call acts in, and the request to the MCP server it came with, for a tool that
+ * acts as that request's credential, such as one that sends a document and audits it.
+ */
+export type McpToolContext = {
+  request: Context<AuthenticatedUserContext>;
+  team: Team;
+};
 
 export type McpTool<Input extends z.AnyZodObject = z.AnyZodObject> = {
   annotations: McpToolAnnotations;
