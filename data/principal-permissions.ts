@@ -66,6 +66,17 @@ export const listPrincipalPermissionIds = async (
   return rows.map((row) => row.permissionId);
 };
 
+/**
+ * The team permissions an API key holds in its own team, sorted by id: the ones `hasPrincipalPermission` grants it
+ * there, each stored on the key and still held by its owner.
+ */
+export const listPrincipalTeamPermissionIds = async (principal: Extract<ActorPrincipal, { type: "api_key" }>): Promise<string[]> => {
+  const ownerIds = new Set(await listOwnerTeamPermissionIds(principal.ownerUserId, principal.teamId));
+  const keyIds = await listPrincipalPermissionIds("api_key", principal.apiKeyId);
+
+  return keyIds.filter((permissionId) => ownerIds.has(permissionId)).toSorted();
+};
+
 export const listPrincipalPermissionsForIds = async (
   principalType: PrincipalType,
   principalIds: string[],

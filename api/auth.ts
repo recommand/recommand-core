@@ -11,7 +11,7 @@ import bcrypt from "bcrypt";
 import { createTeam, getUserTeams, updateTeam, deleteTeam, resolveTeamLogoUrl } from "@core/data/teams";
 import { isS3Enabled, isTeamLogoEnabled } from "@core/lib/s3";
 import { requireAdmin, requireAuth, requireTeamAccess } from "@core/lib/auth-middleware";
-import { requirePermission } from "@core/lib/permissions/permission-middleware";
+import { listRequestPermissionIds, requirePermission } from "@core/lib/permissions/permission-middleware";
 import { withTranslation } from "@core/lib/translation-middleware";
 import { getCompletedOnboardingSteps } from "@core/data/onboarding";
 import { sendEmail } from "@core/lib/email";
@@ -754,6 +754,16 @@ const deleteTeamEndpoint = server.delete(
   }
 );
 
+const verifyAuthResponse = z.object({
+  permissions: z
+    .array(z.string())
+    .optional()
+    .openapi({
+      description:
+        "The ids of the team permissions the API key holds in its team, such as `core.api_keys.read`, sorted. A permission put on the key counts only while the key's owner holds it as well, as operations that require a permission check both. An admin's key holds them in every team. Absent when the request doesn't authenticate with an API key.",
+    }),
+});
+
 const verify = server.get(
   "/auth/verify",
   requireAuth(),
@@ -763,7 +773,7 @@ const verify = server.get(
     summary: "Verify Authentication",
     tags: ["Authentication"],
     responses: {
-      ...describeSuccessResponse("User is authenticated"),
+      ...describeSuccessResponse("User is authenticated", verifyAuthResponse),
       ...describeErrorResponse(401, "User is not authenticated"),
       ...describeErrorResponse(500, "Internal server error"),
     },
@@ -772,7 +782,7 @@ const verify = server.get(
   async (c) => {
     const t = c.get("t");
     try {
-      return c.json(actionSuccess());
+      return c.json(actionSuccess({ permissions: await listRequestPermissionIds(c) }));
     } catch (e) {
       console.error(e);
       return c.json(actionFailure(t`Internal server error`), 500);

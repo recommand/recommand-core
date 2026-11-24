@@ -371,6 +371,54 @@ describe("API-key grants", () => {
   });
 });
 
+describe("verify-auth", () => {
+  const verify = async (headers: Record<string, string>) => {
+    const response = await core.request("/auth/verify", { headers });
+
+    return { body: await response.json() as any, status: response.status };
+  };
+
+  beforeEach(async () => {
+    await pool.query("TRUNCATE users, teams, principal_permissions CASCADE");
+    await seed();
+  });
+  (["basic", "jwt"] as const).forEach((type) => {
+    test(`${type}: returns the permissions put on the key`, async () => {
+      const { body } = await create(type, ["test.write", "test.read"]);
+      expect(await verify(credentials(body.apiKey))).toEqual({ body: { permissions: ["test.read", "test.write"], success: true }, status: 200 });
+    });
+    test(`${type}: returns the owner's permissions for a key created without any`, async () => {
+      const { body } = await create(type);
+      expect((await verify(credentials(body.apiKey))).body.permissions).toEqual([
+        "core.api_keys.delete",
+        "core.api_keys.read",
+        "core.api_keys.write",
+        "core.team.manage",
+        "test.read",
+        "test.write",
+      ]);
+    });
+    test(`${type}: returns an empty list for a key without permissions`, async () => {
+      const { body } = await create(type, []);
+      expect((await verify(credentials(body.apiKey))).body.permissions).toEqual([]);
+    });
+    test(`${type}: leaves out a permission the owner lost, as the operations refuse it`, async () => {
+      const { body } = await create(type, ["test.read", "test.write"]);
+      const headers = credentials(body.apiKey);
+      await pool.query("DELETE FROM user_permissions WHERE user_id = 'owner' AND team_id = 'one' AND permission_id = 'test.read'");
+      expect((await verify(headers)).body.permissions).toEqual(["test.write"]);
+      expect(await read(headers)).toBe(403);
+    });
+  });
+  test("an admin's key returns the permissions put on it", async () => {
+    const { body } = await create("basic", ["core.team.manage", "test.other"], await cookie("admin"));
+    expect((await verify(credentials(body.apiKey))).body.permissions).toEqual(["core.team.manage", "test.other"]);
+  });
+  test("a signed-in session answers without permissions", async () => {
+    expect(await verify(await cookie())).toEqual({ body: { success: true }, status: 200 });
+  });
+});
+
 // Every team route Core mounts, with the permission it requires
 const TEAM_ROUTE_PERMISSIONS: Record<string, string> = {
   "DELETE /:teamId/api-keys/:apiKeyId": "core.api_keys.delete",
