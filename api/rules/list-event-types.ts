@@ -27,7 +27,7 @@ const listEventTypesRouteDescription = describeRoute({
 
 const _listEventTypesMinimal = server.get(
   "/event-types",
-  requireTeamAccess(),
+  requireTeamAccess({ documentTeamHeader: true }),
   requirePermission("core.rules.read"),
   listEventTypesRouteDescription,
   _listEventTypesImplementation

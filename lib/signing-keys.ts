@@ -103,6 +103,9 @@ export const getSigningKey = async (): Promise<SigningKey> => {
   return key;
 };
 
+/** Whether a signing key is configured and loads, so tokens can be signed. */
+export const hasSigningKey = async () => (await signingKey().catch(() => null)) !== null;
+
 /** The public keys that verify what the platform signs, to publish as a JSON Web Key Set. */
 export const getPublicKeySet = async (): Promise<JSONWebKeySet> => (await publicKeys()).keySet;
 

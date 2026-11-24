@@ -14,6 +14,7 @@ import { requireAdmin, requireAuth, requireTeamAccess } from "@core/lib/auth-mid
 import { requirePermission } from "@core/lib/permissions/permission-middleware";
 import { withTranslation } from "@core/lib/translation-middleware";
 import { getCompletedOnboardingSteps } from "@core/data/onboarding";
+import { deleteUserGrants } from "@core/data/oauth-grants";
 import { sendEmail } from "@core/lib/email";
 import { getEmailTemplate } from "@core/emails";
 import { randomBytes } from "crypto";
@@ -639,8 +640,10 @@ const resetPassword = server.post(
             emailVerificationExpires: null,
           })
           .where(eq(users.id, user.id));
-        // Whoever reset the password may not be whoever was signed in, so every session ends
+        // Whoever reset the password may not be whoever was signed in, so every
+        // session ends, and so does every app's access
         await revokeUserSessions(user.id, { executor: tx });
+        await deleteUserGrants(user.id, tx);
       });
       await audit(c, {
         action: "update",
@@ -765,6 +768,7 @@ const verify = server.get(
     responses: {
       ...describeSuccessResponse("User is authenticated"),
       ...describeErrorResponse(401, "User is not authenticated"),
+      ...describeErrorResponse(403, "The request used an OAuth access token, which only team routes accept"),
       ...describeErrorResponse(500, "Internal server error"),
     },
   }),

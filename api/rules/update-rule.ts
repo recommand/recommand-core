@@ -31,7 +31,7 @@ const updateRuleRouteDescription = describeRoute({
 
 const _updateRuleMinimal = server.patch(
   "/rules/:id",
-  requireTeamAccess(),
+  requireTeamAccess({ documentTeamHeader: true }),
   requirePermission("core.rules.write"),
   updateRuleRouteDescription,
   zodValidator("param", ruleIdParamSchema),

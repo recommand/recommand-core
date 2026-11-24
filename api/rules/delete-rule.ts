@@ -25,7 +25,7 @@ const deleteRuleRouteDescription = describeRoute({
 
 const _deleteRuleMinimal = server.delete(
   "/rules/:id",
-  requireTeamAccess(),
+  requireTeamAccess({ documentTeamHeader: true }),
   requirePermission("core.rules.delete"),
   deleteRuleRouteDescription,
   zodValidator("param", ruleIdParamSchema),

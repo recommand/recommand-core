@@ -46,6 +46,11 @@ type ContextApiKey = {
   teamId?: string | null;
 };
 
+type ContextGrant = {
+  clientId?: string | null;
+  id?: string | null;
+};
+
 function contextValue<T>(c: Context, key: string): T | undefined {
   try {
     return c.get(key) as T | undefined;
@@ -92,6 +97,7 @@ export async function audit(c: Context, event: AuditEventInput): Promise<void> {
     const user = contextValue<ContextUser>(c, "user");
     const team = contextValue<ContextTeam>(c, "team");
     const apiKey = contextValue<ContextApiKey>(c, "apiKey");
+    const grant = contextValue<ContextGrant>(c, "grant");
     const teamId = event.teamId ?? team?.id ?? apiKey?.teamId ?? contextValue<string>(c, "teamId") ?? null;
     const metadata =
       typeof event.metadata === "object" && event.metadata !== null && !Array.isArray(event.metadata)
@@ -120,6 +126,8 @@ export async function audit(c: Context, event: AuditEventInput): Promise<void> {
       metadata: {
         method: c.req.method,
         path: c.req.path,
+        // A request made with an OAuth token acts for the user through an app, which the entry names
+        ...(grant?.id ? { oauthClientId: grant.clientId ?? null, oauthGrantId: grant.id } : {}),
         ...metadata,
       },
     });
