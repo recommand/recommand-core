@@ -1,4 +1,4 @@
-import { requireTeamAccess } from "@core/lib/auth-middleware";
+import { requireAuth } from "@core/lib/auth-middleware";
 import { Server } from "@recommand/lib/api";
 import { actionFailure, actionSuccess } from "@recommand/lib/utils";
 import { zodValidator } from "@recommand/lib/zod-validator";
@@ -8,7 +8,6 @@ import { getEventTypeDefinition } from "../../data/rules/events";
 import { describeErrorResponse, describeSuccessResponse } from "../../lib/api-docs";
 import {
   eventTypeParamSchema,
-  eventTypeParamSchemaWithTeamId,
   eventTypeResponseSchema,
   type GetEventTypeContext,
   mapEventTypeDefinition,
@@ -23,24 +22,18 @@ const getEventTypeRouteDescription = describeRoute({
   tags: ["Rules"],
   responses: {
     ...describeSuccessResponse("Successfully retrieved event type", eventTypeResponseSchema.openapi({ description: "The event type, with what a rule written for it can use." })),
+    ...describeErrorResponse(401, "The user isn't signed in"),
     ...describeErrorResponse(404, "Event type not found"),
     ...describeErrorResponse(500, "Failed to load event type"),
   },
 });
 
-const _getEventTypeMinimal = server.get(
+// The event types are the same for every team, so reading one takes a signed-in user, not a team
+const _getEventType = server.get(
   "/event-types/:type",
-  requireTeamAccess(),
+  requireAuth(),
   getEventTypeRouteDescription,
   zodValidator("param", eventTypeParamSchema),
-  _getEventTypeImplementation
-);
-
-const _getEventType = server.get(
-  "/:teamId/event-types/:type",
-  requireTeamAccess(),
-  describeRoute({ hide: true }),
-  zodValidator("param", eventTypeParamSchemaWithTeamId),
   _getEventTypeImplementation
 );
 
@@ -58,6 +51,6 @@ async function _getEventTypeImplementation(c: GetEventTypeContext) {
   }
 }
 
-export type GetEventType = typeof _getEventType | typeof _getEventTypeMinimal;
+export type GetEventType = typeof _getEventType;
 
 export default server;

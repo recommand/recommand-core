@@ -180,10 +180,6 @@ export const eventTypeParamSchema = z.object({
   }),
 });
 
-export const eventTypeParamSchemaWithTeamId = eventTypeParamSchema.extend({
-  teamId: z.string(),
-});
-
 type SharedContext = AuthenticatedUserContext & AuthenticatedTeamContext;
 
 export type ListRulesContext = Context<
@@ -272,28 +268,17 @@ export type DeliveryContext = Context<
   }
 >;
 
-export type ListEventTypesContext = Context<
-  SharedContext,
-  string,
-  {
-    in: {
-      param: z.input<typeof teamIdParamSchema>;
-    };
-    out: {
-      param: z.infer<typeof teamIdParamSchema>;
-    };
-  }
->;
+export type ListEventTypesContext = Context<AuthenticatedUserContext>;
 
 export type GetEventTypeContext = Context<
-  SharedContext,
+  AuthenticatedUserContext,
   string,
   {
     in: {
-      param: z.input<typeof eventTypeParamSchemaWithTeamId>;
+      param: z.input<typeof eventTypeParamSchema>;
     };
     out: {
-      param: z.infer<typeof eventTypeParamSchemaWithTeamId>;
+      param: z.infer<typeof eventTypeParamSchema>;
     };
   }
 >;
