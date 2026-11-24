@@ -76,9 +76,12 @@ describe("an authorization request", () => {
     expect(await parse({ ...valid, resource: ["https://api.example.com/"] })).toMatchObject({ error: "invalid_target" });
   });
 
-  test("accepts this API as the resource", async () => {
+  test("accepts this API and its MCP server as the resource", async () => {
     expect(await parse({ ...valid, resource: ["https://recommand.example.com/api"] })).toMatchObject({
       request: { resources: ["https://recommand.example.com/api"] },
+    });
+    expect(await parse({ ...valid, resource: ["https://recommand.example.com/mcp"] })).toMatchObject({
+      request: { resources: ["https://recommand.example.com/mcp"] },
     });
   });
 
