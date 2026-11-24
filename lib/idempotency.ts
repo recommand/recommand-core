@@ -24,14 +24,14 @@ const MAX_KEY_LENGTH = 255;
 
 /**
  * The key a request names, or `null` when it isn't one. The IETF draft defines the
- * header as a Structured Field String, which is quoted (`Idempotency-Key` draft 08,
+ * header as a Structured Field String, which is quoted (`Idempotency-Key` draft 09,
  * section 2.1), while most clients send the key bare, so both are accepted and mean
  * the same key. A key is 1 to 255 printable ASCII characters, such as a UUID or the
  * client's own document ID. A bare key can't contain a comma: the header sent twice
  * arrives as both values joined by one.
  *
  * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Idempotency-Key
- * @see https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-08#section-2.1
+ * @see https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-09#section-2.1
  */
 export const parseIdempotencyKey = (header: string): string | null => {
   const value = header.trim();
@@ -107,7 +107,10 @@ export type IdempotencyOptions = {
   /**
    * The documentation on retrying the route with a key, which an answer about a key
    * used wrongly links to with `Link: <…>; rel="describedby"`, as the IETF draft asks
-   * (`Idempotency-Key` draft 08, section 2.7).
+   * (`Idempotency-Key` draft 09, section 2.7).
+   *
+   * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Idempotency-Key
+   * @see https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-09#section-2.7
    */
   documentationUrl: string;
   /**
@@ -176,7 +179,7 @@ const storeOutcome = async (c: Context, id: string) => {
 
 /**
  * Makes a route safe to retry with the `Idempotency-Key` header (`Idempotency-Key`
- * draft 08, sections 2.6 and 2.7): a request that names a key runs once, and a repeat
+ * draft 09, sections 2.6 and 2.7): a request that names a key runs once, and a repeat
  * of it gets the first response back instead of running again. It goes after
  * authentication and input validation, so a replay is still authorized and a request
  * with invalid input never reserves its key.
@@ -204,8 +207,10 @@ const storeOutcome = async (c: Context, id: string) => {
  * Without the header, or with an empty one, the route runs as it always did.
  *
  * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Idempotency-Key
- * @see https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-08#section-2.6
- * @see https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-08#section-2.7
+ * @see https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-09#section-2.1
+ * @see https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-09#section-2.2
+ * @see https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-09#section-2.6
+ * @see https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-09#section-2.7
  */
 export const idempotent = (options: IdempotencyOptions) =>
   createMiddleware<IdempotentContext>(async (c, next) => {
@@ -388,12 +393,12 @@ export const describeIdempotencyConflictResponse = () => {
  * The `422` of an idempotent route: the route's own `422`, described by `bodySchema`,
  * or an `Idempotency-Key` already used for a different request, with code
  * `idempotency_conflict` and a `Link` to the documentation. The IETF draft answers that
- * with `422` (`Idempotency-Key` draft 08, section 2.7), so a route that answers `422`
+ * with `422` (`Idempotency-Key` draft 09, section 2.7), so a route that answers `422`
  * itself tells the two apart by `code`. The route's own `422` is kept with the key and
  * replayed like a success, with the same response headers.
  *
  * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Idempotency-Key
- * @see https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-08#section-2.7
+ * @see https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-09#section-2.7
  */
 export const describeIdempotentUnprocessableResponse = (
   description: string,
