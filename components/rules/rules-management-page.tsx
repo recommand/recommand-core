@@ -118,7 +118,7 @@ export function RulesManagementPage({
       const teamPath = `/${activeTeam.id}`;
       const [rulesJson, eventTypesJson] = await Promise.all([
         requestJson(`${teamPath}/rules`),
-        requestJson(`${teamPath}/event-types`),
+        requestJson("/event-types"),
       ]);
 
       if (!rulesJson.success) {
